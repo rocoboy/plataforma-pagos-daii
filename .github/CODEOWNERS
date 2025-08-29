@@ -1,0 +1,13 @@
+# Code owners for different parts of the repository
+
+# Web application
+/apps/web/ @frontend-team
+
+# API
+/apps/api/ @backend-team
+
+# Shared packages
+/packages/ @core-team
+
+# Infrastructure
+/infra/ @devops-team
