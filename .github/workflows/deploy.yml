@@ -1,7 +1,6 @@
-name: Deploy to Vercel
-
+name: CI Build (no deploy)
 on:
-  push:
+  pull_request:
     branches: [develop, main]
 
 jobs:
@@ -16,92 +15,39 @@ jobs:
         id: filter
         with:
           filters: |
-            web:
-              - 'apps/web/**'
-              - 'packages/**'
-            api:
-              - 'apps/api/**'
-              - 'packages/**'
+            web: ['apps/web/**','packages/**']
+            api: ['apps/api/**','packages/**']
 
-  deploy-web:
+  build-web:
     needs: changes
     if: ${{ needs.changes.outputs.web == 'true' }}
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/web
+    defaults: { run: { working-directory: apps/web } }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
       - run: npm ci
+      - name: Pull env (preview)            # para PR usamos env de Preview
+        run: npx vercel pull --yes --environment=preview \
+              --token ${{ secrets.VERCEL_TOKEN }} \
+              --project ${{ secrets.VERCEL_WEB_PROJECT_ID }}
+      - name: Build (dry-run)
+        run: npx vercel build --token ${{ secrets.VERCEL_TOKEN }}
 
-      # Trae config/vars desde Vercel (Preview o Production según la rama)
-      - name: Vercel pull env
-        run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            npx vercel pull --yes --environment=production --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
-          else
-            npx vercel pull --yes --environment=preview --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
-          fi
-
-      - name: Build
-        run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            npx vercel build --prod --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
-          else
-            npx vercel build --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
-          fi
-
-      - name: Deploy
-        run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            npx vercel deploy --prebuilt --prod \
-              --project ${{ secrets.VERCEL_WEB_PROJECT_ID }} \
-              --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
-          else
-            npx vercel deploy --prebuilt \
-              --project ${{ secrets.VERCEL_WEB_PROJECT_ID }} \
-              --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
-          fi
-
-  deploy-api:
+  build-api:
     needs: changes
     if: ${{ needs.changes.outputs.api == 'true' }}
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/api
+    defaults: { run: { working-directory: apps/api } }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
       - run: npm ci
-
-      - name: Vercel pull env
-        run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            npx vercel pull --yes --environment=production --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
-          else
-            npx vercel pull --yes --environment=preview --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
-          fi
-
-      - name: Build
-        run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            npx vercel build --prod --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
-          else
-            npx vercel build --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
-          fi
-
-      - name: Deploy
-        run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            npx vercel deploy --prebuilt --prod \
-              --project ${{ secrets.VERCEL_API_PROJECT_ID }} \
-              --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
-          else
-            npx vercel deploy --prebuilt \
-              --project ${{ secrets.VERCEL_API_PROJECT_ID }} \
-              --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
-          fi
+      - name: Pull env (preview)
+        run: npx vercel pull --yes --environment=preview \
+              --token ${{ secrets.VERCEL_TOKEN }} \
+              --project ${{ secrets.VERCEL_API_PROJECT_ID }}
+      - name: Build (dry-run)
+        run: npx vercel build --token ${{ secrets.VERCEL_TOKEN }}
