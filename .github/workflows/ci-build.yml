@@ -1,0 +1,84 @@
+name: CI Build (no deploy)
+
+on:
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      api: ${{ steps.filter.outputs.api }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            web:
+              - 'apps/web/**'
+              - 'packages/**'
+            api:
+              - 'apps/api/**'
+              - 'packages/**'
+
+  build-web:
+    needs: changes
+    if: ${{ needs.changes.outputs.web == 'true' }}
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/web } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+
+      # Si el PR es del mismo repo, usamos vercel build (con pull preview)
+      - name: Export Vercel env
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
+          echo "VERCEL_PROJECT_ID=${{ secrets.VERCEL_WEB_PROJECT_ID }}" >> $GITHUB_ENV
+
+      - name: Vercel pull (preview)
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        run: npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID"
+
+      - name: Build (vercel)
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        run: npx vercel build --token "$VERCEL_TOKEN"
+
+      # Si el PR viene de un fork (sin secrets), hacemos un build local
+      - name: Build (fallback sin secrets)
+        if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+        run: npm run build
+
+  build-api:
+    needs: changes
+    if: ${{ needs.changes.outputs.api == 'true' }}
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/api } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+
+      - name: Export Vercel env
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
+          echo "VERCEL_PROJECT_ID=${{ secrets.VERCEL_API_PROJECT_ID }}" >> $GITHUB_ENV
+
+      - name: Vercel pull (preview)
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        run: npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID"
+
+      - name: Build (vercel)
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        run: npx vercel build --token "$VERCEL_TOKEN"
+
+      - name: Build (fallback sin secrets)
+        if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+        run: npm run build
