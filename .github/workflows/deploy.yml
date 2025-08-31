@@ -20,27 +20,42 @@ jobs:
             web:
               - 'apps/web/**'
               - 'packages/**'
+              - 'pnpm-lock.yaml'
             api:
               - 'apps/api/**'
               - 'packages/**'
+              - 'pnpm-lock.yaml'
 
   deploy-web:
     needs: changes
     if: ${{ needs.changes.outputs.web == 'true' }}
     runs-on: ubuntu-latest
     concurrency: { group: 'deploy-web', cancel-in-progress: true }
-    defaults: { run: { working-directory: apps/web } }
     steps:
       - uses: actions/checkout@v4
+
+      # pnpm setup
+      - run: corepack enable
       - uses: actions/setup-node@v4
-        with: { node-version: '20' }
-      - run: npm ci
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - name: Install dependencies (root)
+        run: pnpm install --frozen-lockfile
 
-      - name: Export Vercel token
-        run: echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
+      # Preparar binding de proyecto (sin commitear .vercel)
+      - name: Create .vercel/project.json (web)
+        working-directory: apps/web
+        run: |
+          rm -rf .vercel
+          mkdir -p .vercel
+          cat > .vercel/project.json << JSON
+          { "orgId": "${{ secrets.VERCEL_ORG_ID }}", "projectId": "${{ secrets.VERCEL_WEB_PROJECT_ID }}" }
+          JSON
+          echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
 
-      # Usa el .vercel/project.json del directorio para resolver el proyecto
       - name: Vercel pull (preview/prod)
+        working-directory: apps/web
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             npx vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
@@ -49,6 +64,7 @@ jobs:
           fi
 
       - name: Build
+        working-directory: apps/web
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             npx vercel build --prod --token "$VERCEL_TOKEN"
@@ -57,6 +73,7 @@ jobs:
           fi
 
       - name: Deploy
+        working-directory: apps/web
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             npx vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN"
@@ -69,17 +86,30 @@ jobs:
     if: ${{ needs.changes.outputs.api == 'true' }}
     runs-on: ubuntu-latest
     concurrency: { group: 'deploy-api', cancel-in-progress: true }
-    defaults: { run: { working-directory: apps/api } }
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20' }
-      - run: npm ci
 
-      - name: Export Vercel token
-        run: echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
+      # pnpm setup
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - name: Install dependencies (root)
+        run: pnpm install --frozen-lockfile
+
+      - name: Create .vercel/project.json (api)
+        working-directory: apps/api
+        run: |
+          rm -rf .vercel
+          mkdir -p .vercel
+          cat > .vercel/project.json << JSON
+          { "orgId": "${{ secrets.VERCEL_ORG_ID }}", "projectId": "${{ secrets.VERCEL_API_PROJECT_ID }}" }
+          JSON
+          echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
 
       - name: Vercel pull (preview/prod)
+        working-directory: apps/api
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             npx vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
@@ -88,6 +118,7 @@ jobs:
           fi
 
       - name: Build
+        working-directory: apps/api
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             npx vercel build --prod --token "$VERCEL_TOKEN"
@@ -96,6 +127,7 @@ jobs:
           fi
 
       - name: Deploy
+        working-directory: apps/api
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             npx vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN"

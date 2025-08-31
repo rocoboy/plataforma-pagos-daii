@@ -20,62 +20,94 @@ jobs:
             web:
               - 'apps/web/**'
               - 'packages/**'
+              - 'pnpm-lock.yaml'
             api:
               - 'apps/api/**'
               - 'packages/**'
+              - 'pnpm-lock.yaml'
 
   build-web:
     needs: changes
     if: ${{ needs.changes.outputs.web == 'true' }}
     runs-on: ubuntu-latest
-    defaults: { run: { working-directory: apps/web } }
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20' }
-      - run: npm ci
 
-      # PR desde mismo repo → podemos usar vercel pull/build (con secrets)
-      - name: Export Vercel token
+      # pnpm setup
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - name: Install dependencies (root)
+        run: pnpm install --frozen-lockfile
+
+      # PR del mismo repo → vercel build con env de preview
+      - name: Prepare Vercel project binding (web)
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-        run: echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
+        working-directory: apps/web
+        run: |
+          rm -rf .vercel
+          mkdir -p .vercel
+          cat > .vercel/project.json << JSON
+          { "orgId": "${{ secrets.VERCEL_ORG_ID }}", "projectId": "${{ secrets.VERCEL_WEB_PROJECT_ID }}" }
+          JSON
+          echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
 
       - name: Vercel pull (preview)
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        working-directory: apps/web
         run: npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
 
       - name: Build (vercel)
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        working-directory: apps/web
         run: npx vercel build --token "$VERCEL_TOKEN"
 
       # PR desde fork (sin secrets) → build local “seco”
       - name: Build (fallback sin secrets)
         if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
-        run: npm run build
+        working-directory: apps/web
+        run: pnpm run build
 
   build-api:
     needs: changes
     if: ${{ needs.changes.outputs.api == 'true' }}
     runs-on: ubuntu-latest
-    defaults: { run: { working-directory: apps/api } }
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20' }
-      - run: npm ci
 
-      - name: Export Vercel token
+      # pnpm setup
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - name: Install dependencies (root)
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare Vercel project binding (api)
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-        run: echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
+        working-directory: apps/api
+        run: |
+          rm -rf .vercel
+          mkdir -p .vercel
+          cat > .vercel/project.json << JSON
+          { "orgId": "${{ secrets.VERCEL_ORG_ID }}", "projectId": "${{ secrets.VERCEL_API_PROJECT_ID }}" }
+          JSON
+          echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
 
       - name: Vercel pull (preview)
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        working-directory: apps/api
         run: npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
 
       - name: Build (vercel)
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        working-directory: apps/api
         run: npx vercel build --token "$VERCEL_TOKEN"
 
       - name: Build (fallback sin secrets)
         if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
-        run: npm run build
+        working-directory: apps/api
+        run: pnpm run build
