@@ -20,11 +20,11 @@ jobs:
             web:
               - 'apps/web/**'
               - 'packages/**'
-              - 'pnpm-lock.yaml'
+              - 'apps/web/pnpm-lock.yaml'
             api:
               - 'apps/api/**'
               - 'packages/**'
-              - 'pnpm-lock.yaml'
+              - 'apps/api/pnpm-lock.yaml'
 
   build-web:
     needs: changes
@@ -33,16 +33,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # pnpm setup
+      # pnpm setup (web)
       - run: corepack enable
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-      - name: Install dependencies (root)
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - name: Install deps (web)
+        working-directory: apps/web
         run: pnpm install --frozen-lockfile
 
-      # PR del mismo repo → vercel build con env de preview
+      # PR desde mismo repo → vercel build (usa secrets)
       - name: Prepare Vercel project binding (web)
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         working-directory: apps/web
@@ -64,7 +66,7 @@ jobs:
         working-directory: apps/web
         run: npx vercel build --token "$VERCEL_TOKEN"
 
-      # PR desde fork (sin secrets) → build local “seco”
+      # PR desde fork → build “seco” sin secrets
       - name: Build (fallback sin secrets)
         if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
         working-directory: apps/web
@@ -77,13 +79,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # pnpm setup
+      # pnpm setup (api)
       - run: corepack enable
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-      - name: Install dependencies (root)
+          cache-dependency-path: apps/api/pnpm-lock.yaml
+      - name: Install deps (api)
+        working-directory: apps/api
         run: pnpm install --frozen-lockfile
 
       - name: Prepare Vercel project binding (api)

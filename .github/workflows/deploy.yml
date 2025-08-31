@@ -20,11 +20,11 @@ jobs:
             web:
               - 'apps/web/**'
               - 'packages/**'
-              - 'pnpm-lock.yaml'
+              - 'apps/web/pnpm-lock.yaml'
             api:
               - 'apps/api/**'
               - 'packages/**'
-              - 'pnpm-lock.yaml'
+              - 'apps/api/pnpm-lock.yaml'
 
   deploy-web:
     needs: changes
@@ -34,16 +34,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # pnpm setup
+      # pnpm setup (web)
       - run: corepack enable
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-      - name: Install dependencies (root)
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - name: Install deps (web)
+        working-directory: apps/web
         run: pnpm install --frozen-lockfile
 
-      # Preparar binding de proyecto (sin commitear .vercel)
+      # Vincula el proyecto Vercel sin commitear .vercel
       - name: Create .vercel/project.json (web)
         working-directory: apps/web
         run: |
@@ -63,7 +65,7 @@ jobs:
             npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
           fi
 
-      - name: Build
+      - name: Build (vercel)
         working-directory: apps/web
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
@@ -72,7 +74,7 @@ jobs:
             npx vercel build --token "$VERCEL_TOKEN"
           fi
 
-      - name: Deploy
+      - name: Deploy (vercel)
         working-directory: apps/web
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
@@ -89,13 +91,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # pnpm setup
+      # pnpm setup (api)
       - run: corepack enable
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-      - name: Install dependencies (root)
+          cache-dependency-path: apps/api/pnpm-lock.yaml
+      - name: Install deps (api)
+        working-directory: apps/api
         run: pnpm install --frozen-lockfile
 
       - name: Create .vercel/project.json (api)
@@ -117,7 +121,7 @@ jobs:
             npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
           fi
 
-      - name: Build
+      - name: Build (vercel)
         working-directory: apps/api
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
@@ -126,11 +130,9 @@ jobs:
             npx vercel build --token "$VERCEL_TOKEN"
           fi
 
-      - name: Deploy
+      - name: Deploy (vercel)
         working-directory: apps/api
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             npx vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN"
           else
-            npx vercel deploy --prebuilt --token "$VERCEL_TOKEN"
-          fi
