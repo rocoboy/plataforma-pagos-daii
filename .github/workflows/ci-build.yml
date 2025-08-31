@@ -44,12 +44,11 @@ jobs:
         working-directory: apps/web
         run: pnpm install --frozen-lockfile
 
-      # Sólo para PRs del mismo repo: usar vercel pull/build (requiere secrets)
+      # Sólo si es PR desde el mismo repo → vercel build
       - name: Export Vercel envs (web)
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
           echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
-          echo "VERCEL_ORG_ID=${{ secrets.VERCEL_ORG_ID }}" >> $GITHUB_ENV
           echo "VERCEL_PROJECT_ID=${{ secrets.VERCEL_WEB_PROJECT_ID }}" >> $GITHUB_ENV
 
       - name: Ensure no .vercel dir (web)
@@ -62,7 +61,6 @@ jobs:
         working-directory: apps/web
         env:
           VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
         run: npx vercel pull --yes --environment=preview
 
@@ -71,11 +69,10 @@ jobs:
         working-directory: apps/web
         env:
           VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
         run: npx vercel build
 
-      # PR desde fork → build “seco” sin secrets
+      # PR desde fork → build sin secrets
       - name: Build (fallback sin secrets)
         if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
         working-directory: apps/web
@@ -103,7 +100,6 @@ jobs:
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
           echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
-          echo "VERCEL_ORG_ID=${{ secrets.VERCEL_ORG_ID }}" >> $GITHUB_ENV
           echo "VERCEL_PROJECT_ID=${{ secrets.VERCEL_API_PROJECT_ID }}" >> $GITHUB_ENV
 
       - name: Ensure no .vercel dir (api)
@@ -116,7 +112,6 @@ jobs:
         working-directory: apps/api
         env:
           VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
         run: npx vercel pull --yes --environment=preview
 
@@ -125,7 +120,6 @@ jobs:
         working-directory: apps/api
         env:
           VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
         run: npx vercel build
 
