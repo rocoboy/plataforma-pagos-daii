@@ -1,70 +1,107 @@
 name: Deploy to Vercel
 
 on:
-  pull_request:
-    branches:
-      - develop
-      - main
+  push:
+    branches: [develop, main]
 
 jobs:
-  deploy-api:
-    if: contains(github.event.pull_request.changed_files, 'apps/api/')
+  changes:
     runs-on: ubuntu-latest
-
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      api: ${{ steps.filter.outputs.api }}
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '16'
-
-    - name: Install dependencies
-      run: |
-        cd apps/api
-        npm install
-
-    - name: Set Vercel Token
-      run: |
-        if [ "${{ github.ref }}" == "refs/heads/develop" ]; then
-          echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN_PREPROD }}" >> $GITHUB_ENV
-        else
-          echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN_PROD }}" >> $GITHUB_ENV
-        fi
-
-    - name: Deploy API to Vercel
-      run: |
-        npm install -g vercel
-        vercel --prod --token $VERCEL_TOKEN
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            web:
+              - 'apps/web/**'
+              - 'packages/**'
+            api:
+              - 'apps/api/**'
+              - 'packages/**'
 
   deploy-web:
-    if: contains(github.event.pull_request.changed_files, 'apps/web/')
+    needs: changes
+    if: ${{ needs.changes.outputs.web == 'true' }}
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: apps/web
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '16'
+      # Trae config/vars desde Vercel (Preview o Production según la rama)
+      - name: Vercel pull env
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            npx vercel pull --yes --environment=production --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
+          else
+            npx vercel pull --yes --environment=preview --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
+          fi
 
-    - name: Install dependencies
-      run: |
-        cd apps/web
-        npm install
+      - name: Build
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            npx vercel build --prod --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
+          else
+            npx vercel build --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
+          fi
 
-    - name: Set Vercel Token
-      run: |
-        if [ "${{ github.ref }}" == "refs/heads/develop" ]; then
-          echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN_PREPROD }}" >> $GITHUB_ENV
-        else
-          echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN_PROD }}" >> $GITHUB_ENV
-        fi
+      - name: Deploy
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            npx vercel deploy --prebuilt --prod \
+              --project ${{ secrets.VERCEL_WEB_PROJECT_ID }} \
+              --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
+          else
+            npx vercel deploy --prebuilt \
+              --project ${{ secrets.VERCEL_WEB_PROJECT_ID }} \
+              --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
+          fi
 
-    - name: Deploy Web to Vercel
-      run: |
-        npm install -g vercel
-        vercel --prod --token $VERCEL_TOKEN
+  deploy-api:
+    needs: changes
+    if: ${{ needs.changes.outputs.api == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+
+      - name: Vercel pull env
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            npx vercel pull --yes --environment=production --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
+          else
+            npx vercel pull --yes --environment=preview --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
+          fi
+
+      - name: Build
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            npx vercel build --prod --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
+          else
+            npx vercel build --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
+          fi
+
+      - name: Deploy
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            npx vercel deploy --prebuilt --prod \
+              --project ${{ secrets.VERCEL_API_PROJECT_ID }} \
+              --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
+          else
+            npx vercel deploy --prebuilt \
+              --project ${{ secrets.VERCEL_API_PROJECT_ID }} \
+              --token ${{ secrets.VERCEL_TOKEN }} --scope ${{ secrets.VERCEL_ORG_ID }}
+          fi

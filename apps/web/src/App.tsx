@@ -16,7 +16,7 @@ function App() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          Hola mundo
+          Hola ski
         </a>
       </header>
     </div>
