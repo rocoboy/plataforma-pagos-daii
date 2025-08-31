@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: CI Build (no deploy)
 
 on:
@@ -34,22 +35,20 @@ jobs:
         with: { node-version: '20' }
       - run: npm ci
 
-      # Si el PR es del mismo repo, usamos vercel build (con pull preview)
-      - name: Export Vercel env
+      # PR desde mismo repo → podemos usar vercel pull/build (con secrets)
+      - name: Export Vercel token
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
-          echo "VERCEL_PROJECT_ID=${{ secrets.VERCEL_WEB_PROJECT_ID }}" >> $GITHUB_ENV
+        run: echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
 
       - name: Vercel pull (preview)
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-        run: npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID"
+        run: npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
 
       - name: Build (vercel)
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         run: npx vercel build --token "$VERCEL_TOKEN"
 
-      # Si el PR viene de un fork (sin secrets), hacemos un build local
+      # PR desde fork (sin secrets) → build local “seco”
       - name: Build (fallback sin secrets)
         if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
         run: npm run build
@@ -65,15 +64,13 @@ jobs:
         with: { node-version: '20' }
       - run: npm ci
 
-      - name: Export Vercel env
+      - name: Export Vercel token
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
-          echo "VERCEL_PROJECT_ID=${{ secrets.VERCEL_API_PROJECT_ID }}" >> $GITHUB_ENV
+        run: echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
 
       - name: Vercel pull (preview)
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-        run: npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID"
+        run: npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
 
       - name: Build (vercel)
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}

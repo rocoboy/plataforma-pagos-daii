@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Deploy to Vercel
 
 on:
@@ -35,17 +36,16 @@ jobs:
         with: { node-version: '20' }
       - run: npm ci
 
-      - name: Export Vercel env
-        run: |
-          echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
-          echo "VERCEL_PROJECT_ID=${{ secrets.VERCEL_WEB_PROJECT_ID }}" >> $GITHUB_ENV
+      - name: Export Vercel token
+        run: echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
 
+      # Usa el .vercel/project.json del directorio para resolver el proyecto
       - name: Vercel pull (preview/prod)
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-            npx vercel pull --yes --environment=production --token "$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID"
+            npx vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
           else
-            npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID"
+            npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
           fi
 
       - name: Build
@@ -59,9 +59,9 @@ jobs:
       - name: Deploy
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-            npx vercel deploy --prebuilt --prod --project "$VERCEL_PROJECT_ID" --token "$VERCEL_TOKEN"
+            npx vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN"
           else
-            npx vercel deploy --prebuilt --project "$VERCEL_PROJECT_ID" --token "$VERCEL_TOKEN"
+            npx vercel deploy --prebuilt --token "$VERCEL_TOKEN"
           fi
 
   deploy-api:
@@ -76,17 +76,15 @@ jobs:
         with: { node-version: '20' }
       - run: npm ci
 
-      - name: Export Vercel env
-        run: |
-          echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
-          echo "VERCEL_PROJECT_ID=${{ secrets.VERCEL_API_PROJECT_ID }}" >> $GITHUB_ENV
+      - name: Export Vercel token
+        run: echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
 
       - name: Vercel pull (preview/prod)
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-            npx vercel pull --yes --environment=production --token "$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID"
+            npx vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
           else
-            npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID"
+            npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
           fi
 
       - name: Build
@@ -100,7 +98,7 @@ jobs:
       - name: Deploy
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-            npx vercel deploy --prebuilt --prod --project "$VERCEL_PROJECT_ID" --token "$VERCEL_TOKEN"
+            npx vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN"
           else
-            npx vercel deploy --prebuilt --project "$VERCEL_PROJECT_ID" --token "$VERCEL_TOKEN"
+            npx vercel deploy --prebuilt --token "$VERCEL_TOKEN"
           fi
