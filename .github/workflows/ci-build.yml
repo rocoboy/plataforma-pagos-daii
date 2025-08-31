@@ -44,35 +44,22 @@ jobs:
         working-directory: apps/web
         run: pnpm install --frozen-lockfile
 
-      # Sólo si es PR desde el mismo repo → vercel build
-      - name: Export Vercel envs (web)
-        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
-          echo "VERCEL_PROJECT_ID=${{ secrets.VERCEL_WEB_PROJECT_ID }}" >> $GITHUB_ENV
-
-      - name: Ensure no .vercel dir (web)
-        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-        working-directory: apps/web
-        run: rm -rf .vercel
-
       - name: Vercel pull (preview)
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         working-directory: apps/web
         env:
-          VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
         run: npx vercel pull --yes --environment=preview
 
       - name: Build (vercel)
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         working-directory: apps/web
         env:
-          VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
         run: npx vercel build
 
-      # PR desde fork → build sin secrets
       - name: Build (fallback sin secrets)
         if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
         working-directory: apps/web
@@ -96,31 +83,20 @@ jobs:
         working-directory: apps/api
         run: pnpm install --frozen-lockfile
 
-      - name: Export Vercel envs (api)
-        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-        run: |
-          echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
-          echo "VERCEL_PROJECT_ID=${{ secrets.VERCEL_API_PROJECT_ID }}" >> $GITHUB_ENV
-
-      - name: Ensure no .vercel dir (api)
-        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-        working-directory: apps/api
-        run: rm -rf .vercel
-
       - name: Vercel pull (preview)
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         working-directory: apps/api
         env:
-          VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
         run: npx vercel pull --yes --environment=preview
 
       - name: Build (vercel)
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         working-directory: apps/api
         env:
-          VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
         run: npx vercel build
 
       - name: Build (fallback sin secrets)

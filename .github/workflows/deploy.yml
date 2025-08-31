@@ -45,21 +45,11 @@ jobs:
         working-directory: apps/web
         run: pnpm install --frozen-lockfile
 
-      # Export envs para Vercel (token + project id)
-      - name: Export Vercel envs (web)
-        run: |
-          echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
-          echo "VERCEL_PROJECT_ID=${{ secrets.VERCEL_WEB_PROJECT_ID }}" >> $GITHUB_ENV
-
-      - name: Ensure no .vercel dir (web)
-        working-directory: apps/web
-        run: rm -rf .vercel
-
       - name: Vercel pull (preview/prod)
         working-directory: apps/web
         env:
-          VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             npx vercel pull --yes --environment=production
@@ -70,8 +60,8 @@ jobs:
       - name: Build (vercel)
         working-directory: apps/web
         env:
-          VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             npx vercel build --prod
@@ -82,8 +72,8 @@ jobs:
       - name: Deploy (vercel)
         working-directory: apps/web
         env:
-          VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             npx vercel deploy --prebuilt --prod
@@ -110,20 +100,11 @@ jobs:
         working-directory: apps/api
         run: pnpm install --frozen-lockfile
 
-      - name: Export Vercel envs (api)
-        run: |
-          echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
-          echo "VERCEL_PROJECT_ID=${{ secrets.VERCEL_API_PROJECT_ID }}" >> $GITHUB_ENV
-
-      - name: Ensure no .vercel dir (api)
-        working-directory: apps/api
-        run: rm -rf .vercel
-
       - name: Vercel pull (preview/prod)
         working-directory: apps/api
         env:
-          VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             npx vercel pull --yes --environment=production
@@ -134,8 +115,8 @@ jobs:
       - name: Build (vercel)
         working-directory: apps/api
         env:
-          VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             npx vercel build --prod
@@ -146,8 +127,8 @@ jobs:
       - name: Deploy (vercel)
         working-directory: apps/api
         env:
-          VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             npx vercel deploy --prebuilt --prod
