@@ -45,14 +45,13 @@ jobs:
         working-directory: apps/web
         run: pnpm install --frozen-lockfile
 
-      # Export envs para Vercel (sin .vercel/)
+      # Export envs para Vercel (token + ids)
       - name: Export Vercel envs (web)
         run: |
           echo "VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }}" >> $GITHUB_ENV
           echo "VERCEL_ORG_ID=${{ secrets.VERCEL_ORG_ID }}" >> $GITHUB_ENV
           echo "VERCEL_PROJECT_ID=${{ secrets.VERCEL_WEB_PROJECT_ID }}" >> $GITHUB_ENV
 
-      # Limpieza por las dudas
       - name: Ensure no .vercel dir (web)
         working-directory: apps/web
         run: rm -rf .vercel

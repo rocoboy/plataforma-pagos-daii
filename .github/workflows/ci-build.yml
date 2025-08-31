@@ -44,7 +44,7 @@ jobs:
         working-directory: apps/web
         run: pnpm install --frozen-lockfile
 
-      # Si el PR es del mismo repo, podemos usar vercel build (con env preview)
+      # Sólo para PRs del mismo repo: usar vercel pull/build (requiere secrets)
       - name: Export Vercel envs (web)
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
