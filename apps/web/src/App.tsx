@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import TransactionsScreen from './components/TransactionsScreen';
+import TransactionDetailScreen from './components/TransactionDetailScreen';
 import './App.css';
 
 // Create a client
@@ -15,25 +16,52 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  const [currentView, setCurrentView] = useState<'transactions' | 'detail'>('transactions');
+  const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
+
+  const handleViewDetail = (transactionId: string) => {
+    setSelectedTransactionId(transactionId);
+    setCurrentView('detail');
+  };
+
+  const handleBackToTransactions = () => {
+    setCurrentView('transactions');
+    setSelectedTransactionId(null);
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <div className="bg-white min-h-screen">
         {/* Header */}
         <header className="bg-white shadow-sm border-b border-gray-200">
-          <div className="container mx-auto px-6 py-4">
-            <h1 className="text-3xl font-bold text-gray-900">Desarrollo de Apps II - Grupo 7</h1>
-            <p className="text-gray-600 font-normal mt-2">Sistema de gestión de pagos - Módulo Pagos y Facturación</p>
+          <div className="px-6 py-4 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Desarrollo de Apps II - Grupo 7</h1>
+              <p className="text-gray-600 font-normal mt-2">Sistema de gestión de pagos - Módulo Pagos y Facturación</p>
+            </div>
+            <div className="flex items-center">
+              <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
+                En Desarrollo
+              </span>
+            </div>
           </div>
         </header>
 
         {/* Main Content */}
         <main>
-          <TransactionsScreen />
+          {currentView === 'transactions' ? (
+            <TransactionsScreen onViewDetail={handleViewDetail} />
+          ) : (
+            <TransactionDetailScreen 
+              transactionId={selectedTransactionId || undefined}
+              onBack={handleBackToTransactions}
+            />
+          )}
         </main>
 
         {/* Footer */}
         <footer className="bg-gray-900 text-white py-8 mt-12">
-          <div className="container mx-auto px-6 text-center">
+          <div className="px-6 text-center">
             <p className="font-medium">Plataforma de Pagos DAII - 2C2025</p>
             <p className="text-sm opacity-80 mt-2">Sistema de gestión de pagos para la asignatura</p>
           </div>
