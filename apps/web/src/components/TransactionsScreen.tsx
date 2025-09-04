@@ -1,83 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-
-// Types
-interface Transaction {
-  id: string;
-  reservationId: string;
-  destination: string;
-  airline: string;
-  purchaseDate: string;
-  status: 'confirmado' | 'pendiente' | 'cancelado';
-  amount: number;
-}
-
-// Mock data
-const mockTransactions: Transaction[] = [
-  {
-    id: '1',
-    reservationId: 'BKG123456',
-    destination: 'New York',
-    airline: 'Delta',
-    purchaseDate: '2025-09-01',
-    status: 'confirmado',
-    amount: 350.00
-  },
-  {
-    id: '2',
-    reservationId: 'BKG789012',
-    destination: 'Los Angeles',
-    airline: 'American Airlines',
-    purchaseDate: '2025-08-15',
-    status: 'pendiente',
-    amount: 420.00
-  },
-  {
-    id: '3',
-    reservationId: 'BKG345678',
-    destination: 'Chicago',
-    airline: 'United Airlines',
-    purchaseDate: '2025-07-23',
-    status: 'cancelado',
-    amount: 550.00
-  },
-  {
-    id: '4',
-    reservationId: 'BKG456789',
-    destination: 'Miami',
-    airline: 'Delta',
-    purchaseDate: '2025-09-02',
-    status: 'confirmado',
-    amount: 280.00
-  },
-  {
-    id: '5',
-    reservationId: 'BKG567890',
-    destination: 'Seattle',
-    airline: 'Alaska Airlines',
-    purchaseDate: '2025-08-20',
-    status: 'pendiente',
-    amount: 380.00
-  },
-  {
-    id: '6',
-    reservationId: 'BKG678901',
-    destination: 'Boston',
-    airline: 'JetBlue',
-    purchaseDate: '2025-09-03',
-    status: 'confirmado',
-    amount: 290.00
-  },
-  {
-    id: '7',
-    reservationId: 'BKG789013',
-    destination: 'San Francisco',
-    airline: 'United Airlines',
-    purchaseDate: '2025-08-28',
-    status: 'pendiente',
-    amount: 410.00
-  }
-];
+import jsPDF from 'jspdf';
+import { mockTransactions, mockTransactionDetails, Transaction, TransactionDetail } from '../data/mockData';
 
 // Status Badge Component
 const StatusBadge: React.FC<{ status: Transaction['status'] }> = ({ status }) => {
@@ -127,6 +51,7 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ onViewDetail })
   const [dateTo, setDateTo] = useState('');
   const [selectedAirline, setSelectedAirline] = useState('todas');
   const [selectedStatus, setSelectedStatus] = useState('todos');
+  const [generatingPDFs, setGeneratingPDFs] = useState<Set<string>>(new Set());
 
   // Fetch transactions using TanStack Query
   const { data: transactions = [], isLoading, error } = useQuery({
@@ -179,9 +104,105 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ onViewDetail })
     }
   };
 
-  const handleDownloadInvoice = (transactionId: string) => {
-    console.log('Download invoice for transaction:', transactionId);
-    // TODO: Implement download invoice functionality
+  const handleDownloadInvoice = async (transactionId: string) => {
+    const transactionDetail = mockTransactionDetails[transactionId];
+    if (!transactionDetail) {
+      console.error('Transaction detail not found for ID:', transactionId);
+      return;
+    }
+    
+    // Add to generating PDFs set
+    setGeneratingPDFs(prev => {
+      const newSet = new Set(prev);
+      newSet.add(transactionId);
+      return newSet;
+    });
+    
+    try {
+      // Add a small delay to show the loading state
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Create new PDF document
+      const doc = new jsPDF();
+      
+      // Set up fonts and colors
+      doc.setFont('helvetica');
+      
+      // Header
+      doc.setFontSize(20);
+      doc.setTextColor(80, 123, 216); // Primary color
+      doc.text('FACTURA DE VUELO', 20, 30);
+      
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      doc.text(`Fecha de emisión: ${new Date().toLocaleDateString('es-ES')}`, 20, 45);
+      
+      // Transaction Details Section
+      doc.setFontSize(16);
+      doc.setTextColor(80, 123, 216);
+      doc.text('DETALLES DE LA TRANSACCIÓN', 20, 65);
+      
+      doc.setFontSize(11);
+      doc.setTextColor(0, 0, 0);
+      let yPos = 80;
+      
+      doc.text(`ID Reserva: ${transactionDetail.reservationId}`, 20, yPos);
+      yPos += 10;
+      doc.text(`Fecha de Compra: ${transactionDetail.purchaseDate}`, 20, yPos);
+      yPos += 10;
+      doc.text(`Monto Total: $${transactionDetail.amount.toFixed(2)}`, 20, yPos);
+      yPos += 10;
+      doc.text(`Medio de Pago: ${transactionDetail.paymentMethod}`, 20, yPos);
+      yPos += 10;
+      doc.text(`Tarjeta: ${transactionDetail.cardNumber}`, 20, yPos);
+      
+      // Flight Details Section
+      yPos += 25;
+      doc.setFontSize(16);
+      doc.setTextColor(80, 123, 216);
+      doc.text('DETALLES DEL VUELO', 20, yPos);
+      
+      yPos += 15;
+      doc.setFontSize(11);
+      doc.setTextColor(0, 0, 0);
+      
+      doc.text(`Número de Vuelo: ${transactionDetail.flightNumber}`, 20, yPos);
+      yPos += 10;
+      doc.text(`Salida: ${transactionDetail.departure}`, 20, yPos);
+      yPos += 10;
+      doc.text(`Llegada: ${transactionDetail.arrival}`, 20, yPos);
+      yPos += 10;
+      doc.text(`Duración: ${transactionDetail.duration}`, 20, yPos);
+      yPos += 10;
+      doc.text(`Clase: ${transactionDetail.flightClass}`, 20, yPos);
+      
+      // Footer
+      yPos += 30;
+      doc.setFontSize(10);
+      doc.setTextColor(128, 128, 128);
+      doc.text('Plataforma de Pagos DAII - Sistema de Gestión de Pagos', 20, yPos);
+      doc.text('Desarrollo de Apps II - Grupo 7', 20, yPos + 8);
+      
+      // Add a border
+      doc.setDrawColor(80, 123, 216);
+      doc.setLineWidth(0.5);
+      doc.rect(15, 15, 180, yPos + 15);
+      
+      // Download the PDF
+      const fileName = `Factura_${transactionDetail.reservationId.replace('#', '')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
+      
+      console.log('Invoice downloaded:', fileName);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    } finally {
+      // Remove from generating PDFs set
+      setGeneratingPDFs(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(transactionId);
+        return newSet;
+      });
+    }
   };
 
   if (isLoading) {
@@ -379,9 +400,22 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ onViewDetail })
                       </button>
                       <button
                         onClick={() => handleDownloadInvoice(transaction.id)}
-                        className="bg-secondary text-secondary-foreground px-3 py-1 rounded text-body-sm hover:bg-foreground hover:text-background transition-colors"
+                        disabled={generatingPDFs.has(transaction.id)}
+                        className="bg-secondary text-secondary-foreground px-3 py-1 rounded text-body-sm hover:bg-foreground hover:text-background transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                       >
-                        Descargar Factura
+                        {generatingPDFs.has(transaction.id) ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                            <span className="text-xs">PDF...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span className="text-xs">Descargar Factura</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </td>
