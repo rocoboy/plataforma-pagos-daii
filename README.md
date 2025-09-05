@@ -23,8 +23,6 @@ Las variables de entorno necesarias para cada ambiente **deben ser solicitadas a
   - Ejemplo para `apps/web/.env.local`:
     ```env
     REACT_APP_API_URL=https://api-dev.example.com
-    REACT_APP_SUPABASE_URL=https://xyzcompanydev.supabase.co
-    REACT_APP_SUPABASE_KEY=... (solicitar al DevOps)
     ```
   - Ejemplo para `apps/api/.env.local`:
     ```env
