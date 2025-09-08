@@ -5,6 +5,9 @@ on:
   push:
     branches: [develop, main]
 
+permissions:
+  contents: read
+
 jobs:
   changes:
     runs-on: ubuntu-latest
@@ -31,21 +34,22 @@ jobs:
     if: ${{ needs.changes.outputs.web == 'true' }}
     runs-on: ubuntu-latest
     concurrency: { group: 'deploy-web', cancel-in-progress: true }
+    outputs:
+      url: ${{ steps.vercel-deploy-web.outputs.url }}
     steps:
       - uses: actions/checkout@v4
-
-      # pnpm (web)
       - run: corepack enable
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
           cache-dependency-path: apps/web/pnpm-lock.yaml
+
       - name: Install deps (web)
         working-directory: apps/web
         run: pnpm install --frozen-lockfile
 
-      - name: Vercel pull (preview/prod)
+      - name: Vercel pull
         working-directory: apps/web
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -54,59 +58,73 @@ jobs:
         run: |
           rm -rf .vercel
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-            npx vercel pull --yes --environment=production --token $VERCEL_TOKEN
+            npx vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
           else
-            npx vercel pull --yes --environment=preview --token $VERCEL_TOKEN
+            npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
           fi
 
       - name: Build (vercel)
         working-directory: apps/web
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-            npx vercel build --prod --token $VERCEL_TOKEN
+            npx vercel build --prod --token "$VERCEL_TOKEN"
           else
-            npx vercel build --token $VERCEL_TOKEN
+            npx vercel build --token "$VERCEL_TOKEN"
           fi
-        shell: bash
 
       - name: Deploy (vercel)
+        id: vercel-deploy-web
         working-directory: apps/web
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-            npx vercel deploy --prebuilt --prod --token $VERCEL_TOKEN
+            URL=$(npx vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" --confirm --no-clipboard | tail -n1)
           else
-            npx vercel deploy --prebuilt --token $VERCEL_TOKEN
+            URL=$(npx vercel deploy --prebuilt --token "$VERCEL_TOKEN" --confirm --no-clipboard | tail -n1)
           fi
-        shell: bash
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      # Alias branch -> URL definida (si existe y es dominio propio)
+      - name: Alias develop (web)
+        if: github.ref == 'refs/heads/develop' && vars.WEB_URL_PREPROD != '' && !contains(vars.WEB_URL_PREPROD, '.vercel.app')
+        working-directory: apps/web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          ALIAS: ${{ vars.WEB_URL_PREPROD }}
+        run: npx vercel alias set "${{ steps.vercel-deploy-web.outputs.url }}" "$ALIAS" --token "$VERCEL_TOKEN"
+
+      - name: Alias production (web)
+        if: github.ref == 'refs/heads/main' && vars.WEB_URL != '' && !contains(vars.WEB_URL, '.vercel.app')
+        working-directory: apps/web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          ALIAS: ${{ vars.WEB_URL }}
+        run: npx vercel alias set "${{ steps.vercel-deploy-web.outputs.url }}" "$ALIAS" --token "$VERCEL_TOKEN"
 
   deploy-api:
     needs: changes
     if: ${{ needs.changes.outputs.api == 'true' }}
     runs-on: ubuntu-latest
     concurrency: { group: 'deploy-api', cancel-in-progress: true }
+    outputs:
+      url: ${{ steps.vercel-deploy-api.outputs.url }}
     steps:
       - uses: actions/checkout@v4
-
-      # pnpm (api)
       - run: corepack enable
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
           cache-dependency-path: apps/api/pnpm-lock.yaml
+
       - name: Install deps (api)
         working-directory: apps/api
         run: pnpm install --frozen-lockfile
 
-      - name: Vercel pull (preview/prod)
+      - name: Vercel pull
         working-directory: apps/api
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -115,35 +133,104 @@ jobs:
         run: |
           rm -rf .vercel
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-            npx vercel pull --yes --environment=production --token $VERCEL_TOKEN
+            npx vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
           else
-            npx vercel pull --yes --environment=preview --token $VERCEL_TOKEN
+            npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
           fi
 
       - name: Build (vercel)
         working-directory: apps/api
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-            npx vercel build --prod --token $VERCEL_TOKEN
+            npx vercel build --prod --token "$VERCEL_TOKEN"
           else
-            npx vercel build --token $VERCEL_TOKEN
+            npx vercel build --token "$VERCEL_TOKEN"
           fi
-        shell: bash
 
       - name: Deploy (vercel)
+        id: vercel-deploy-api
         working-directory: apps/api
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-            npx vercel deploy --prebuilt --prod --token $VERCEL_TOKEN
+            URL=$(npx vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" --confirm --no-clipboard | tail -n1)
           else
-            npx vercel deploy --prebuilt --token $VERCEL_TOKEN
+            URL=$(npx vercel deploy --prebuilt --token "$VERCEL_TOKEN" --confirm --no-clipboard | tail -n1)
           fi
-        shell: bash
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Alias develop (api)
+        if: github.ref == 'refs/heads/develop' && vars.API_URL_PREPROD != '' && !contains(vars.API_URL_PREPROD, '.vercel.app')
+        working-directory: apps/api
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          ALIAS: ${{ vars.API_URL_PREPROD }}
+        run: npx vercel alias set "${{ steps.vercel-deploy-api.outputs.url }}" "$ALIAS" --token "$VERCEL_TOKEN"
+
+      - name: Alias production (api)
+        if: github.ref == 'refs/heads/main' && vars.API_URL != '' && !contains(vars.API_URL, '.vercel.app')
+        working-directory: apps/api
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          ALIAS: ${{ vars.API_URL }}
+        run: npx vercel alias set "${{ steps.vercel-deploy-api.outputs.url }}" "$ALIAS" --token "$VERCEL_TOKEN"
+
+  summary:
+    name: Resumen
+    needs: [changes, deploy-web, deploy-api]
+    if: ${{ always() }} 
+    runs-on: ubuntu-latest
+    steps:
+      - name: Armar resumen minimal según rama
+        env:
+          BRANCH: ${{ github.ref }}
+          WEB_CHANGED: ${{ needs.changes.outputs.web }}
+          API_CHANGED: ${{ needs.changes.outputs.api }}
+
+          WEB_URL: ${{ vars.WEB_URL }}
+          API_URL: ${{ vars.API_URL }}
+          WEB_URL_PREPROD: ${{ vars.WEB_URL_PREPROD }}
+          API_URL_PREPROD: ${{ vars.API_URL_PREPROD }}
+
+          WEB_DEPLOY_URL: ${{ needs.deploy-web.outputs.url }}
+          API_DEPLOY_URL: ${{ needs.deploy-api.outputs.url }}
+        run: |
+          # Extraer nombre de rama
+          if [ -n "$BRANCH" ]; then
+            branch="${BRANCH#refs/heads/}"
+          else
+            branch="unknown"
+          fi
+
+          # Estados por app
+          web_status="(no hubo cambios)"
+          api_status="(no hubo cambios)"
+          [ "$WEB_CHANGED" = "true" ] && web_status="(actualizado)"
+          [ "$API_CHANGED" = "true" ] && api_status="(actualizado)"
+
+          # Generar resumen
+          {
+            echo "## URLs de ${branch}"
+            echo ""
+            if [ "$branch" = "main" ]; then
+              echo "### Públicas"
+              echo "- **Web**: ${WEB_URL:-_no definida_} ${web_status}"
+              echo "- **API**: ${API_URL:-_no definida_} ${api_status}"
+            elif [ "$branch" = "develop" ]; then
+              echo "### Públicas (Preprod)"
+              echo "- **Web**: ${WEB_URL_PREPROD:-_no definida_} ${web_status}"
+              echo "- **API**: ${API_URL_PREPROD:-_no definida_} ${api_status}"
+            fi
+            echo ""
+            echo "### Internas Vercel (fallback)"
+            # Solo mostramos las internas si existen (o sea, si hubo deploy en esta corrida)
+            if [ -n "$WEB_DEPLOY_URL" ] || [ -n "$API_DEPLOY_URL" ]; then
+              [ -n "$WEB_DEPLOY_URL" ] && echo "- Web: $WEB_DEPLOY_URL"
+              [ -n "$API_DEPLOY_URL" ] && echo "- API: $API_DEPLOY_URL"
+            else
+              echo "_(sin nuevas internas en esta ejecución)_"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
