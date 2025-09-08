@@ -63,7 +63,7 @@ function App() {
         <footer className="bg-gray-900 text-white py-8 mt-12">
           <div className="px-6 text-center">
             <p className="font-medium">Plataforma de Pagos DAII - 2C2025</p>
-            <p className="text-sm opacity-80 mt-2">Sistema de gestión de pagos para la asignatura</p>
+            <p className="text-sm opacity-80 mt-2">Sistema de gestión de pagos</p>
           </div>
         </footer>
       </div>
