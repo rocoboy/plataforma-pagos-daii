@@ -5,6 +5,10 @@ on:
   push:
     branches: [develop, main]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   changes:
     runs-on: ubuntu-latest
@@ -35,9 +39,8 @@ jobs:
       url: ${{ steps.vercel-deploy-web.outputs.url }}
     steps:
       - uses: actions/checkout@v4
-
-      # pnpm (web)
       - run: corepack enable
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -66,33 +69,57 @@ jobs:
         working-directory: apps/web
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             npx vercel build --prod --token "$VERCEL_TOKEN"
           else
             npx vercel build --token "$VERCEL_TOKEN"
           fi
-        shell: bash
 
       - name: Deploy (vercel)
         id: vercel-deploy-web
         working-directory: apps/web
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             URL=$(npx vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" --confirm --no-clipboard | tail -n1)
           else
             URL=$(npx vercel deploy --prebuilt --token "$VERCEL_TOKEN" --confirm --no-clipboard | tail -n1)
           fi
-
           echo "Web app deployed to: $URL"
           echo "VERCEL_WEB_URL=$URL" >> "$GITHUB_ENV"
           echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      # Alias develop -> WEB_URL_PREPROD
+      - name: Alias develop (web)
+        if: github.ref == 'refs/heads/develop'
+        working-directory: apps/web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          ALIAS: ${{ vars.WEB_URL_PREPROD }}
+        run: |
+          if [ -n "$ALIAS" ]; then
+            echo "Setting alias $ALIAS -> ${{ steps.vercel-deploy-web.outputs.url }}"
+            npx vercel alias set "${{ steps.vercel-deploy-web.outputs.url }}" "$ALIAS" --token "$VERCEL_TOKEN"
+          else
+            echo "WEB_URL_PREPROD variable is empty. Skipping alias."
+          fi
+
+      # Alias main -> WEB_URL
+      - name: Alias production (web)
+        if: github.ref == 'refs/heads/main'
+        working-directory: apps/web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          ALIAS: ${{ vars.WEB_URL }}
+        run: |
+          if [ -n "$ALIAS" ]; then
+            echo "Setting alias $ALIAS -> ${{ steps.vercel-deploy-web.outputs.url }}"
+            npx vercel alias set "${{ steps.vercel-deploy-web.outputs.url }}" "$ALIAS" --token "$VERCEL_TOKEN"
+          else
+            echo "WEB_URL variable is empty. Skipping alias."
+          fi
 
   deploy-api:
     needs: changes
@@ -103,9 +130,8 @@ jobs:
       url: ${{ steps.vercel-deploy-api.outputs.url }}
     steps:
       - uses: actions/checkout@v4
-
-      # pnpm (api)
       - run: corepack enable
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -134,51 +160,171 @@ jobs:
         working-directory: apps/api
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             npx vercel build --prod --token "$VERCEL_TOKEN"
           else
             npx vercel build --token "$VERCEL_TOKEN"
           fi
-        shell: bash
 
       - name: Deploy (vercel)
         id: vercel-deploy-api
         working-directory: apps/api
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             URL=$(npx vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" --confirm --no-clipboard | tail -n1)
           else
             URL=$(npx vercel deploy --prebuilt --token "$VERCEL_TOKEN" --confirm --no-clipboard | tail -n1)
           fi
-
           echo "API deployed to: $URL"
           echo "VERCEL_API_URL=$URL" >> "$GITHUB_ENV"
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
-  post:
-    name: Summary
-    runs-on: ubuntu-latest
-    needs: [changes, deploy-web, deploy-api]
-    if: ${{ always() }} # Mostramos resumen incluso si solo deployó uno
-    steps:
-      - name: Write summary
+      # Alias develop -> API_URL_PREPROD
+      - name: Alias develop (api)
+        if: github.ref == 'refs/heads/develop'
+        working-directory: apps/api
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          ALIAS: ${{ vars.API_URL_PREPROD }}
         run: |
-          echo "## Deploy Summary" >> "$GITHUB_STEP_SUMMARY"
-          if [ "${{ needs.changes.outputs.web }}" = "true" ]; then
-            echo "- **Web**: ${{ needs.deploy-web.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$ALIAS" ]; then
+            echo "Setting alias $ALIAS -> ${{ steps.vercel-deploy-api.outputs.url }}"
+            npx vercel alias set "${{ steps.vercel-deploy-api.outputs.url }}" "$ALIAS" --token "$VERCEL_TOKEN"
           else
-            echo "- **Web**: _no hubo cambios_" >> "$GITHUB_STEP_SUMMARY"
+            echo "API_URL_PREPROD variable is empty. Skipping alias."
           fi
 
-          if [ "${{ needs.changes.outputs.api }}" = "true" ]; then
-            echo "- **API**: ${{ needs.deploy-api.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+      # Alias main -> API_URL
+      - name: Alias production (api)
+        if: github.ref == 'refs/heads/main'
+        working-directory: apps/api
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          ALIAS: ${{ vars.API_URL }}
+        run: |
+          if [ -n "$ALIAS" ]; then
+            echo "Setting alias $ALIAS -> ${{ steps.vercel-deploy-api.outputs.url }}"
+            npx vercel alias set "${{ steps.vercel-deploy-api.outputs.url }}" "$ALIAS" --token "$VERCEL_TOKEN"
           else
-            echo "- **API**: _no hubo cambios_" >> "$GITHUB_STEP_SUMMARY"
+            echo "API_URL variable is empty. Skipping alias."
           fi
+
+  publish:
+    name: Publicar URLs (summary + PR)
+    needs: [changes, deploy-web, deploy-api]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compute statuses and write summary
+        id: summary
+        env:
+          BRANCH: ${{ github.ref }}
+          WEB_CHANGED: ${{ needs.changes.outputs.web }}
+          API_CHANGED: ${{ needs.changes.outputs.api }}
+          # Aliases
+          WEB_PROD: ${{ vars.WEB_URL }}
+          WEB_PREPROD: ${{ vars.WEB_URL_PREPROD }}
+          API_PROD: ${{ vars.API_URL }}
+          API_PREPROD: ${{ vars.API_URL_PREPROD }}
+          # Latest deploy URLs (may be empty if that app no cambió)
+          WEB_DEPLOY_URL: ${{ needs.deploy-web.outputs.url }}
+          API_DEPLOY_URL: ${{ needs.deploy-api.outputs.url }}
+        run: |
+          branch="${BRANCH#refs/heads/}"
+
+          web_prod_status="(no hubo cambios)"
+          web_preprod_status="(no hubo cambios)"
+          api_prod_status="(no hubo cambios)"
+          api_preprod_status="(no hubo cambios)"
+
+          if [ "$branch" = "main" ]; then
+            [ "$WEB_CHANGED" = "true" ] && web_prod_status="(actualizado)"
+            [ "$API_CHANGED" = "true" ] && api_prod_status="(actualizado)"
+          elif [ "$branch" = "develop" ]; then
+            [ "$WEB_CHANGED" = "true" ] && web_preprod_status="(actualizado)"
+            [ "$API_CHANGED" = "true" ] && api_preprod_status="(actualizado)"
+          fi
+
+          # Fallbacks si no hay alias configurado: usar URL del deploy
+          WEB_PROD_DISPLAY="${WEB_PROD:-$WEB_DEPLOY_URL}"
+          WEB_PREPROD_DISPLAY="${WEB_PREPROD:-$WEB_DEPLOY_URL}"
+          API_PROD_DISPLAY="${API_PROD:-$API_DEPLOY_URL}"
+          API_PREPROD_DISPLAY="${API_PREPROD:-$API_DEPLOY_URL}"
+
+          echo "WEB_PROD_DISPLAY=$WEB_PROD_DISPLAY" >> $GITHUB_OUTPUT
+          echo "WEB_PREPROD_DISPLAY=$WEB_PREPROD_DISPLAY" >> $GITHUB_OUTPUT
+          echo "API_PROD_DISPLAY=$API_PROD_DISPLAY" >> $GITHUB_OUTPUT
+          echo "API_PREPROD_DISPLAY=$API_PREPROD_DISPLAY" >> $GITHUB_OUTPUT
+
+          echo "WEB_PROD_STATUS=$web_prod_status" >> $GITHUB_OUTPUT
+          echo "WEB_PREPROD_STATUS=$web_preprod_status" >> $GITHUB_OUTPUT
+          echo "API_PROD_STATUS=$api_prod_status" >> $GITHUB_OUTPUT
+          echo "API_PREPROD_STATUS=$api_preprod_status" >> $GITHUB_OUTPUT
+
+          {
+            echo "## Deploy URLs"
+            echo ""
+            echo "### Web"
+            echo "- **Prod**: ${WEB_PROD_DISPLAY} ${web_prod_status}"
+            echo "- **Preprod** (develop): ${WEB_PREPROD_DISPLAY} ${web_preprod_status}"
+            echo ""
+            echo "### API"
+            echo "- **Prod**: ${API_PROD_DISPLAY} ${api_prod_status}"
+            echo "- **Preprod** (develop): ${API_PREPROD_DISPLAY} ${api_preprod_status}"
+            echo ""
+            if [ -n "$WEB_DEPLOY_URL" ]; then echo "- Último deploy web: $WEB_DEPLOY_URL"; fi
+            if [ -n "$API_DEPLOY_URL" ]; then echo "- Último deploy API: $API_DEPLOY_URL"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on PR (if exists)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const sha = context.sha;
+
+            // Buscar PR asociado a este commit
+            const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({ owner, repo, commit_sha: sha });
+            if (!prs.data.length) {
+              core.info('No PR found for this commit. Skipping PR comment.');
+              return;
+            }
+            const pr = prs.data[0];
+
+            const body = [
+              '### 🚀 Deploy URLs',
+              '',
+              `**Web**`,
+              `- Prod: ${core.getInput('WEB_PROD_DISPLAY') || process.env.WEB_PROD_DISPLAY} ${core.getInput('WEB_PROD_STATUS') || process.env.WEB_PROD_STATUS}`,
+              `- Preprod (develop): ${core.getInput('WEB_PREPROD_DISPLAY') || process.env.WEB_PREPROD_DISPLAY} ${core.getInput('WEB_PREPROD_STATUS') || process.env.WEB_PREPROD_STATUS}`,
+              '',
+              `**API**`,
+              `- Prod: ${core.getInput('API_PROD_DISPLAY') || process.env.API_PROD_DISPLAY} ${core.getInput('API_PROD_STATUS') || process.env.API_PROD_STATUS}`,
+              `- Preprod (develop): ${core.getInput('API_PREPROD_DISPLAY') || process.env.API_PREPROD_DISPLAY} ${core.getInput('API_PREPROD_STATUS') || process.env.API_PREPROD_STATUS}`,
+              '',
+              '_Este comentario se actualiza en cada push._'
+            ].join('\n');
+
+            // Buscar si ya hay un comentario previo del bot para actualizarlo
+            const comments = await github.rest.issues.listComments({ owner, repo, issue_number: pr.number });
+            const marker = 'Deploy URLs';
+            const existing = comments.data.find(c => c.user?.type === 'Bot' && c.body?.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number: pr.number, body });
+            }
+        env:
+          WEB_PROD_DISPLAY: ${{ steps.summary.outputs.WEB_PROD_DISPLAY }}
+          WEB_PREPROD_DISPLAY: ${{ steps.summary.outputs.WEB_PREPROD_DISPLAY }}
+          API_PROD_DISPLAY: ${{ steps.summary.outputs.API_PROD_DISPLAY }}
+          API_PREPROD_DISPLAY: ${{ steps.summary.outputs.API_PREPROD_DISPLAY }}
+
+          WEB_PROD_STATUS: ${{ steps.summary.outputs.WEB_PROD_STATUS }}
+          WEB_PREPROD_STATUS: ${{ steps.summary.outputs.WEB_PREPROD_STATUS }}
+          API_PROD_STATUS: ${{ steps.summary.outputs.API_PROD_STATUS }}
+          API_PREPROD_STATUS: ${{ steps.summary.outputs.API_PREPROD_STATUS }}
