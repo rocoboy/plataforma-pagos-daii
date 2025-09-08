@@ -211,11 +211,14 @@ jobs:
           echo "Debug: branch extraída=$branch"
 
           # Estados por app
+          echo "Debug: Configurando estados..."
           web_status="(no hubo cambios)"
           api_status="(no hubo cambios)"
           [ "$WEB_CHANGED" = "true" ] && web_status="(actualizado)"
           [ "$API_CHANGED" = "true" ] && api_status="(actualizado)"
+          echo "Debug: web_status=$web_status, api_status=$api_status"
 
+          echo "Debug: Generando resumen..."
           {
             echo "## URLs de ${branch}"
             echo ""
@@ -238,3 +241,5 @@ jobs:
               echo "_(sin nuevas internas en esta ejecución)_"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+          
+          echo "Debug: Resumen completado exitosamente"
