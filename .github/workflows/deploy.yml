@@ -181,6 +181,7 @@ jobs:
   summary:
     name: Resumen
     needs: [changes, deploy-web, deploy-api]
+    if: ${{ always() }} 
     runs-on: ubuntu-latest
     steps:
       - name: Armar resumen minimal según rama
