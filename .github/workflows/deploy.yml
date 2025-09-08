@@ -198,7 +198,17 @@ jobs:
           WEB_DEPLOY_URL: ${{ needs.deploy-web.outputs.url }}
           API_DEPLOY_URL: ${{ needs.deploy-api.outputs.url }}
         run: |
-          branch="${BRANCH#refs/heads/}"
+          echo "Debug: BRANCH=$BRANCH"
+          echo "Debug: github.ref=${{ github.ref }}"
+          
+          # Extraer nombre de rama de forma segura
+          if [ -n "$BRANCH" ]; then
+            branch="${BRANCH#refs/heads/}"
+          else
+            branch="unknown"
+          fi
+          
+          echo "Debug: branch extraída=$branch"
 
           # Estados por app
           web_status="(no hubo cambios)"
