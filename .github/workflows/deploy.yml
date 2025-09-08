@@ -87,9 +87,9 @@ jobs:
           fi
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
-      # Alias branch -> URL definida (si existe)
+      # Alias branch -> URL definida (si existe y es dominio propio)
       - name: Alias develop (web)
-        if: github.ref == 'refs/heads/develop' && vars.WEB_URL_PREPROD != ''
+        if: github.ref == 'refs/heads/develop' && vars.WEB_URL_PREPROD != '' && !contains(vars.WEB_URL_PREPROD, '.vercel.app')
         working-directory: apps/web
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -97,7 +97,7 @@ jobs:
         run: npx vercel alias set "${{ steps.vercel-deploy-web.outputs.url }}" "$ALIAS" --token "$VERCEL_TOKEN"
 
       - name: Alias production (web)
-        if: github.ref == 'refs/heads/main' && vars.WEB_URL != ''
+        if: github.ref == 'refs/heads/main' && vars.WEB_URL != '' && !contains(vars.WEB_URL, '.vercel.app')
         working-directory: apps/web
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -163,7 +163,7 @@ jobs:
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Alias develop (api)
-        if: github.ref == 'refs/heads/develop' && vars.API_URL_PREPROD != ''
+        if: github.ref == 'refs/heads/develop' && vars.API_URL_PREPROD != '' && !contains(vars.API_URL_PREPROD, '.vercel.app')
         working-directory: apps/api
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -171,7 +171,7 @@ jobs:
         run: npx vercel alias set "${{ steps.vercel-deploy-api.outputs.url }}" "$ALIAS" --token "$VERCEL_TOKEN"
 
       - name: Alias production (api)
-        if: github.ref == 'refs/heads/main' && vars.API_URL != ''
+        if: github.ref == 'refs/heads/main' && vars.API_URL != '' && !contains(vars.API_URL, '.vercel.app')
         working-directory: apps/api
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
