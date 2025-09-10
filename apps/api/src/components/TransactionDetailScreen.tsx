@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import jsPDF from 'jspdf';
-import { mockTransactionDetails, TransactionDetail } from '../data/mockData';
+import { mockTransactionDetails, TransactionDetail } from '../../data/mockData';
 
 interface TransactionDetailScreenProps {
   transactionId?: string;

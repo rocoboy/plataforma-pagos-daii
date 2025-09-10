@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import type { Booking } from "../../../../../types/booking"; //habria que ver por que no me toma los types 
-import { db, now } from "@/lib/db";
+import type { Booking } from "../../../../../../packages/types/booking"; //habria que ver por que no me toma los types 
 
 export async function POST(req: Request) {
   const body = (await req.json()) as Partial<Booking>;

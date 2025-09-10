@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handleGenericEvent(payload: any) {
+async function handleGenericEvent(payload: WebhookPayload) {
   console.log('Processing generic event:', {
     event: payload.event,
     data: payload.data,

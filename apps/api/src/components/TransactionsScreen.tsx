@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import jsPDF from 'jspdf';
-import { mockTransactions, mockTransactionDetails, Transaction, TransactionDetail } from '../data/mockData';
+import { mockTransactions, mockTransactionDetails, Transaction, TransactionDetail } from '../../data/mockData';
 
 // Status Badge Component
 const StatusBadge: React.FC<{ status: Transaction['status'] }> = ({ status }) => {
