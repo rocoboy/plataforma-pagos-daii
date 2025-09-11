@@ -198,45 +198,32 @@ jobs:
           WEB_DEPLOY_URL: ${{ needs.deploy-web.outputs.url }}
           API_DEPLOY_URL: ${{ needs.deploy-api.outputs.url }}
         run: |
-          # Simple and robust summary generation
+          # Extract branch name
           branch_name=$(echo "$BRANCH" | sed 's|refs/heads/||')
           
-          # Determine status
-          if [ "$WEB_CHANGED" = "true" ]; then
-            web_status="✅ Updated"
-          else
-            web_status="⚪ No changes"
+          # Create simple summary
+          echo "# 🚀 Deployment Summary - \`${branch_name}\`" > "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          
+          # Show public URLs
+          if [ "$branch_name" = "main" ]; then
+            echo "## 🌐 Production URLs" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **Web**: ${WEB_URL:-*not configured*}" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **API**: ${API_URL:-*not configured*}" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$branch_name" = "develop" ]; then
+            echo "## 🧪 Preview URLs" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **Web**: ${WEB_URL_PREPROD:-*not configured*}" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **API**: ${API_URL_PREPROD:-*not configured*}" >> "$GITHUB_STEP_SUMMARY"
           fi
           
-          if [ "$API_CHANGED" = "true" ]; then
-            api_status="✅ Updated"
-          else
-            api_status="⚪ No changes"
+          # Show internal URLs only if they exist
+          if [ -n "$WEB_DEPLOY_URL" ] || [ -n "$API_DEPLOY_URL" ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "## 🔗 Internal Vercel URLs" >> "$GITHUB_STEP_SUMMARY"
+            if [ -n "$WEB_DEPLOY_URL" ]; then
+              echo "- **Web**: $WEB_DEPLOY_URL" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            if [ -n "$API_DEPLOY_URL" ]; then
+              echo "- **API**: $API_DEPLOY_URL" >> "$GITHUB_STEP_SUMMARY"
+            fi
           fi
-          
-          # Create summary content
-          {
-            echo "# 🚀 Deployment Summary - \`${branch_name}\`"
-            echo ""
-            
-            if [ "$branch_name" = "main" ]; then
-              echo "## 🌐 Production URLs"
-              echo "| App | URL | Status |"
-              echo "|-----|-----|--------|"
-              echo "| **Web** | ${WEB_URL:-*not configured*} | ${web_status} |"
-              echo "| **API** | ${API_URL:-*not configured*} | ${api_status} |"
-            elif [ "$branch_name" = "develop" ]; then
-              echo "## 🧪 Preview URLs"
-              echo "| App | URL | Status |"
-              echo "|-----|-----|--------|"
-              echo "| **Web** | ${WEB_URL_PREPROD:-*not configured*} | ${web_status} |"
-              echo "| **API** | ${API_URL_PREPROD:-*not configured*} | ${api_status} |"
-            fi
-            
-            if [ -n "$WEB_DEPLOY_URL" ] || [ -n "$API_DEPLOY_URL" ]; then
-              echo ""
-              echo "## 🔗 Internal Vercel URLs"
-              [ -n "$WEB_DEPLOY_URL" ] && echo "- **Web**: $WEB_DEPLOY_URL"
-              [ -n "$API_DEPLOY_URL" ] && echo "- **API**: $API_DEPLOY_URL"
-            fi
-          } > "$GITHUB_STEP_SUMMARY"
