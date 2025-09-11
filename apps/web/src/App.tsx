@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { ThemeProvider } from '@mui/material/styles';
+import { CssBaseline } from '@mui/material';
+import { muiTheme } from './theme/muiTheme';
 import TransactionsScreen from './components/TransactionsScreen';
 import TransactionDetailScreen from './components/TransactionDetailScreen';
 import './App.css';
@@ -30,8 +33,10 @@ function App() {
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <div className="bg-white min-h-screen">
+    <ThemeProvider theme={muiTheme}>
+      <CssBaseline />
+      <QueryClientProvider client={queryClient}>
+        <div className="bg-white min-h-screen">
         {/* Header */}
         <header className="bg-white shadow-sm border-b border-gray-200">
           <div className="px-6 py-4 flex items-center justify-between">
@@ -68,9 +73,10 @@ function App() {
         </footer>
       </div>
       
-      {/* React Query DevTools - only in development */}
-      {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
-    </QueryClientProvider>
+        {/* React Query DevTools - only in development */}
+        {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

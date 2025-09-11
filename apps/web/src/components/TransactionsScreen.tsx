@@ -29,7 +29,7 @@ import {
 } from '@mui/icons-material';
 import { mockTransactions, mockTransactionDetails, Transaction } from '../data/mockData';
 
-// Status Chip Component using Material UI
+// Status Chip Component using our custom theme colors - Updated
 const StatusChip: React.FC<{ status: Transaction['status'] }> = ({ status }) => {
   const getStatusConfig = (status: Transaction['status']) => {
     switch (status) {

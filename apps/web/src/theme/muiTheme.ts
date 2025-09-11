@@ -4,7 +4,7 @@ import { createTheme } from '@mui/material/styles';
 // Solo cambia estos valores y todo Material UI se adapta automáticamente
 const DESIGN_TOKENS = {
   // Colores principales (deben coincidir con tailwind.config.js)
-  primary: '#507BD8',
+  primary: '#507BD8', // Azul original
   primaryForeground: '#FFFFFF',
   secondary: '#222222', 
   secondaryForeground: '#FFFFFF',
@@ -14,7 +14,7 @@ const DESIGN_TOKENS = {
   mutedForeground: '#222222',
   border: '#E5E5E5',
   destructive: '#DC2626',
-  success: '#16A34A',
+  success: '#507BD8', // Naranja vibrante para que se note el cambio
   warning: '#D97706',
 };
 
@@ -82,10 +82,34 @@ export const muiTheme = createTheme({
     },
     MuiChip: {
       styleOverrides: {
-        root: { borderRadius: '6px' },
+        root: { 
+          borderRadius: '6px',
+          fontWeight: 500,
+        },
+        // Asegurar que los chips usen nuestros colores personalizados
+        colorSuccess: {
+          backgroundColor: DESIGN_TOKENS.success,
+          color: DESIGN_TOKENS.primaryForeground,
+          '&:hover': {
+            backgroundColor: DESIGN_TOKENS.success,
+            filter: 'brightness(0.9)',
+          },
+        },
         colorWarning: {
           backgroundColor: DESIGN_TOKENS.warning,
           color: DESIGN_TOKENS.primaryForeground,
+          '&:hover': {
+            backgroundColor: DESIGN_TOKENS.warning,
+            filter: 'brightness(0.9)',
+          },
+        },
+        colorError: {
+          backgroundColor: DESIGN_TOKENS.destructive,
+          color: DESIGN_TOKENS.primaryForeground,
+          '&:hover': {
+            backgroundColor: DESIGN_TOKENS.destructive,
+            filter: 'brightness(0.9)',
+          },
         },
       },
     },
