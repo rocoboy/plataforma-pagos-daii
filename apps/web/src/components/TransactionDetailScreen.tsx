@@ -1,6 +1,23 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import jsPDF from 'jspdf';
+import { 
+  Box, 
+  Container, 
+  Typography, 
+  Button, 
+  Card, 
+  CardContent, 
+  Grid, 
+  IconButton, 
+  CircularProgress,
+  Divider
+} from '@mui/material';
+import { 
+  ArrowBack as ArrowBackIcon, 
+  Download as DownloadIcon,
+  Flight as FlightIcon
+} from '@mui/icons-material';
 import { mockTransactionDetails, TransactionDetail } from '../data/mockData';
 
 interface TransactionDetailScreenProps {
@@ -121,175 +138,190 @@ const TransactionDetailScreen: React.FC<TransactionDetailScreenProps> = ({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center font-roboto">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-body-md text-muted-foreground">Cargando detalles...</p>
-        </div>
-      </div>
+      <Box 
+        display="flex" 
+        flexDirection="column" 
+        alignItems="center" 
+        justifyContent="center" 
+        minHeight="100vh"
+      >
+        <CircularProgress size={48} sx={{ mb: 2 }} />
+        <Typography variant="body1" color="text.secondary">
+          Cargando detalles...
+        </Typography>
+      </Box>
     );
   }
 
   if (error || !transactionDetail) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center font-roboto">
-        <div className="text-center">
-          <p className="text-body-md text-destructive mb-4">Error al cargar los detalles</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:opacity-90 text-body-md"
-          >
-            Reintentar
-          </button>
-        </div>
-      </div>
+      <Box 
+        display="flex" 
+        flexDirection="column" 
+        alignItems="center" 
+        justifyContent="center" 
+        minHeight="100vh"
+      >
+        <Typography variant="body1" color="error" sx={{ mb: 2 }}>
+          Error al cargar los detalles
+        </Typography>
+        <Button 
+          variant="contained" 
+          onClick={() => window.location.reload()}
+        >
+          Reintentar
+        </Button>
+      </Box>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background font-roboto">
-      {/* Main Content Container */}
-      <div className="bg-background shadow-lg">
-        {/* Header */}
-        <div className="px-6 py-6 border-b border-border">
-          <div className="flex items-center">
-            {onBack && (
-              <button
-                onClick={onBack}
-                className="mr-4 p-2 hover:bg-muted rounded-md transition-colors"
-                aria-label="Volver"
-              >
-                <svg className="w-5 h-5 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-            )}
-            <h1 className="text-heading-lg text-foreground">Historial de Transacciones</h1>
-          </div>
-        </div>
+    <Container maxWidth="xl" sx={{ py: 3, minHeight: '100vh' }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, pb: 2, borderBottom: 1, borderColor: 'divider' }}>
+        {onBack && (
+          <IconButton 
+            onClick={onBack}
+            sx={{ mr: 2 }}
+            aria-label="Volver"
+          >
+            <ArrowBackIcon />
+          </IconButton>
+        )}
+        <Typography variant="h2" component="h1">
+          Historial de Transacciones
+        </Typography>
+      </Box>
 
-        {/* Main Content */}
-        <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* Main Content */}
+      <Grid container spacing={4}>
+        {/* Left Column - Transaction Details */}
+        <Grid size={{ xs: 12, lg: 8 }}>
+          {/* Transaction Details Header */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+            <Typography variant="h3" color="primary" sx={{ fontWeight: 'bold' }}>
+              Detalles de la transacción
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={isGeneratingPDF ? <CircularProgress size={16} color="inherit" /> : <DownloadIcon />}
+              onClick={handleDownloadInvoice}
+              disabled={isGeneratingPDF}
+            >
+              {isGeneratingPDF ? 'Generando PDF...' : 'Descargar Factura'}
+            </Button>
+          </Box>
           
-          {/* Left Column - Transaction Details */}
-          <div className="lg:col-span-2 space-y-8">
+          {/* Transaction Details Card */}
+          <Card sx={{ mb: 4 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="subtitle2" color="text.secondary">ID Reserva</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 'medium' }}>{transactionDetail.reservationId}</Typography>
+                </Box>
+                <Divider />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="subtitle2" color="text.secondary">Fecha</Typography>
+                  <Typography variant="body1">{transactionDetail.purchaseDate}</Typography>
+                </Box>
+                <Divider />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="subtitle2" color="text.secondary">Monto</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 'medium' }}>${transactionDetail.amount.toFixed(2)}</Typography>
+                </Box>
+                <Divider />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="subtitle2" color="text.secondary">Medio de pago</Typography>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography variant="body1">{transactionDetail.paymentMethod}</Typography>
+                    <Typography variant="body2" color="text.secondary">{transactionDetail.cardNumber}</Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Flight Details Header */}
+          <Typography variant="h3" color="primary" sx={{ fontWeight: 'bold', mb: 2 }}>
+            Detalles del Vuelo
+          </Typography>
+
+          {/* Flight Details Card */}
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="subtitle2" color="text.secondary">Número de vuelo</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 'medium' }}>{transactionDetail.flightNumber}</Typography>
+                </Box>
+                <Divider />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="subtitle2" color="text.secondary">Salida</Typography>
+                  <Typography variant="body1">{transactionDetail.departure}</Typography>
+                </Box>
+                <Divider />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="subtitle2" color="text.secondary">Llegada</Typography>
+                  <Typography variant="body1">{transactionDetail.arrival}</Typography>
+                </Box>
+                <Divider />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="subtitle2" color="text.secondary">Duración</Typography>
+                  <Typography variant="body1">{transactionDetail.duration}</Typography>
+                </Box>
+                <Divider />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="subtitle2" color="text.secondary">Clase</Typography>
+                  <Typography variant="body1">{transactionDetail.flightClass}</Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Right Column - Airplane Illustration */}
+        <Grid size={{ xs: 12, lg: 4 }}>
+          <Box 
+            sx={{ 
+              background: 'linear-gradient(to bottom, #60a5fa, #2563eb)',
+              borderRadius: 2,
+              height: { xs: 300, lg: '100%' },
+              minHeight: 400,
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Airplane Icon */}
+            <FlightIcon 
+              sx={{ 
+                fontSize: 120, 
+                color: 'rgba(0,0,0,0.3)', 
+                transform: 'rotate(45deg)' 
+              }} 
+            />
             
-            {/* Transaction Details Header */}
-            <div className="flex items-center justify-between">
-              <h2 className="text-heading-md text-primary font-bold">Detalles de la transacción</h2>
-              <button
-                onClick={handleDownloadInvoice}
-                disabled={isGeneratingPDF}
-                className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:opacity-90 transition-opacity text-body-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {isGeneratingPDF ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Generando PDF...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Descargar Factura
-                  </>
-                )}
-              </button>
-            </div>
+            {/* Decorative clouds */}
+            <Box sx={{ position: 'absolute', bottom: 80, left: 32 }}>
+              <Box sx={{ width: 64, height: 32, bgcolor: 'rgba(255,255,255,0.2)', borderRadius: '50px' }} />
+              <Box sx={{ width: 48, height: 24, bgcolor: 'rgba(255,255,255,0.15)', borderRadius: '50px', ml: 2, mt: -1.5 }} />
+            </Box>
             
-            {/* Transaction Details Section */}
-            <div className="bg-background rounded-lg border border-border p-6 shadow-sm">
-              <div className="space-y-4">
-                <div className="flex justify-between">
-                  <span className="text-subtitle-sm text-muted-foreground">ID Reserva</span>
-                  <span className="text-body-md text-foreground font-medium">{transactionDetail.reservationId}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-subtitle-sm text-muted-foreground">Fecha</span>
-                  <span className="text-body-md text-foreground">{transactionDetail.purchaseDate}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-subtitle-sm text-muted-foreground">Monto</span>
-                  <span className="text-body-md text-foreground font-medium">${transactionDetail.amount.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-subtitle-sm text-muted-foreground">Medio de pago</span>
-                  <div className="text-right">
-                    <div className="text-body-md text-foreground">{transactionDetail.paymentMethod}</div>
-                    <div className="text-body-sm text-muted-foreground">{transactionDetail.cardNumber}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Flight Details Header */}
-            <h2 className="text-heading-md text-primary font-bold">Detalles del Vuelo</h2>
-
-            {/* Flight Details Section */}
-            <div className="bg-background rounded-lg border border-border p-6 shadow-sm">
-              <div className="space-y-4">
-                <div className="flex justify-between">
-                  <span className="text-subtitle-sm text-muted-foreground">Número de vuelo</span>
-                  <span className="text-body-md text-foreground font-medium">{transactionDetail.flightNumber}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-subtitle-sm text-muted-foreground">Salida</span>
-                  <span className="text-body-md text-foreground">{transactionDetail.departure}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-subtitle-sm text-muted-foreground">Llegada</span>
-                  <span className="text-body-md text-foreground">{transactionDetail.arrival}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-subtitle-sm text-muted-foreground">Duración</span>
-                  <span className="text-body-md text-foreground">{transactionDetail.duration}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-subtitle-sm text-muted-foreground">Clase</span>
-                  <span className="text-body-md text-foreground">{transactionDetail.flightClass}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column - Airplane Image */}
-          <div className="lg:col-span-1">
-            <div className="bg-gradient-to-b from-blue-400 to-blue-600 rounded-lg overflow-hidden h-96 lg:h-full min-h-[400px] relative">
-              {/* Airplane silhouette */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <svg 
-                  className="w-32 h-32 text-black/30 transform rotate-45" 
-                  fill="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
-                </svg>
-              </div>
-              
-              {/* Cloud elements */}
-              <div className="absolute bottom-20 left-8">
-                <div className="w-16 h-8 bg-white/20 rounded-full"></div>
-                <div className="w-12 h-6 bg-white/15 rounded-full ml-4 -mt-3"></div>
-              </div>
-              
-              <div className="absolute top-32 right-12">
-                <div className="w-20 h-10 bg-white/25 rounded-full"></div>
-                <div className="w-14 h-7 bg-white/20 rounded-full ml-6 -mt-4"></div>
-              </div>
-              
-              <div className="absolute bottom-32 right-6">
-                <div className="w-12 h-6 bg-white/20 rounded-full"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Close Main Content Container */}
-      </div>
-    </div>
+            <Box sx={{ position: 'absolute', top: 128, right: 48 }}>
+              <Box sx={{ width: 80, height: 40, bgcolor: 'rgba(255,255,255,0.25)', borderRadius: '50px' }} />
+              <Box sx={{ width: 56, height: 28, bgcolor: 'rgba(255,255,255,0.2)', borderRadius: '50px', ml: 3, mt: -2 }} />
+            </Box>
+            
+            <Box sx={{ position: 'absolute', bottom: 128, right: 24 }}>
+              <Box sx={{ width: 48, height: 24, bgcolor: 'rgba(255,255,255,0.2)', borderRadius: '50px' }} />
+            </Box>
+          </Box>
+        </Grid>
+      </Grid>
+    </Container>
   );
 };
 

@@ -1,31 +1,57 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import jsPDF from 'jspdf';
-import { mockTransactions, mockTransactionDetails, Transaction, TransactionDetail } from '../data/mockData';
+import { 
+  DataGrid, 
+  GridColDef, 
+  GridActionsCellItem,
+  GridRowParams 
+} from '@mui/x-data-grid';
+import { 
+  Button, 
+  TextField, 
+  Select, 
+  MenuItem, 
+  FormControl, 
+  InputLabel, 
+  Chip, 
+  Box, 
+  Container,
+  Typography,
+  CircularProgress,
+} from '@mui/material';
+import { 
+  Visibility as VisibilityIcon, 
+  Download as DownloadIcon,
+  Clear as ClearIcon,
+  Search as SearchIcon,
+  Flight as FlightIcon
+} from '@mui/icons-material';
+import { mockTransactions, mockTransactionDetails, Transaction } from '../data/mockData';
 
-// Status Badge Component
-const StatusBadge: React.FC<{ status: Transaction['status'] }> = ({ status }) => {
+// Status Chip Component using our custom theme colors - Updated
+const StatusChip: React.FC<{ status: Transaction['status'] }> = ({ status }) => {
   const getStatusConfig = (status: Transaction['status']) => {
     switch (status) {
       case 'confirmado':
         return {
           text: 'Confirmado',
-          className: 'bg-success text-success-foreground'
+          color: 'success' as const
         };
       case 'pendiente':
         return {
           text: 'Pendiente',
-          className: 'bg-warning text-warning-foreground'
+          color: 'warning' as const
         };
       case 'cancelado':
         return {
           text: 'Cancelado',
-          className: 'bg-destructive text-destructive-foreground'
+          color: 'error' as const
         };
       default:
         return {
           text: status,
-          className: 'bg-muted text-muted-foreground'
+          color: 'default' as const
         };
     }
   };
@@ -33,9 +59,12 @@ const StatusBadge: React.FC<{ status: Transaction['status'] }> = ({ status }) =>
   const config = getStatusConfig(status);
 
   return (
-    <span className={`px-3 py-1 rounded-full text-body-sm font-medium ${config.className}`}>
-      {config.text}
-    </span>
+    <Chip 
+      label={config.text}
+      color={config.color}
+      size="small"
+      variant="filled"
+    />
   );
 };
 
@@ -52,6 +81,87 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ onViewDetail })
   const [selectedAirline, setSelectedAirline] = useState('todas');
   const [selectedStatus, setSelectedStatus] = useState('todos');
   const [generatingPDFs, setGeneratingPDFs] = useState<Set<string>>(new Set());
+
+  // Define DataGrid columns with flexible widths
+  const columns: GridColDef[] = [
+    {
+      field: 'status',
+      headerName: 'Estado',
+      flex: 0.8,
+      minWidth: 120,
+      headerAlign: 'center',
+      align: 'center',
+      renderCell: (params) => <StatusChip status={params.value} />
+    },
+    {
+      field: 'purchaseDate',
+      headerName: 'Fecha de Compra',
+      flex: 1,
+      minWidth: 130,
+      headerAlign: 'center',
+      align: 'center',
+      type: 'date',
+      valueGetter: (value) => new Date(value)
+    },
+    {
+      field: 'reservationId',
+      headerName: 'ID Reserva',
+      flex: 0.9,
+      minWidth: 120,
+      headerAlign: 'center',
+      align: 'center'
+    },
+    {
+      field: 'destination',
+      headerName: 'Destino',
+      flex: 1,
+      minWidth: 130,
+      headerAlign: 'center',
+      align: 'center'
+    },
+    {
+      field: 'airline',
+      headerName: 'Aerolínea',
+      flex: 1.2,
+      minWidth: 140,
+      headerAlign: 'center',
+      align: 'center'
+    },
+    {
+      field: 'amount',
+      headerName: 'Monto',
+      flex: 0.8,
+      minWidth: 100,
+      headerAlign: 'center',
+      align: 'center',
+      type: 'number',
+      valueFormatter: (value) => `$${Number(value).toFixed(2)}`
+    },
+    {
+      field: 'actions',
+      type: 'actions',
+      headerName: 'Acciones',
+      flex: 1.3,
+      minWidth: 180,
+      headerAlign: 'center',
+      align: 'center',
+      getActions: (params: GridRowParams) => [
+        <GridActionsCellItem
+          key="view"
+          icon={<VisibilityIcon />}
+          label="Ver Detalle"
+          onClick={() => handleViewDetail(params.id as string)}
+        />,
+        <GridActionsCellItem
+          key="download"
+          icon={generatingPDFs.has(params.id as string) ? <CircularProgress size={16} /> : <DownloadIcon />}
+          label="Descargar Factura"
+          onClick={() => handleDownloadInvoice(params.id as string)}
+          disabled={generatingPDFs.has(params.id as string)}
+        />
+      ]
+    }
+  ];
 
   // Fetch transactions using TanStack Query
   const { data: transactions = [], isLoading, error } = useQuery({
@@ -207,252 +317,231 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ onViewDetail })
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center font-roboto">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-body-md text-muted-foreground">Cargando transacciones...</p>
-        </div>
-      </div>
+      <Box 
+        display="flex" 
+        flexDirection="column" 
+        alignItems="center" 
+        justifyContent="center" 
+        minHeight="100vh"
+      >
+        <CircularProgress size={48} sx={{ mb: 2 }} />
+        <Typography variant="body1" color="text.secondary">
+          Cargando transacciones...
+        </Typography>
+      </Box>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center font-roboto">
-        <div className="text-center">
-          <p className="text-body-md text-destructive mb-4">Error al cargar las transacciones</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:opacity-90 text-body-md"
-          >
-            Reintentar
-          </button>
-        </div>
-      </div>
+      <Box 
+        display="flex" 
+        flexDirection="column" 
+        alignItems="center" 
+        justifyContent="center" 
+        minHeight="100vh"
+      >
+        <Typography variant="body1" color="error" sx={{ mb: 2 }}>
+          Error al cargar las transacciones
+        </Typography>
+        <Button 
+          variant="contained" 
+          onClick={() => window.location.reload()}
+        >
+          Reintentar
+        </Button>
+      </Box>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-16 font-roboto">
-      {/* Main Content Container */}
-      <div className="bg-background shadow-lg">
-        {/* Header */}
-        <div className="px-6 py-6 border-b border-border">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              {/* Plane Icon */}
-              <svg className="w-7 h-7 text-primary mr-3" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
-              </svg>
-              <h1 className="text-heading-lg text-foreground">Historial de Transacciones</h1>
-            </div>
-            
-            {/* Search Bar */}
-            <div className="flex-1 max-w-md ml-8">
-              <input
-                type="text"
-                placeholder="Buscar transacciones..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-body-md"
+    <Container maxWidth="xl" sx={{ py: 3, minHeight: '100vh' }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, pb: 2, borderBottom: 1, borderColor: 'divider' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <FlightIcon sx={{ fontSize: 28, color: 'primary.main', mr: 1.5 }} />
+          <Typography variant="h2" component="h1">
+            Historial de Transacciones
+          </Typography>
+        </Box>
+        
+        {/* Search Bar */}
+        <Box sx={{ flexGrow: 1, maxWidth: 400, ml: 4 }}>
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="Buscar transacciones..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
+            }}
+          />
+        </Box>
+      </Box>
+
+      {/* Filters */}
+      <Box sx={{ mb: 3, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: 1, borderColor: 'divider' }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 3, alignItems: 'end' }}>
+          {/* Date Range Filter */}
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+              Rango de Fecha
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1, alignItems: 'center' }}>
+              <TextField
+                type="date"
+                size="small"
+                label="Desde"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ 
+                  flex: 1,
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main',
+                      borderWidth: '2px',
+                    },
+                  },
+                }}
               />
-            </div>
-          </div>
-        </div>
+              <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
+                a
+              </Typography>
+              <TextField
+                type="date"
+                size="small"
+                label="Hasta"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ 
+                  flex: 1,
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main',
+                      borderWidth: '2px',
+                    },
+                  },
+                }}
+              />
+            </Box>
+          </Box>
 
-        {/* Filters */}
-        <div className="px-6 py-4 bg-background border-b border-border">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
-              {/* Date Range Filter */}
-              <div>
-                <label className="block text-subtitle-sm text-foreground mb-1">
-                  Rango de Fecha
-                </label>
-                <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-1">
-                  <input
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    placeholder="Desde"
-                    className="w-full sm:flex-1 px-2 py-2 text-body-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                  />
-                  <span className="hidden sm:flex items-center text-muted-foreground text-body-sm px-1">a</span>
-                  <input
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    placeholder="Hasta"
-                    className="w-full sm:flex-1 px-2 py-2 text-body-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                  />
-                </div>
-              </div>
+          {/* Airline Filter */}
+          <FormControl size="small" fullWidth>
+            <InputLabel>Aerolínea</InputLabel>
+            <Select
+              value={selectedAirline}
+              label="Aerolínea"
+              onChange={(e) => setSelectedAirline(e.target.value)}
+            >
+              <MenuItem value="todas">Todas</MenuItem>
+              <MenuItem value="Delta">Delta</MenuItem>
+              <MenuItem value="American Airlines">American Airlines</MenuItem>
+              <MenuItem value="United Airlines">United Airlines</MenuItem>
+              <MenuItem value="Alaska Airlines">Alaska Airlines</MenuItem>
+              <MenuItem value="JetBlue">JetBlue</MenuItem>
+            </Select>
+          </FormControl>
 
-              {/* Airline Filter */}
-              <div>
-                <label className="block text-subtitle-sm text-foreground mb-1">
-                  Aerolínea
-                </label>
-                <select
-                  value={selectedAirline}
-                  onChange={(e) => setSelectedAirline(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-body-md"
-                >
-                  <option value="todas">Todas</option>
-                  <option value="Delta">Delta</option>
-                  <option value="American Airlines">American Airlines</option>
-                  <option value="United Airlines">United Airlines</option>
-                  <option value="Alaska Airlines">Alaska Airlines</option>
-                  <option value="JetBlue">JetBlue</option>
-                </select>
-              </div>
+          {/* Status Filter */}
+          <FormControl size="small" fullWidth>
+            <InputLabel>Estado</InputLabel>
+            <Select
+              value={selectedStatus}
+              label="Estado"
+              onChange={(e) => setSelectedStatus(e.target.value)}
+            >
+              <MenuItem value="todos">Todos</MenuItem>
+              <MenuItem value="confirmado">Confirmado</MenuItem>
+              <MenuItem value="pendiente">Pendiente</MenuItem>
+              <MenuItem value="cancelado">Cancelado</MenuItem>
+            </Select>
+          </FormControl>
 
-              {/* Status Filter */}
-              <div>
-                <label className="block text-subtitle-sm text-foreground mb-1">
-                  Estado
-                </label>
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-body-md"
-                >
-                  <option value="todos">Todos</option>
-                  <option value="confirmado">Confirmado</option>
-                  <option value="pendiente">Pendiente</option>
-                  <option value="cancelado">Cancelado</option>
-                </select>
-              </div>
+          {/* Clear Filters Button */}
+          <Button
+            variant="outlined"
+            color="secondary"
+            startIcon={<ClearIcon />}
+            onClick={() => {
+              setSearchTerm('');
+              setDateFrom('');
+              setDateTo('');
+              setSelectedAirline('todas');
+              setSelectedStatus('todos');
+            }}
+            fullWidth
+          >
+            Limpiar Filtros
+          </Button>
+        </Box>
+      </Box>
 
-              {/* Clear Filters Button */}
-              <div>
-                <button
-                  onClick={() => {
-                    setSearchTerm('');
-                    setDateFrom('');
-                    setDateTo('');
-                    setSelectedAirline('todas');
-                    setSelectedStatus('todos');
-                  }}
-                  className="w-full px-6 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-foreground hover:text-background transition-colors text-subtitle-sm"
-                >
-                  Limpiar Filtros
-                </button>
-              </div>
-            </div>
-        </div>
-
-        {/* Transactions Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-muted">
-              <tr>
-                <th className="px-6 py-3 text-left text-subtitle-sm text-foreground uppercase tracking-wider">
-                  Estado
-                </th>
-                <th className="px-6 py-3 text-left text-subtitle-sm text-foreground uppercase tracking-wider">
-                  Fecha de Compra
-                </th>
-                <th className="px-6 py-3 text-left text-subtitle-sm text-foreground uppercase tracking-wider">
-                  ID Reserva
-                </th>
-                <th className="px-6 py-3 text-left text-subtitle-sm text-foreground uppercase tracking-wider">
-                  Destino
-                </th>
-                <th className="px-6 py-3 text-left text-subtitle-sm text-foreground uppercase tracking-wider">
-                  Aerolínea
-                </th>
-                <th className="px-6 py-3 text-left text-subtitle-sm text-foreground uppercase tracking-wider">
-                  Monto
-                </th>
-                <th className="px-6 py-3 text-center text-subtitle-sm text-foreground uppercase tracking-wider">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-background divide-y divide-border">
-              {filteredTransactions.map((transaction) => (
-                <tr key={transaction.id} className="hover:bg-muted">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <StatusBadge status={transaction.status} />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-body-md text-foreground">
-                    {transaction.purchaseDate}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-body-md font-medium text-foreground">
-                    {transaction.reservationId}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-body-md text-foreground">
-                    {transaction.destination}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-body-md text-foreground">
-                    {transaction.airline}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-body-md text-foreground">
-                    ${transaction.amount.toFixed(2)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-body-md font-medium text-center">
-                    <div className="flex justify-center space-x-2">
-                      <button
-                        onClick={() => handleViewDetail(transaction.id)}
-                        className="bg-primary text-primary-foreground px-3 py-1 rounded text-body-sm hover:opacity-90 transition-opacity"
-                      >
-                        Ver Detalle
-                      </button>
-                      <button
-                        onClick={() => handleDownloadInvoice(transaction.id)}
-                        disabled={generatingPDFs.has(transaction.id)}
-                        className="bg-secondary text-secondary-foreground px-3 py-1 rounded text-body-sm hover:bg-foreground hover:text-background transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                      >
-                        {generatingPDFs.has(transaction.id) ? (
-                          <>
-                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
-                            <span className="text-xs">PDF...</span>
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <span className="text-xs">Descargar Factura</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Empty State */}
-        {filteredTransactions.length === 0 && (
-          <div className="text-center py-12">
-            <div className="max-w-7xl mx-auto px-6">
-              <svg className="mx-auto h-12 w-12 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <h3 className="mt-2 text-subtitle-md text-foreground">No se encontraron transacciones</h3>
-              <p className="mt-1 text-body-md text-muted-foreground">
-                Intenta ajustar los filtros de búsqueda.
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Fixed Results Summary - Bottom */}
-      <div className="fixed bottom-0 left-0 right-0 px-6 py-3 bg-primary/10 border-t border-primary/20 shadow-lg z-10">
-        <div className="max-w-7xl mx-auto">
-          <p className="text-body-md text-primary text-center">
-            Mostrando {filteredTransactions.length} de {transactions.length} transacciones
-            {(dateFrom || dateTo || selectedAirline !== 'todas' || selectedStatus !== 'todos' || searchTerm) && 
-              <span className="ml-2 text-primary font-medium">(filtrado aplicado)</span>
+      {/* DataGrid */}
+      <Box sx={{ height: 600, width: '100%' }}>
+        <DataGrid
+          rows={filteredTransactions}
+          columns={columns}
+          initialState={{
+            pagination: {
+              paginationModel: { page: 0, pageSize: 10 }
             }
-          </p>
-        </div>
-      </div>
-    </div>
+          }}
+          pageSizeOptions={[10, 25, 50]}
+          checkboxSelection
+          disableRowSelectionOnClick
+          sx={{
+            '& .MuiDataGrid-cell:hover': {
+              color: 'primary.main'
+            },
+            '& .MuiDataGrid-columnHeaders': {
+              backgroundColor: 'grey.50',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+            },
+            '& .MuiDataGrid-cell': {
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              fontSize: '0.875rem',
+            },
+            '& .MuiDataGrid-row:hover': {
+              backgroundColor: 'grey.50',
+            },
+            '& .MuiDataGrid-columnSeparator': {
+              display: 'none',
+            },
+            // Asegurar que las columnas ocupen todo el ancho
+            '& .MuiDataGrid-virtualScroller': {
+              overflow: 'hidden',
+            }
+          }}
+          autoHeight={false}
+          disableColumnMenu
+          disableColumnResize
+        />
+      </Box>
+
+      {/* Results Summary */}
+      <Box sx={{ mt: 2, p: 2, bgcolor: 'primary.main', color: 'primary.contrastText', borderRadius: 1, textAlign: 'center' }}>
+        <Typography variant="body2">
+          Mostrando {filteredTransactions.length} de {transactions.length} transacciones
+          {(dateFrom || dateTo || selectedAirline !== 'todas' || selectedStatus !== 'todos' || searchTerm) && 
+            <Typography component="span" sx={{ ml: 1, fontWeight: 'medium' }}>
+              (filtrado aplicado)
+            </Typography>
+          }
+        </Typography>
+      </Box>
+    </Container>
   );
 };
 
