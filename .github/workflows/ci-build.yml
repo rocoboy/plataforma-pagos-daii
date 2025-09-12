@@ -23,16 +23,14 @@ jobs:
           filters: |
             web:
               - 'apps/web/**'
-              - 'packages/**'
               - 'apps/web/pnpm-lock.yaml'
             api:
               - 'apps/api/**'
-              - 'packages/**'
-              - 'apps/api/pnpm-lock.yaml'
+              - 'apps/api/bun.lock'
 
   build-web:
     needs: changes
-    if: ${{ needs.changes.outputs.web == 'true' || github.event_name == 'pull_request' }}
+    if: ${{ needs.changes.outputs.web == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -87,7 +85,7 @@ jobs:
 
   build-api:
     needs: changes
-    if: ${{ needs.changes.outputs.api == 'true' || github.event_name == 'pull_request' }}
+    if: ${{ needs.changes.outputs.api == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -110,6 +108,8 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: npx vercel pull --yes --environment=preview --token $VERCEL_TOKEN
 
       - name: Print working directory (API)
@@ -127,6 +127,8 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: |
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             npx vercel build --prod --token $VERCEL_TOKEN
