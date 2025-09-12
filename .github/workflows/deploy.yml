@@ -104,7 +104,7 @@ jobs:
           DOMAIN: ${{ vars.WEB_URL_PREPROD }}
         run: |
           echo "Adding domain: $DOMAIN to project"
-          npx vercel domains add "$DOMAIN" --token "$VERCEL_TOKEN" --yes
+          npx vercel domains add "$DOMAIN" --token "$VERCEL_TOKEN"
 
       - name: Add domain production (web)
         if: github.ref == 'refs/heads/main' && vars.WEB_URL != ''
@@ -116,7 +116,7 @@ jobs:
           DOMAIN: ${{ vars.WEB_URL }}
         run: |
           echo "Adding domain: $DOMAIN to project"
-          npx vercel domains add "$DOMAIN" --token "$VERCEL_TOKEN" --yes
+          npx vercel domains add "$DOMAIN" --token "$VERCEL_TOKEN"
 
   deploy-api:
     needs: changes
@@ -199,7 +199,7 @@ jobs:
           DOMAIN: ${{ vars.API_URL_PREPROD }}
         run: |
           echo "Adding domain: $DOMAIN to project"
-          npx vercel domains add "$DOMAIN" --token "$VERCEL_TOKEN" --yes
+          npx vercel domains add "$DOMAIN" --token "$VERCEL_TOKEN"
 
       - name: Add domain production (api)
         if: github.ref == 'refs/heads/main' && vars.API_URL != ''
@@ -211,7 +211,7 @@ jobs:
           DOMAIN: ${{ vars.API_URL }}
         run: |
           echo "Adding domain: $DOMAIN to project"
-          npx vercel domains add "$DOMAIN" --token "$VERCEL_TOKEN" --yes
+          npx vercel domains add "$DOMAIN" --token "$VERCEL_TOKEN"
 
   summary:
     name: 📋 Deployment Summary
