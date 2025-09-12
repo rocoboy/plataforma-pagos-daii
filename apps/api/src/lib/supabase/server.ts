@@ -7,7 +7,7 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export const createClient = (request: NextRequest) => {
 
-  let cookies = request.cookies;
+  const cookies = request.cookies;
 
   return createServerClient<Database>(supabaseUrl!, supabaseKey!, {
     cookies: {
@@ -16,7 +16,7 @@ export const createClient = (request: NextRequest) => {
       },
       setAll(cookiesToSet) {
         try {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             cookies.set(name, value)
           );
         } catch {
