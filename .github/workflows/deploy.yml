@@ -55,22 +55,13 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: |
           rm -rf .vercel
-          if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-            npx vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
-          else
-            npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
-          fi
+          npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
 
       - name: Build (vercel)
         working-directory: apps/web
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-            npx vercel build --prod --token "$VERCEL_TOKEN"
-          else
-            npx vercel build --token "$VERCEL_TOKEN"
-          fi
+        run: npx vercel build --token "$VERCEL_TOKEN"
 
       - name: Deploy (vercel)
         id: vercel-deploy-web
@@ -78,11 +69,7 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-            URL=$(npx vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" --confirm --no-clipboard | tail -n1)
-          else
-            URL=$(npx vercel deploy --prebuilt --token "$VERCEL_TOKEN" --confirm --no-clipboard | tail -n1)
-          fi
+          URL=$(npx vercel deploy --prebuilt --token "$VERCEL_TOKEN" --confirm --no-clipboard | tail -n1)
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       # Alias branch -> URL definida (si existe y es dominio propio)
@@ -94,29 +81,18 @@ jobs:
           echo "WEB_URL_PREPROD length: ${#WEB_URL_PREPROD}"
           echo "Deploy URL: ${{ steps.vercel-deploy-web.outputs.url }}"
 
-      - name: Add domain develop (web)
-        if: github.ref == 'refs/heads/develop' && vars.WEB_URL_PREPROD != ''
-        working-directory: apps/web
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          DOMAIN: ${{ vars.WEB_URL_PREPROD }}
-        run: |
-          echo "Adding domain: $DOMAIN to project"
-          npx vercel domains add "$DOMAIN" --token "$VERCEL_TOKEN"
+      # - name: Add domain develop (web)
+      #   if: github.ref == 'refs/heads/develop' && vars.WEB_URL_PREPROD != ''
+      #   working-directory: apps/web
+      #   env:
+      #     VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      #     VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
+      #     VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      #     DOMAIN: ${{ vars.WEB_URL_PREPROD }}
+      #   run: |
+      #     echo "Adding domain: $DOMAIN to project"
+      #     npx vercel domains add "$DOMAIN" --token "$VERCEL_TOKEN"
 
-      - name: Add domain production (web)
-        if: github.ref == 'refs/heads/main' && vars.WEB_URL != ''
-        working-directory: apps/web
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          DOMAIN: ${{ vars.WEB_URL }}
-        run: |
-          echo "Adding domain: $DOMAIN to project"
-          npx vercel domains add "$DOMAIN" --token "$VERCEL_TOKEN"
 
   deploy-api:
     needs: changes
@@ -147,11 +123,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: |
           rm -rf .vercel
-          if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-            npx vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
-          else
-            npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
-          fi
+          npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
 
       - name: Build (vercel)
         working-directory: apps/api
@@ -159,12 +131,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-        run: |
-          if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-            npx vercel build --prod --token "$VERCEL_TOKEN"
-          else
-            npx vercel build --token "$VERCEL_TOKEN"
-          fi
+        run: npx vercel build --token "$VERCEL_TOKEN"
 
       - name: Deploy (vercel)
         id: vercel-deploy-api
@@ -174,11 +141,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: |
-          if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-            URL=$(npx vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" --confirm --no-clipboard | tail -n1)
-          else
-            URL=$(npx vercel deploy --prebuilt --token "$VERCEL_TOKEN" --confirm --no-clipboard | tail -n1)
-          fi
+          URL=$(npx vercel deploy --prebuilt --token "$VERCEL_TOKEN" --confirm --no-clipboard | tail -n1)
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Debug alias info (api)
@@ -189,29 +152,18 @@ jobs:
           echo "API_URL_PREPROD length: ${#API_URL_PREPROD}"
           echo "Deploy URL: ${{ steps.vercel-deploy-api.outputs.url }}"
 
-      - name: Add domain develop (api)
-        if: github.ref == 'refs/heads/develop' && vars.API_URL_PREPROD != ''
-        working-directory: apps/api
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          DOMAIN: ${{ vars.API_URL_PREPROD }}
-        run: |
-          echo "Adding domain: $DOMAIN to project"
-          npx vercel domains add "$DOMAIN" --token "$VERCEL_TOKEN"
+      # - name: Add domain develop (api)
+      #   if: github.ref == 'refs/heads/develop' && vars.API_URL_PREPROD != ''
+      #   working-directory: apps/api
+      #   env:
+      #     VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      #     VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
+      #     VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      #     DOMAIN: ${{ vars.API_URL_PREPROD }}
+      #   run: |
+      #     echo "Adding domain: $DOMAIN to project"
+      #     npx vercel domains add "$DOMAIN" --token "$VERCEL_TOKEN"
 
-      - name: Add domain production (api)
-        if: github.ref == 'refs/heads/main' && vars.API_URL != ''
-        working-directory: apps/api
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          DOMAIN: ${{ vars.API_URL }}
-        run: |
-          echo "Adding domain: $DOMAIN to project"
-          npx vercel domains add "$DOMAIN" --token "$VERCEL_TOKEN"
 
   summary:
     name: 📋 Deployment Summary
