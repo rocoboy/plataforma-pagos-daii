@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPayment, createPaymentBodySchema } from "./create-payment";
 import { updatePayment, updatePaymentBodySchema } from "./update-payment";
-import { getPayment, getPaymentSchema } from "../../payments/[id]/get-payment";
 
 //POST para crear payments
 export async function POST(request: NextRequest) {
