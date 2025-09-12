@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPayment, createPaymentBodySchema } from "./create-payment";
 import { updatePayment, updatePaymentBodySchema } from "./update-payment";
+import { getPayment, getPaymentSchema } from "./get-payment";
 
 //POST para crear payments
 export async function POST(request: NextRequest) {
   try {
+    //validar body
     const json = await request.json();
     const parsed = createPaymentBodySchema.safeParse(json);
 
@@ -19,8 +21,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { res_id, user_id, meta } = parsed.data;
-    const payment = await createPayment(request, res_id, user_id, meta);
+    const { res_id, user_id, meta, amount, currency } = parsed.data;
+    const payment = await createPayment(
+      request,
+      res_id,
+      amount,
+      currency,
+      user_id,
+      meta
+    );
 
     return NextResponse.json({ success: true, payment });
   } catch (error) {
@@ -67,6 +76,33 @@ export async function PUT(request: NextRequest) {
 }
 
 //GET para obtener payments
-export async function GET(_request: NextRequest) {
-  return NextResponse.json({ message: "OK" });
+export async function GET(request: NextRequest) {
+  try {
+    const json = await request.json();
+    const parsed = getPaymentSchema.safeParse(json);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid request body",
+          issues: parsed.error.message,
+        },
+        { status: 400 }
+      );
+    }
+
+    const { id } = parsed.data;
+    const payment = await getPayment(request, id);
+
+    return NextResponse.json({ success: true, payment });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  }
 }
