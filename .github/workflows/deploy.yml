@@ -117,12 +117,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
-          cache-dependency-path: 'apps/api/pnpm-lock.yaml'
-
+      - name: Install Bun
+        run: npm install -g bun
       - name: Install deps (api)
         working-directory: apps/api
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Vercel pull
         working-directory: apps/api
