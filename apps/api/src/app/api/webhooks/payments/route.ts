@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPayment, createPaymentBodySchema } from "./create-payment";
 import { updatePayment, updatePaymentBodySchema } from "./update-payment";
-import { getPayment, getPaymentSchema } from "./get-payment";
+import { getPayment, getPaymentSchema } from "../../payments/[id]/get-payment";
 
 //POST para crear payments
 export async function POST(request: NextRequest) {
@@ -62,38 +62,6 @@ export async function PUT(request: NextRequest) {
 
     const { id, status } = parsed.data;
     const payment = await updatePayment(request, id, status);
-
-    return NextResponse.json({ success: true, payment });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
-  }
-}
-
-//GET para obtener payments
-export async function GET(request: NextRequest) {
-  try {
-    const json = await request.json();
-    const parsed = getPaymentSchema.safeParse(json);
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid request body",
-          issues: parsed.error.message,
-        },
-        { status: 400 }
-      );
-    }
-
-    const { id } = parsed.data;
-    const payment = await getPayment(request, id);
 
     return NextResponse.json({ success: true, payment });
   } catch (error) {
