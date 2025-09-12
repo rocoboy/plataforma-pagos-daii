@@ -86,21 +86,37 @@ jobs:
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       # Alias branch -> URL definida (si existe y es dominio propio)
-      - name: Alias develop (web)
-        if: github.ref == 'refs/heads/develop' && vars.WEB_URL_PREPROD != '' && !contains(vars.WEB_URL_PREPROD, '.vercel.app')
-        working-directory: apps/web
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          ALIAS: ${{ vars.WEB_URL_PREPROD }}
-        run: npx vercel alias set "${{ steps.vercel-deploy-web.outputs.url }}" "$ALIAS" --token "$VERCEL_TOKEN"
+      - name: Debug alias info (web)
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          echo "Branch: ${{ github.ref }}"
+          echo "WEB_URL_PREPROD: '${{ vars.WEB_URL_PREPROD }}'"
+          echo "WEB_URL_PREPROD length: ${#WEB_URL_PREPROD}"
+          echo "Deploy URL: ${{ steps.vercel-deploy-web.outputs.url }}"
 
-      - name: Alias production (web)
-        if: github.ref == 'refs/heads/main' && vars.WEB_URL != '' && !contains(vars.WEB_URL, '.vercel.app')
+      - name: Add domain develop (web)
+        if: github.ref == 'refs/heads/develop' && vars.WEB_URL_PREPROD != ''
         working-directory: apps/web
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          ALIAS: ${{ vars.WEB_URL }}
-        run: npx vercel alias set "${{ steps.vercel-deploy-web.outputs.url }}" "$ALIAS" --token "$VERCEL_TOKEN"
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          DOMAIN: ${{ vars.WEB_URL_PREPROD }}
+        run: |
+          echo "Adding domain: $DOMAIN to project"
+          npx vercel domains add "$DOMAIN" --token "$VERCEL_TOKEN" --yes
+
+      - name: Add domain production (web)
+        if: github.ref == 'refs/heads/main' && vars.WEB_URL != ''
+        working-directory: apps/web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          DOMAIN: ${{ vars.WEB_URL }}
+        run: |
+          echo "Adding domain: $DOMAIN to project"
+          npx vercel domains add "$DOMAIN" --token "$VERCEL_TOKEN" --yes
 
   deploy-api:
     needs: changes
@@ -165,21 +181,37 @@ jobs:
           fi
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
-      - name: Alias develop (api)
-        if: github.ref == 'refs/heads/develop' && vars.API_URL_PREPROD != '' && !contains(vars.API_URL_PREPROD, '.vercel.app')
-        working-directory: apps/api
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          ALIAS: ${{ vars.API_URL_PREPROD }}
-        run: npx vercel alias set "${{ steps.vercel-deploy-api.outputs.url }}" "$ALIAS" --token "$VERCEL_TOKEN"
+      - name: Debug alias info (api)
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          echo "Branch: ${{ github.ref }}"
+          echo "API_URL_PREPROD: '${{ vars.API_URL_PREPROD }}'"
+          echo "API_URL_PREPROD length: ${#API_URL_PREPROD}"
+          echo "Deploy URL: ${{ steps.vercel-deploy-api.outputs.url }}"
 
-      - name: Alias production (api)
-        if: github.ref == 'refs/heads/main' && vars.API_URL != '' && !contains(vars.API_URL, '.vercel.app')
+      - name: Add domain develop (api)
+        if: github.ref == 'refs/heads/develop' && vars.API_URL_PREPROD != ''
         working-directory: apps/api
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          ALIAS: ${{ vars.API_URL }}
-        run: npx vercel alias set "${{ steps.vercel-deploy-api.outputs.url }}" "$ALIAS" --token "$VERCEL_TOKEN"
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          DOMAIN: ${{ vars.API_URL_PREPROD }}
+        run: |
+          echo "Adding domain: $DOMAIN to project"
+          npx vercel domains add "$DOMAIN" --token "$VERCEL_TOKEN" --yes
+
+      - name: Add domain production (api)
+        if: github.ref == 'refs/heads/main' && vars.API_URL != ''
+        working-directory: apps/api
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          DOMAIN: ${{ vars.API_URL }}
+        run: |
+          echo "Adding domain: $DOMAIN to project"
+          npx vercel domains add "$DOMAIN" --token "$VERCEL_TOKEN" --yes
 
   summary:
     name: 📋 Deployment Summary
