@@ -27,7 +27,7 @@ import {
   Search as SearchIcon,
   Flight as FlightIcon
 } from '@mui/icons-material';
-import { mockTransactions, mockTransactionDetails, Transaction } from '../data/mockData';
+import { mockTransactions, mockTransactionDetails, Transaction } from '../../data/mockData';
 
 // Status Chip Component using our custom theme colors - Updated
 const StatusChip: React.FC<{ status: Transaction['status'] }> = ({ status }) => {

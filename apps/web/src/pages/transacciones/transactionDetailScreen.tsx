@@ -18,7 +18,7 @@ import {
   Download as DownloadIcon,
   Flight as FlightIcon
 } from '@mui/icons-material';
-import { mockTransactionDetails, TransactionDetail } from '../data/mockData';
+import { mockTransactionDetails, TransactionDetail } from '../../data/mockData';
 
 interface TransactionDetailScreenProps {
   transactionId?: string;
