@@ -149,7 +149,9 @@ src/
 ├── theme/               # 🎨 CONFIGURACIÓN DE TEMA
 │   └── muiTheme.ts      # ← ARCHIVO PRINCIPAL DE COLORES
 ├── data/
-│   └── mockData.ts      # Datos de prueba
+│   └── mockData.ts      # Type definitions (Transaction, TransactionDetail)
+├── services/
+│   └── paymentService.ts # API service for Supabase integration
 ├── lib/
 │   └── utils.ts         # Utilidades
 └── App.tsx              # Componente principal

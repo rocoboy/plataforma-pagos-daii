@@ -27,7 +27,8 @@ import {
   Search as SearchIcon,
   Flight as FlightIcon
 } from '@mui/icons-material';
-import { mockTransactions, mockTransactionDetails, Transaction } from '../../data/mockData';
+import { Transaction } from '../../data/mockData';
+import { paymentService, Payment } from '../../services/paymentService';
 
 // Status Chip Component using our custom theme colors - Updated
 const StatusChip: React.FC<{ status: Transaction['status'] }> = ({ status }) => {
@@ -163,15 +164,71 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ onViewDetail })
     }
   ];
 
+  // Transform Payment data to Transaction format
+  const transformPaymentToTransaction = (payment: Payment): Transaction => {
+    // Map payment status to transaction status
+    const statusMapping = {
+      'SUCCESS': 'confirmado' as const,
+      'PENDING': 'pendiente' as const,
+      'FAILURE': 'cancelado' as const,
+      'UNDERPAID': 'pendiente' as const,
+      'OVERPAID': 'confirmado' as const,
+      'EXPIRED': 'cancelado' as const,
+      'REFUND': 'cancelado' as const,
+    };
+
+    return {
+      id: payment.id,
+      reservationId: payment.res_id,
+      destination: payment.meta?.destination || 'Destino no especificado',
+      airline: payment.meta?.airline || 'Aerolínea no especificada',
+      purchaseDate: new Date(payment.created_at).toISOString().split('T')[0], // Format as YYYY-MM-DD
+      status: statusMapping[payment.status as keyof typeof statusMapping] || 'pendiente',
+      amount: payment.amount
+    };
+  };
+
+  // Transform Payment data to TransactionDetail format for PDF generation
+  const transformPaymentToTransactionDetail = (payment: Payment) => {
+    const formatDate = (dateStr: string) => {
+      return new Date(dateStr).toLocaleDateString('es-AR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    };
+
+    return {
+      id: payment.id,
+      reservationId: payment.res_id,
+      purchaseDate: formatDate(payment.created_at),
+      amount: payment.amount,
+      paymentMethod: payment.meta?.paymentMethod || 'Método no especificado',
+      cardNumber: payment.meta?.cardNumber || '**** ****',
+      flightNumber: payment.meta?.flightNumber || 'N/A',
+      departure: payment.meta?.departure || 'Origen no especificado',
+      arrival: payment.meta?.arrival || 'Destino no especificado',
+      duration: payment.meta?.duration || 'N/A',
+      flightClass: payment.meta?.flightClass || 'Clase no especificada'
+    };
+  };
+
   // Fetch transactions using TanStack Query
   const { data: transactions = [], isLoading, error } = useQuery({
     queryKey: ['transactions'],
     queryFn: async (): Promise<Transaction[]> => {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return mockTransactions;
+      const response = await paymentService.getAllPayments();
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Failed to fetch payments');
+      }
+      
+      // Transform payments to transactions
+      return response.data.map(transformPaymentToTransaction);
     }
   });
+
+  // Get unique airlines from transactions for filter
+  const uniqueAirlines = Array.from(new Set(transactions.map(t => t.airline))).filter(airline => airline !== 'Aerolínea no especificada');
 
   // Filter transactions based on search and filters
   const filteredTransactions = transactions.filter(transaction => {
@@ -215,12 +272,6 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ onViewDetail })
   };
 
   const handleDownloadInvoice = async (transactionId: string) => {
-    const transactionDetail = mockTransactionDetails[transactionId];
-    if (!transactionDetail) {
-      console.error('Transaction detail not found for ID:', transactionId);
-      return;
-    }
-    
     // Add to generating PDFs set
     setGeneratingPDFs(prev => {
       const newSet = new Set(prev);
@@ -229,6 +280,16 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ onViewDetail })
     });
     
     try {
+      // Fetch payment data
+      const response = await paymentService.getPayment(transactionId);
+      if (!response.success || !response.data) {
+        console.error('Payment not found for ID:', transactionId);
+        return;
+      }
+
+      const payment = response.data;
+      const transactionDetail = transformPaymentToTransactionDetail(payment);
+      
       // Add a small delay to show the loading state
       await new Promise(resolve => setTimeout(resolve, 500));
       
@@ -444,11 +505,11 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ onViewDetail })
               onChange={(e) => setSelectedAirline(e.target.value)}
             >
               <MenuItem value="todas">Todas</MenuItem>
-              <MenuItem value="Delta">Delta</MenuItem>
-              <MenuItem value="American Airlines">American Airlines</MenuItem>
-              <MenuItem value="United Airlines">United Airlines</MenuItem>
-              <MenuItem value="Alaska Airlines">Alaska Airlines</MenuItem>
-              <MenuItem value="JetBlue">JetBlue</MenuItem>
+              {uniqueAirlines.map((airline) => (
+                <MenuItem key={airline} value={airline}>
+                  {airline}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
 

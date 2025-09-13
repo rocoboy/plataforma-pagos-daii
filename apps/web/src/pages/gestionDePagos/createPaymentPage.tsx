@@ -15,15 +15,9 @@ import {
   CircularProgress,
   IconButton,
   Stack,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  Chip,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon, Upload as UploadIcon } from '@mui/icons-material';
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { paymentService, CreatePaymentRequest } from '../../services/paymentService';
-import { mockTransactions, mockTransactionDetails } from '../../data/mockData';
 
 const CreatePaymentPage: React.FC = () => {
   const navigate = useNavigate();
@@ -53,94 +47,6 @@ const CreatePaymentPage: React.FC = () => {
       }
     },
   });
-
-  // Mock data upload functionality
-  const [uploadResults, setUploadResults] = useState<{
-    successful: any[];
-    errors: any[];
-    isUploading: boolean;
-  }>({
-    successful: [],
-    errors: [],
-    isUploading: false,
-  });
-
-  const transformMockToPayment = (transaction: any, detail?: any): CreatePaymentRequest => {
-    const statusMapping = {
-      'confirmado': 'SUCCESS',
-      'pendiente': 'PENDING', 
-      'cancelado': 'FAILURE'
-    } as const;
-
-    // Store all flight and transaction details in meta field
-    const meta = {
-      destination: transaction.destination,
-      airline: transaction.airline,
-      purchaseDate: transaction.purchaseDate,
-      originalStatus: transaction.status,
-      ...(detail && {
-        paymentMethod: detail.paymentMethod,
-        cardNumber: detail.cardNumber,
-        flightNumber: detail.flightNumber,
-        departure: detail.departure,
-        arrival: detail.arrival,
-        duration: detail.duration,
-        flightClass: detail.flightClass
-      })
-    };
-
-    return {
-      res_id: transaction.reservationId,
-      amount: transaction.amount,
-      currency: 'USD',
-      user_id: `user_${transaction.id}`,
-      meta
-    };
-  };
-
-  const uploadMockData = async () => {
-    setUploadResults(prev => ({ ...prev, isUploading: true, successful: [], errors: [] }));
-
-    const results = [];
-    const errors = [];
-
-    for (const transaction of mockTransactions) {
-      try {
-        // Get corresponding detail if available
-        const detail = mockTransactionDetails[transaction.id];
-        
-        // Transform data to match backend schema
-        const paymentData = transformMockToPayment(transaction, detail);
-        
-        // Upload to backend
-        const response = await paymentService.createPayment(paymentData);
-        
-        if (response.success) {
-          results.push({ transaction, payment: response.data });
-        } else {
-          errors.push({ transaction, error: response.error });
-        }
-        
-        // Add a small delay to avoid overwhelming the server
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-      } catch (error) {
-        errors.push({ 
-          transaction, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        });
-      }
-    }
-
-    setUploadResults({
-      successful: results,
-      errors,
-      isUploading: false,
-    });
-
-    // Refresh the payments list
-    queryClient.invalidateQueries({ queryKey: ['payments'] });
-  };
 
   const handleChange = (field: keyof CreatePaymentRequest) => (
     event: React.ChangeEvent<HTMLInputElement | { value: unknown }>
@@ -339,114 +245,6 @@ const CreatePaymentPage: React.FC = () => {
             </Box>
           </Stack>
         </form>
-      </Paper>
-
-      {/* Mock Data Upload Section */}
-      <Paper sx={{ p: 3, mt: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Cargar Datos de Prueba
-        </Typography>
-        <Typography variant="body2" color="text.secondary" paragraph>
-          Esta función carga todos los datos de transacciones de ejemplo al servidor Supabase. 
-          Se cargarán {mockTransactions.length} transacciones con toda su información de vuelos.
-        </Typography>
-
-        <Divider sx={{ my: 2 }} />
-
-        {/* Upload Button */}
-        <Box mb={2}>
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={uploadMockData}
-            disabled={uploadResults.isUploading}
-            startIcon={uploadResults.isUploading ? <CircularProgress size={20} /> : <UploadIcon />}
-            sx={{ mr: 2 }}
-          >
-            {uploadResults.isUploading ? 'Cargando...' : 'Cargar Datos de Prueba'}
-          </Button>
-          
-          {(uploadResults.successful.length > 0 || uploadResults.errors.length > 0) && (
-            <Typography variant="body2" component="span">
-              ✅ {uploadResults.successful.length} exitosos, ❌ {uploadResults.errors.length} fallidos
-            </Typography>
-          )}
-        </Box>
-
-        {/* Results */}
-        {uploadResults.successful.length > 0 && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Transacciones cargadas exitosamente: {uploadResults.successful.length}
-            </Typography>
-            <List dense>
-              {uploadResults.successful.slice(0, 3).map((result, index) => (
-                <ListItem key={index} sx={{ py: 0 }}>
-                  <ListItemText 
-                    primary={`${result.transaction.reservationId} - ${result.transaction.destination}`}
-                    secondary={`$${result.transaction.amount} - ${result.transaction.airline}`}
-                  />
-                  <Chip label="✓" color="success" size="small" />
-                </ListItem>
-              ))}
-              {uploadResults.successful.length > 3 && (
-                <ListItem sx={{ py: 0 }}>
-                  <ListItemText 
-                    primary={`... y ${uploadResults.successful.length - 3} más`}
-                    secondary="Ver la lista completa en la página de pagos"
-                  />
-                </ListItem>
-              )}
-            </List>
-          </Alert>
-        )}
-
-        {uploadResults.errors.length > 0 && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Errores en la carga: {uploadResults.errors.length}
-            </Typography>
-            <List dense>
-              {uploadResults.errors.slice(0, 3).map((error, index) => (
-                <ListItem key={index} sx={{ py: 0 }}>
-                  <ListItemText 
-                    primary={`${error.transaction.reservationId} - ${error.transaction.destination}`}
-                    secondary={error.error}
-                  />
-                  <Chip label="✗" color="error" size="small" />
-                </ListItem>
-              ))}
-              {uploadResults.errors.length > 3 && (
-                <ListItem sx={{ py: 0 }}>
-                  <ListItemText 
-                    primary={`... y ${uploadResults.errors.length - 3} errores más`}
-                  />
-                </ListItem>
-              )}
-            </List>
-          </Alert>
-        )}
-
-        {/* Preview of Mock Data */}
-        <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
-          Vista previa de los datos a cargar:
-        </Typography>
-        <List dense>
-          {mockTransactions.slice(0, 3).map((transaction) => (
-            <ListItem key={transaction.id} sx={{ py: 0 }}>
-              <ListItemText 
-                primary={`${transaction.reservationId} - ${transaction.destination}`}
-                secondary={`${transaction.airline} | $${transaction.amount} | ${transaction.status}`}
-              />
-            </ListItem>
-          ))}
-          <ListItem sx={{ py: 0 }}>
-            <ListItemText 
-              primary={`... y ${mockTransactions.length - 3} transacciones más`}
-              secondary="Todas incluyen información detallada de vuelos"
-            />
-          </ListItem>
-        </List>
       </Paper>
     </Box>
   );

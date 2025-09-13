@@ -18,7 +18,8 @@ import {
   Download as DownloadIcon,
   Flight as FlightIcon
 } from '@mui/icons-material';
-import { mockTransactionDetails, TransactionDetail } from '../../data/mockData';
+import { TransactionDetail } from '../../data/mockData';
+import { paymentService, Payment } from '../../services/paymentService';
 
 interface TransactionDetailScreenProps {
   transactionId?: string;
@@ -31,20 +32,45 @@ const TransactionDetailScreen: React.FC<TransactionDetailScreenProps> = ({
 }) => {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   
+  // Transform Payment data to TransactionDetail format
+  const transformPaymentToTransactionDetail = (payment: Payment): TransactionDetail => {
+    const formatDate = (dateStr: string) => {
+      return new Date(dateStr).toLocaleDateString('es-AR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    };
+
+    return {
+      id: payment.id,
+      reservationId: payment.res_id,
+      purchaseDate: formatDate(payment.created_at),
+      amount: payment.amount,
+      paymentMethod: payment.meta?.paymentMethod || 'Método no especificado',
+      cardNumber: payment.meta?.cardNumber || '**** ****',
+      flightNumber: payment.meta?.flightNumber || 'N/A',
+      departure: payment.meta?.departure || 'Origen no especificado',
+      arrival: payment.meta?.arrival || 'Destino no especificado',
+      duration: payment.meta?.duration || 'N/A',
+      flightClass: payment.meta?.flightClass || 'Clase no especificada'
+    };
+  };
+
   // Fetch transaction detail using TanStack Query
   const { data: transactionDetail, isLoading, error } = useQuery({
     queryKey: ['transactionDetail', transactionId],
     queryFn: async (): Promise<TransactionDetail> => {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Get transaction detail by ID, fallback to first one if not found
-      const detail = transactionId ? mockTransactionDetails[transactionId] : null;
-      if (!detail) {
-        throw new Error('Transacción no encontrada');
+      if (!transactionId) {
+        throw new Error('ID de transacción requerido');
+      }
+
+      const response = await paymentService.getPayment(transactionId);
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Transacción no encontrada');
       }
       
-      return detail;
+      return transformPaymentToTransactionDetail(response.data);
     },
     enabled: !!transactionId
   });
