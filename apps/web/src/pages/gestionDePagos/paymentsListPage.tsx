@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Paper,
@@ -17,17 +17,29 @@ import {
   Alert,
   IconButton,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Visibility as ViewIcon,
   Edit as EditIcon,
+  Delete as DeleteIcon,
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { paymentService, Payment } from '../../services/paymentService';
 
 const PaymentsListPage: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  
+  // State for delete confirmation dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState<Payment | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const {
     data: paymentsResponse,
@@ -53,6 +65,39 @@ const PaymentsListPage: React.FC = () => {
 
   const handleEditPayment = (id: string) => {
     navigate(`/payments/${id}/edit`);
+  };
+
+  const handleDeletePayment = (payment: Payment) => {
+    setPaymentToDelete(payment);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeletePayment = async () => {
+    if (!paymentToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const result = await paymentService.deletePayment(paymentToDelete.id);
+      if (result.success) {
+        // Refetch the payments list
+        queryClient.invalidateQueries({ queryKey: ['payments'] });
+        setDeleteDialogOpen(false);
+        setPaymentToDelete(null);
+      } else {
+        console.error('Failed to delete payment:', result.error);
+        // You could add a toast notification here
+      }
+    } catch (error) {
+      console.error('Error deleting payment:', error);
+      // You could add a toast notification here
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const cancelDeletePayment = () => {
+    setDeleteDialogOpen(false);
+    setPaymentToDelete(null);
   };
 
   const getStatusChip = (payment: Payment) => {
@@ -224,6 +269,15 @@ const PaymentsListPage: React.FC = () => {
                           <EditIcon />
                         </IconButton>
                       </Tooltip>
+                      <Tooltip title="Eliminar">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeletePayment(payment)}
+                          color="error"
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 ))
@@ -232,6 +286,48 @@ const PaymentsListPage: React.FC = () => {
           </Table>
         </TableContainer>
       </Paper>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={cancelDeletePayment}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+      >
+        <DialogTitle id="delete-dialog-title">
+          Confirmar Eliminación
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-dialog-description">
+            ¿Estás seguro de que deseas eliminar este pago?
+            {paymentToDelete && (
+              <>
+                <br /><br />
+                <strong>ID:</strong> {paymentToDelete.id}<br />
+                <strong>Reserva:</strong> {paymentToDelete.res_id}<br />
+                <strong>Monto:</strong> ${paymentToDelete.amount} {paymentToDelete.currency}<br />
+                <strong>Estado:</strong> {paymentService.getStatusLabel(paymentToDelete.status)}
+                <br /><br />
+                Esta acción no se puede deshacer.
+              </>
+            )}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelDeletePayment} disabled={isDeleting}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={confirmDeletePayment} 
+            color="error" 
+            variant="contained"
+            disabled={isDeleting}
+            startIcon={isDeleting ? <CircularProgress size={16} /> : <DeleteIcon />}
+          >
+            {isDeleting ? 'Eliminando...' : 'Eliminar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

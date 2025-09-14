@@ -21,7 +21,7 @@ export class PaymentGateway {
   /**
    * Simulates payment processing through a gateway
    * Rules for emulation:
-   * - Amounts over 10000 are rejected (high risk)
+   * - Amounts over 1,000,000 are rejected (high risk) - adjusted for ARS
    * - Card numbers ending in '0000' are rejected (test failure case)
    * - Card numbers ending in '1111' take longer but succeed
    * - Random 5% failure rate for realistic simulation
@@ -30,8 +30,8 @@ export class PaymentGateway {
     // Simulate processing delay
     await this.simulateDelay();
 
-    // Check amount limits
-    if (request.amount > 10000) {
+    // Check amount limits (adjusted for ARS)
+    if (request.amount > 1000000) {
       return {
         success: false,
         errorCode: 'AMOUNT_LIMIT_EXCEEDED',

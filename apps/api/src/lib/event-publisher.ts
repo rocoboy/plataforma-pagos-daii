@@ -50,6 +50,31 @@ export class EventPublisher {
     await this.publishEvent('payment.failed', event);
   }
 
+  async publishPaymentCancelled(event: any): Promise<void> {
+    await this.ensureConnected();
+    await this.publishEvent('payment.cancelled', event);
+  }
+
+  async publishPaymentRefunded(event: any): Promise<void> {
+    await this.ensureConnected();
+    await this.publishEvent('payment.refunded', event);
+  }
+
+  async publishPaymentExpired(event: any): Promise<void> {
+    await this.ensureConnected();
+    await this.publishEvent('payment.expired', event);
+  }
+
+  async publishPaymentUnderpaid(event: any): Promise<void> {
+    await this.ensureConnected();
+    await this.publishEvent('payment.underpaid', event);
+  }
+
+  async publishPaymentOverpaid(event: any): Promise<void> {
+    await this.ensureConnected();
+    await this.publishEvent('payment.overpaid', event);
+  }
+
   private async publishEvent(routingKey: string, event: any): Promise<void> {
     if (!this.channel) {
       throw new Error('No channel available for publishing');
