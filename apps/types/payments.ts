@@ -1,7 +1,7 @@
 import { ID } from "./common";
 import { PaymentProvider } from "./providers";
 
-export type PaymentStatus = "APPROVED" | "REJECTED" | "PENDING";
+export type PaymentStatus = "PENDING" | "SUCCESS" | "FAILURE" | "UNDERPAID" | "OVERPAID" | "EXPIRED" | "REFUND";
 
 export type Payment = {
   id: ID;
