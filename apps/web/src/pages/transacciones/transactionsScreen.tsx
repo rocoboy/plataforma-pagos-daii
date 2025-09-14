@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import jsPDF from 'jspdf';
 import { 
   DataGrid, 
@@ -25,10 +25,12 @@ import {
   Download as DownloadIcon,
   Clear as ClearIcon,
   Search as SearchIcon,
-  Flight as FlightIcon
+  Flight as FlightIcon,
+  Payment as PaymentIcon
 } from '@mui/icons-material';
 import { Transaction } from '../../data/mockData';
 import { paymentService, Payment } from '../../services/paymentService';
+import PaymentCheckout from '../../components/PaymentCheckout';
 
 // Status Chip Component using our custom theme colors - Updated
 const StatusChip: React.FC<{ status: Transaction['status'] }> = ({ status }) => {
@@ -48,6 +50,11 @@ const StatusChip: React.FC<{ status: Transaction['status'] }> = ({ status }) => 
         return {
           text: 'Cancelado',
           color: 'error' as const
+        };
+      case 'pago-parcial':
+        return {
+          text: 'Pago Parcial',
+          color: 'info' as const
         };
       default:
         return {
@@ -82,6 +89,13 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ onViewDetail })
   const [selectedAirline, setSelectedAirline] = useState('todas');
   const [selectedStatus, setSelectedStatus] = useState('todos');
   const [generatingPDFs, setGeneratingPDFs] = useState<Set<string>>(new Set());
+
+  // Checkout states
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [currentPayment, setCurrentPayment] = useState<Payment | null>(null);
+
+  // Query client for cache invalidation
+  const queryClient = useQueryClient();
 
   // Define DataGrid columns with flexible widths
   const columns: GridColDef[] = [
@@ -146,21 +160,38 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ onViewDetail })
       minWidth: 180,
       headerAlign: 'center',
       align: 'center',
-      getActions: (params: GridRowParams) => [
-        <GridActionsCellItem
-          key="view"
-          icon={<VisibilityIcon />}
-          label="Ver Detalle"
-          onClick={() => handleViewDetail(params.id as string)}
-        />,
-        <GridActionsCellItem
-          key="download"
-          icon={generatingPDFs.has(params.id as string) ? <CircularProgress size={16} /> : <DownloadIcon />}
-          label="Descargar Factura"
-          onClick={() => handleDownloadInvoice(params.id as string)}
-          disabled={generatingPDFs.has(params.id as string)}
-        />
-      ]
+      getActions: (params: GridRowParams) => {
+        const actions = [
+          <GridActionsCellItem
+            key="view"
+            icon={<VisibilityIcon />}
+            label="Ver Detalle"
+            onClick={() => handleViewDetail(params.id as string)}
+          />,
+          <GridActionsCellItem
+            key="download"
+            icon={generatingPDFs.has(params.id as string) ? <CircularProgress size={16} /> : <DownloadIcon />}
+            label="Descargar Factura"
+            onClick={() => handleDownloadInvoice(params.id as string)}
+            disabled={generatingPDFs.has(params.id as string)}
+          />
+        ];
+
+        // Add payment button for PENDING payments
+        const row = params.row as Transaction;
+        if (row.originalStatus === 'PENDING') {
+          actions.unshift(
+            <GridActionsCellItem
+              key="pay"
+              icon={<PaymentIcon />}
+              label="Pagar"
+              onClick={() => handlePayExistingPayment(params.id as string)}
+            />
+          );
+        }
+
+        return actions;
+      }
     }
   ];
 
@@ -171,7 +202,7 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ onViewDetail })
       'SUCCESS': 'confirmado' as const,
       'PENDING': 'pendiente' as const,
       'FAILURE': 'cancelado' as const,
-      'UNDERPAID': 'pendiente' as const,
+      'UNDERPAID': 'pago-parcial' as const,
       'OVERPAID': 'confirmado' as const,
       'EXPIRED': 'cancelado' as const,
       'REFUND': 'cancelado' as const,
@@ -184,7 +215,8 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ onViewDetail })
       airline: payment.meta?.airline || 'Aerolínea no especificada',
       purchaseDate: new Date(payment.created_at).toISOString().split('T')[0], // Format as YYYY-MM-DD
       status: statusMapping[payment.status as keyof typeof statusMapping] || 'pendiente',
-      amount: payment.amount
+      amount: payment.amount,
+      originalStatus: payment.status // Keep original status for payment button logic
     };
   };
 
@@ -376,6 +408,50 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ onViewDetail })
     }
   };
 
+  // Handle payment processing for existing payments
+  const handlePayExistingPayment = async (paymentId: string) => {
+    try {
+      // Find the payment from our data
+      const payment = transactions.find(t => t.id === paymentId);
+      if (!payment) {
+        console.error('Payment not found');
+        return;
+      }
+
+      // Get the original payment data to access full payment object
+      const response = await paymentService.getAllPayments();
+      if (!response.success || !response.data) {
+        console.error('Failed to fetch payment details');
+        return;
+      }
+
+      const fullPayment = response.data.find(p => p.id === paymentId);
+      if (!fullPayment) {
+        console.error('Payment details not found');
+        return;
+      }
+
+      setCurrentPayment(fullPayment);
+      setCheckoutOpen(true);
+    } catch (error) {
+      console.error('Error preparing payment:', error);
+    }
+  };
+
+  // Handle checkout success
+  const handleCheckoutSuccess = () => {
+    setCheckoutOpen(false);
+    setCurrentPayment(null);
+    // Refresh the transactions list
+    queryClient.invalidateQueries({ queryKey: ['transactions'] });
+  };
+
+  // Handle checkout close
+  const handleCheckoutClose = () => {
+    setCheckoutOpen(false);
+    setCurrentPayment(null);
+  };
+
   if (isLoading) {
     return (
       <Box 
@@ -524,6 +600,7 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ onViewDetail })
               <MenuItem value="todos">Todos</MenuItem>
               <MenuItem value="confirmado">Confirmado</MenuItem>
               <MenuItem value="pendiente">Pendiente</MenuItem>
+              <MenuItem value="pago-parcial">Pago Parcial</MenuItem>
               <MenuItem value="cancelado">Cancelado</MenuItem>
             </Select>
           </FormControl>
@@ -602,6 +679,22 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ onViewDetail })
           }
         </Typography>
       </Box>
+
+      {/* Payment Checkout Dialog */}
+      {currentPayment && (
+        <PaymentCheckout
+          open={checkoutOpen}
+          paymentId={currentPayment.id}
+          amount={currentPayment.amount}
+          currency={currentPayment.currency}
+          onClose={handleCheckoutClose}
+          onPaymentSuccess={handleCheckoutSuccess}
+          onPaymentError={(error) => {
+            console.error('Payment error:', error);
+            handleCheckoutClose();
+          }}
+        />
+      )}
     </Container>
   );
 };

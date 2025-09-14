@@ -24,6 +24,22 @@ export interface UpdatePaymentRequest {
   status: Payment['status'];
 }
 
+export interface ProcessPaymentRequest {
+  cardNumber: string;
+  cardholderName: string;
+  cvv: string;
+  expiryMonth: string;
+  expiryYear: string;
+}
+
+export interface ProcessPaymentResponse {
+  success: boolean;
+  transactionId?: string;
+  gatewayResponse?: any;
+  updatedPayment?: Payment;
+  error?: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -104,6 +120,40 @@ class PaymentService {
     return this.request<Payment>('/api/webhooks/payments', {
       method: 'PUT',
       body: JSON.stringify(updateData),
+    });
+  }
+
+  // POST /api/payments/{id}/process - Process payment through gateway
+  async processPayment(paymentId: string, paymentData: ProcessPaymentRequest): Promise<ProcessPaymentResponse> {
+    try {
+      const url = `${API_BASE_URL}/api/payments/${paymentId}/process`;
+      console.log('Processing payment:', paymentId, 'at URL:', url);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(paymentData),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || `HTTP ${response.status}`);
+      }
+
+      return result as ProcessPaymentResponse;
+    } catch (error) {
+      console.error('Payment processing error:', error);
+      throw error;
+    }
+  }
+
+  // DELETE /api/payments/{id} - Delete payment (for testing/cleanup)
+  async deletePayment(paymentId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<{ message: string }>(`/api/payments/${paymentId}`, {
+      method: 'DELETE',
     });
   }
 

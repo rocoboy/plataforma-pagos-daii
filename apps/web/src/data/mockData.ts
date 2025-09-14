@@ -5,8 +5,9 @@ export interface Transaction {
   destination: string;
   airline: string;
   purchaseDate: string;
-  status: 'confirmado' | 'pendiente' | 'cancelado';
+  status: 'confirmado' | 'pendiente' | 'cancelado' | 'pago-parcial';
   amount: number;
+  originalStatus?: 'PENDING' | 'SUCCESS' | 'FAILURE' | 'UNDERPAID' | 'OVERPAID' | 'EXPIRED' | 'REFUND'; // For payment button logic
 }
 
 export interface TransactionDetail {
