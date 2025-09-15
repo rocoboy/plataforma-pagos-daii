@@ -2,10 +2,11 @@
 export interface Transaction {
   id: string;
   reservationId: string;
+  userId: string;
   destination: string;
   airline: string;
   purchaseDate: string;
-  status: 'confirmado' | 'pendiente' | 'cancelado';
+  status: 'pending' | 'success' | 'failure' | 'underpaid' | 'overpaid' | 'expired' | 'refund' | string;
   amount: number;
 }
 
@@ -28,6 +29,7 @@ export const mockTransactions: Transaction[] = [
   {
     id: '1',
     reservationId: 'BKG123456',
+    userId: 'user_001',
     destination: 'New York',
     airline: 'Delta',
     purchaseDate: '2025-09-01',
@@ -37,6 +39,7 @@ export const mockTransactions: Transaction[] = [
   {
     id: '2',
     reservationId: 'BKG789012',
+    userId: 'user_002',
     destination: 'Los Angeles',
     airline: 'American Airlines',
     purchaseDate: '2025-08-15',
@@ -46,6 +49,7 @@ export const mockTransactions: Transaction[] = [
   {
     id: '3',
     reservationId: 'BKG345678',
+    userId: 'user_003',
     destination: 'Chicago',
     airline: 'United Airlines',
     purchaseDate: '2025-07-23',
@@ -55,6 +59,7 @@ export const mockTransactions: Transaction[] = [
   {
     id: '4',
     reservationId: 'BKG456789',
+    userId: 'user_004',
     destination: 'Miami',
     airline: 'Delta',
     purchaseDate: '2025-09-02',
@@ -64,6 +69,7 @@ export const mockTransactions: Transaction[] = [
   {
     id: '5',
     reservationId: 'BKG567890',
+    userId: 'user_005',
     destination: 'Seattle',
     airline: 'Alaska Airlines',
     purchaseDate: '2025-08-20',
@@ -73,6 +79,7 @@ export const mockTransactions: Transaction[] = [
   {
     id: '6',
     reservationId: 'BKG678901',
+    userId: 'user_006',
     destination: 'Boston',
     airline: 'JetBlue',
     purchaseDate: '2025-09-03',
@@ -82,6 +89,7 @@ export const mockTransactions: Transaction[] = [
   {
     id: '7',
     reservationId: 'BKG789013',
+    userId: 'user_007',
     destination: 'San Francisco',
     airline: 'United Airlines',
     purchaseDate: '2025-08-28',
