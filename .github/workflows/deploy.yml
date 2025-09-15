@@ -65,6 +65,7 @@ jobs:
         run: npx vercel build --token "$VERCEL_TOKEN"
         shell: bash
 
+
       - name: Deploy (vercel)
         id: vercel-deploy-web
         working-directory: apps/web
@@ -129,6 +130,7 @@ jobs:
           npx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
         shell: bash
 
+
       - name: Build (vercel)
         working-directory: apps/api
         env:
@@ -137,6 +139,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: npx vercel build --token "$VERCEL_TOKEN"
         shell: bash
+
 
       - name: Deploy (vercel)
         id: vercel-deploy-api
@@ -173,6 +176,7 @@ jobs:
 
   summary:
     name: 📋 Deployment Summary
+
     needs: [changes, deploy-web, deploy-api]
     if: ${{ always() }} 
     runs-on: ubuntu-latest
