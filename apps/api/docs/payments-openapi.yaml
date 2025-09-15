@@ -1,0 +1,425 @@
+
+openapi: 3.1.0
+info:
+  title: Payments API
+  version: "1.0.0"
+  description: |
+    API del **módulo de pagos** (Next.js + Supabase).
+    - Persiste y gestiona pagos en la tabla `payments`.
+    - Expone endpoints para crear, actualizar, listar, obtener por ID y listar por usuario.
+    - Incluye **esquemas de eventos** que el módulo publica/recibe
+servers:
+  - url: https://plataforma-pagos-daii.vercel.app/
+    description: Servidor de producción (Vercel)
+tags:
+  - name: Payments
+    description: Operaciones sobre pagos
+  - name: Payment Events
+    description: Esquemas de eventos publicados/consumidos por el módulo
+
+paths:
+  /payments:
+    post:
+      tags: [Payments]
+      summary: Crear un pago
+      description: Crea un pago con estado inicial `PENDING` (por defecto) y moneda `ARS` si no se especifica.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+            examples:
+              crearPago:
+                value:
+                  res_id: "15"
+                  user_id: "5"
+                  amount: 20000
+                  currency: ARS
+                  meta:
+                    origen: "web"
+      responses:
+        "200":
+          description: Creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePaymentResponse'
+        "400":
+          description: Body inválido (zod validation error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        "500":
+          description: Error interno
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [Payments]
+      summary: Actualizar estado de un pago
+      description: Actualiza el `status` de un pago existente y retorna el registro actualizado.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePaymentRequest'
+            examples:
+              aprobarPago:
+                value:
+                  id: "32"
+                  status: SUCCESS
+              rechazarPago:
+                value:
+                  id: "33"
+                  status: DECLINED
+      responses:
+        "200":
+          description: Actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdatePaymentResponse'
+        "400":
+          description: Body inválido (zod validation error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        "500":
+          description: Error interno
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags: [Payments]
+      summary: Listar todos los pagos
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListPaymentsResponse'
+        "500":
+          description: Error interno
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /payments/{id}:
+    get:
+      tags: [Payments]
+      summary: Obtener un pago por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetPaymentResponse'
+        "400":
+          description: Parámetro inválido (zod validation error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        "500":
+          description: Error interno
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /payments/by-user:
+    get:
+      tags: [Payments]
+      summary: Listar pagos por usuario
+      description: |
+        Devuelve los pagos filtrados por `user_id`.
+        **Nota:** El handler actual de Next.js lee el `user_id` desde el **cuerpo** de la petición `GET` (no estándar).
+        - OpenAPI 3.1 permite `requestBody` en GET, por compatibilidad se documentan **ambas** opciones:
+          1) `user_id` como **query param** (recomendado)
+          2) `user_id` en **requestBody** (compatibilidad con el código actual)
+      parameters:
+        - name: user_id
+          in: query
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetUserPaymentsRequest'
+            examples:
+              bodyGET:
+                value:
+                  user_id: "5"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetUserPaymentsResponse'
+        "400":
+          description: Body/params inválidos (zod validation error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        "500":
+          description: Error interno
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Identificador del pago (UUID o string de base de datos)
+        res_id:
+          type: string
+          description: Identificador de la reserva asociada (en otros sistemas puede llamarse reservationId)
+        user_id:
+          type: string
+          nullable: true
+        amount:
+          type: number
+          format: double
+        currency:
+          $ref: '#/components/schemas/Currency'
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+        meta:
+          description: Datos arbitrarios asociados al pago
+          oneOf:
+            - type: object
+            - type: array
+            - type: string
+            - type: number
+            - type: boolean
+            - type: 'null'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, res_id, amount, status]
+      example:
+        id: "32"
+        res_id: "15"
+        user_id: "5"
+        amount: 20000
+        currency: ARS
+        status: PENDING
+        meta:
+          origen: "web"
+          paymentEventId: 32
+        created_at: "2025-09-10T12:00:00Z"
+        updated_at: "2025-09-10T12:00:00Z"
+
+    PaymentStatus:
+      type: string
+      description: |
+        Enum **Supabase** `payment_status`.
+        Valores comunes en los flujos funcionales: `PENDING`, `SUCCESS`, `REFUND`, `DECLINED`.
+      enum: [PENDING, SUCCESS, REFUND, DECLINED]
+      example: PENDING
+
+    Currency:
+      type: string
+      description: Enum Supabase `currency`.
+      enum: [ARS, USD]
+      example: ARS
+
+    CreatePaymentRequest:
+      type: object
+      properties:
+        res_id:
+          type: string
+        user_id:
+          type: string
+          nullable: true
+        amount:
+          type: number
+          format: double
+        currency:
+          $ref: '#/components/schemas/Currency'
+        meta:
+          description: Cualquier payload adicional
+          oneOf:
+            - type: object
+            - type: array
+            - type: string
+            - type: number
+            - type: boolean
+            - type: 'null'
+      required: [res_id, amount]
+
+    UpdatePaymentRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+      required: [id, status]
+
+    GetUserPaymentsRequest:
+      type: object
+      properties:
+        user_id:
+          type: string
+      required: [user_id]
+
+   
+    ApiBase:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+
+    ErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiBase'
+        - type: object
+          properties:
+            error:
+              type: string
+              example: Unknown error
+
+    ValidationErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiBase'
+        - type: object
+          properties:
+            error:
+              type: string
+              example: Invalid request body
+            issues:
+              type: string
+              description: Mensaje de error generado por Zod
+
+    CreatePaymentResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiBase'
+        - type: object
+          properties:
+            payment:
+              $ref: '#/components/schemas/Payment'
+
+    UpdatePaymentResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiBase'
+        - type: object
+          properties:
+            payment:
+              $ref: '#/components/schemas/Payment'
+
+    GetPaymentResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiBase'
+        - type: object
+          properties:
+            payment:
+              $ref: '#/components/schemas/Payment'
+
+    ListPaymentsResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiBase'
+        - type: object
+          properties:
+            payments:
+              type: array
+              items:
+                $ref: '#/components/schemas/Payment'
+
+    GetUserPaymentsResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiBase'
+        - type: object
+          properties:
+            payments:
+              type: array
+              items:
+                $ref: '#/components/schemas/Payment'
+
+    
+    PaymentEvent:
+      type: object
+      properties:
+        paymentEventId:
+          type: integer
+        paymentStatus:
+          $ref: '#/components/schemas/PaymentStatus'
+        amount:
+          type: number
+          format: double
+        reservationId:
+          type: integer
+        userID:
+          type: integer
+      required: [paymentEventId, paymentStatus, reservationId, userID]
+      example:
+        paymentEventId: 123
+        paymentStatus: PENDING
+        amount: 100.0
+        reservationId: 11
+        userID: 1
+
+    ConfirmedPaymentMessage:
+      type: object
+      properties:
+        paymentStatus:
+          $ref: '#/components/schemas/PaymentStatus'
+        reservationId:
+          type: integer
+        userID:
+          type: integer
+        paymentEventId:
+          type: integer
+      required: [paymentStatus, reservationId, userID, paymentEventId]
+      example:
+        paymentStatus: SUCCESS
+        reservationId: 15
+        userID: 5
+        paymentEventId: 12
+
+    RefundMessage:
+      type: object
+      properties:
+        paymentEventId:
+          type: integer
+        paymentStatus:
+          $ref: '#/components/schemas/PaymentStatus'
+        reservationId:
+          type: integer
+        userID:
+          type: integer
+      required: [paymentEventId, paymentStatus, reservationId, userID]
+      example:
+        paymentEventId: 56
+        paymentStatus: REFUND
+        reservationId: 11
+        userID: 1
