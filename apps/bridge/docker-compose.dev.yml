@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-bridge-mq-dev
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: password
+      RABBITMQ_DEFAULT_VHOST: /
+    volumes:
+      - rabbitmq_dev_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - bridge-dev-network
+
+  bridge:
+    build: .
+    container_name: rabbitmq-bridge-dev
+    ports:
+      - "8080:8080"
+    environment:
+      RABBITMQ_URL: amqp://admin:password@rabbitmq:5672/
+      RABBITMQ_QUEUE: payment-events-dev
+      RABBITMQ_EXCHANGE: payments-dev
+      WEBHOOK_BASE_URL: http://host.docker.internal:3000/api/webhooks
+      PORT: 8080
+      HOST: 0.0.0.0
+      LOG_LEVEL: debug
+      WEBHOOK_TIMEOUT: 30000
+      MAX_RETRIES: 3
+      RETRY_DELAY: 5000
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - bridge-dev-network
+    volumes:
+      - ./src:/app/src
+    command: bun run --watch src/index.ts
+
+volumes:
+  rabbitmq_dev_data:
+
+networks:
+  bridge-dev-network:
+    driver: bridge

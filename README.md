@@ -51,3 +51,11 @@ Las variables de entorno necesarias para cada ambiente **deben ser solicitadas a
 - Los cambios a la rama **develop** se realizan mediante Pull Request (PR) que **no requiere revisión** y, al mergear, se despliega automáticamente en el ambiente de preproducción.
 - Los merges de **develop** a **main** requieren **revisión de un segundo desarrollador** y, al mergear, se despliega automáticamente en producción.
 - **Para pruebas locales** se debe utilizar el archivo `.env.local` con las variables de preproducción (**nunca** las de producción).
+
+## Uso de PNPM
+
+Se recomienda utilizar **PNPM** como gestor de paquetes tanto para el proyecto **web** como para el **api**. Esto asegura consistencia en las dependencias y optimiza el uso de espacio.
+
+## Despliegue y URLs
+
+Durante el proceso de despliegue, las **URLs** de ambos proyectos (web y api) son expuestas en las **GitHub Actions**. Esto permite un fácil acceso y verificación de los entornos desplegados.
