@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import { muiTheme } from './theme/muiTheme';
-import TransactionsScreen from './components/TransactionsScreen';
-import TransactionDetailScreen from './components/TransactionDetailScreen';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import TransactionsPage from './pages/Transactions';
+import TransactionDetailPage from './pages/TransactionDetail';
 import './App.css';
 
 // Create a client
@@ -19,18 +20,7 @@ const queryClient = new QueryClient({
 });
 
 function App() {
-  const [currentView, setCurrentView] = useState<'transactions' | 'detail'>('transactions');
-  const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
-
-  const handleViewDetail = (transactionId: string) => {
-    setSelectedTransactionId(transactionId);
-    setCurrentView('detail');
-  };
-
-  const handleBackToTransactions = () => {
-    setCurrentView('transactions');
-    setSelectedTransactionId(null);
-  };
+  // Routing now handles view switching
 
   return (
     <ThemeProvider theme={muiTheme}>
@@ -54,14 +44,11 @@ function App() {
 
         {/* Main Content */}
         <main>
-          {currentView === 'transactions' ? (
-            <TransactionsScreen onViewDetail={handleViewDetail} />
-          ) : (
-            <TransactionDetailScreen 
-              transactionId={selectedTransactionId || undefined}
-              onBack={handleBackToTransactions}
-            />
-          )}
+          <Routes>
+            <Route path="/payments" element={<TransactionsPage />} />
+            <Route path="/payments/:transactionId" element={<TransactionDetailPage />} />
+            <Route path="*" element={<Navigate to="/payments" replace />} />
+          </Routes>
         </main>
 
         {/* Footer */}
