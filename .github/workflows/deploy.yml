@@ -16,6 +16,12 @@ jobs:
       api: ${{ steps.filter.outputs.api }}
     steps:
       - uses: actions/checkout@v4
+      - name: Debug changed files
+        run: |
+          echo "=== Changed files ==="
+          git diff --name-only HEAD~1 HEAD || echo "No previous commit to compare"
+          echo "=== All files in this commit ==="
+          git diff-tree --no-commit-id --name-only -r HEAD
       - uses: dorny/paths-filter@v3
         id: filter
         with:
@@ -23,9 +29,15 @@ jobs:
             web:
               - 'apps/web/**'
               - 'apps/web/pnpm-lock.yaml'
+              - 'apps/types/**'
             api:
               - 'apps/api/**'
               - 'apps/api/bun.lock'
+              - 'apps/types/**'
+      - name: Debug filter results
+        run: |
+          echo "Web changes detected: ${{ steps.filter.outputs.web }}"
+          echo "API changes detected: ${{ steps.filter.outputs.api }}"
 
   deploy-web:
     needs: changes

@@ -24,9 +24,11 @@ jobs:
             web:
               - 'apps/web/**'
               - 'apps/web/pnpm-lock.yaml'
+              - 'apps/types/**'
             api:
               - 'apps/api/**'
               - 'apps/api/bun.lock'
+              - 'apps/types/**'
 
   build-web:
     needs: changes
