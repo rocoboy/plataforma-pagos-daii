@@ -17,11 +17,12 @@ import {
 import {
   Clear as ClearIcon,
   Search as SearchIcon,
-  Flight as FlightIcon
+  Flight as FlightIcon,
+  Download as DownloadIcon
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import { Transaction } from '../data/mockData';
 import { fetchPayments } from '../lib/apiClient';
+import jsPDF from 'jspdf';
 
 // Status Chip Component
 const StatusChip: React.FC<{ status: Transaction['status'] }> = ({ status }) => {
@@ -105,8 +106,57 @@ const StatusChip: React.FC<{ status: Transaction['status'] }> = ({ status }) => 
   return <Chip label={config.text} size="small" variant="filled" sx={config.sx} />;
 };
 
+// PDF Generation Function
+const generatePaymentPDF = (transaction: Transaction) => {
+  const doc = new jsPDF();
+  
+  // PDF Header
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.text('SKYTRACKER', 20, 20);
+  doc.text('Detalle de Transacción', 20, 35);
+  
+  // Reset font
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  
+  // Transaction Information (only from Supabase data)
+  let yPosition = 55;
+  const lineHeight = 8;
+  
+  doc.setFont('helvetica', 'bold');
+  doc.text('INFORMACIÓN DE PAGO', 20, yPosition);
+  yPosition += lineHeight * 1.5;
+  
+  doc.setFont('helvetica', 'normal');
+  doc.text(`ID de Pago: ${transaction.id}`, 20, yPosition);
+  yPosition += lineHeight;
+  doc.text(`ID de Reserva: ${transaction.reservationId}`, 20, yPosition);
+  yPosition += lineHeight;
+  doc.text(`ID de Usuario: ${transaction.userId}`, 20, yPosition);
+  yPosition += lineHeight;
+  doc.text(`Fecha de Compra: ${new Date(transaction.purchaseDate).toLocaleDateString('es-ES', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })}`, 20, yPosition);
+  yPosition += lineHeight;
+  doc.text(`Monto: $${transaction.amount.toFixed(2)}`, 20, yPosition);
+  yPosition += lineHeight;
+  doc.text(`Estado: ${transaction.status?.toUpperCase()}`, 20, yPosition);
+  
+  // Footer
+  yPosition = 280;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'italic');
+  doc.text('Documento generado automáticamente por Skytracker', 20, yPosition);
+  doc.text(`Fecha de generación: ${new Date().toLocaleDateString('es-ES')}`, 20, yPosition + 5);
+  
+  // Download the PDF
+  doc.save(`skytracker-pago-${transaction.id}.pdf`);
+};
+
 const TransactionsPage: React.FC = () => {
-  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -124,6 +174,14 @@ const TransactionsPage: React.FC = () => {
     {
       field: 'id',
       headerName: 'ID Pago',
+      flex: 1,
+      minWidth: 120,
+      headerAlign: 'center',
+      align: 'center'
+    },
+    {
+      field: 'userId',
+      headerName: 'ID Usuario',
       flex: 1,
       minWidth: 120,
       headerAlign: 'center',
@@ -160,7 +218,7 @@ const TransactionsPage: React.FC = () => {
     },
     {
       field: 'actions',
-      headerName: 'Detalle',
+      headerName: 'PDF',
       flex: 1,
       minWidth: 120,
       headerAlign: 'center',
@@ -169,7 +227,8 @@ const TransactionsPage: React.FC = () => {
         <Button
           variant="contained"
           size="small"
-          onClick={() => handleViewDetail(params.id as string)}
+          startIcon={<DownloadIcon />}
+          onClick={() => handleDownloadPDF(params.id as string)}
           sx={{
             backgroundColor: '#1976d2',
             color: 'white',
@@ -181,7 +240,7 @@ const TransactionsPage: React.FC = () => {
             }
           }}
         >
-          VER DETALLE
+          DESCARGAR PDF
         </Button>
       )
     }
@@ -197,6 +256,7 @@ const TransactionsPage: React.FC = () => {
   const transactions: Transaction[] = payments.map(p => ({
     id: p.id,
     reservationId: p.res_id,
+    userId: p.user_id || 'N/A',
     destination: '', // Removed - not used in new design
     airline: '', // Removed - not used in new design
     purchaseDate: p.created_at?.substring(0, 10) || '',
@@ -206,7 +266,8 @@ const TransactionsPage: React.FC = () => {
 
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = transaction.reservationId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.id.toLowerCase().includes(searchTerm.toLowerCase());
+      transaction.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      transaction.userId.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = selectedStatus === 'todos' || transaction.status === selectedStatus;
 
@@ -219,8 +280,11 @@ const TransactionsPage: React.FC = () => {
     return matchesSearch && matchesStatus && matchesDate;
   });
 
-  const handleViewDetail = (transactionId: string) => {
-    navigate(`/payments/${transactionId}`);
+  const handleDownloadPDF = (transactionId: string) => {
+    const transaction = transactions.find(t => t.id === transactionId);
+    if (transaction) {
+      generatePaymentPDF(transaction);
+    }
   };
 
   if (isLoading) {
