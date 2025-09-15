@@ -1,0 +1,14 @@
+{
+  "projects": [
+    {
+      "name": "api",
+      "source": "apps/api",
+      "framework": "nextjs"
+    },
+    {
+      "name": "web", 
+      "source": "apps/web",
+      "framework": "create-react-app"
+    }
+  ]
+}
