@@ -479,16 +479,25 @@ const TransactionsPage: React.FC = () => {
   });
 
   // Map payments from Supabase into Transaction shape expected by the grid
-  const transactions: Transaction[] = payments.map(p => ({
-    id: p.id,
-    reservationId: p.res_id,
-    userId: p.user_id || 'N/A',
-    destination: '', // Removed - not used in new design
-    airline: '', // Removed - not used in new design
-    purchaseDate: p.created_at?.substring(0, 10) || '',
-    status: p.status || 'pending',
-    amount: p.amount,
-  }));
+  const transactions: Transaction[] = payments
+    .map(p => ({
+      id: p.id,
+      reservationId: p.res_id,
+      userId: p.user_id || 'N/A',
+      destination: '', // Removed - not used in new design
+      airline: '', // Removed - not used in new design
+      purchaseDate: p.created_at?.substring(0, 10) || '',
+      status: p.status || 'pending',
+      amount: p.amount,
+      // Keep full timestamp for sorting
+      fullCreatedAt: p.created_at || '',
+    }))
+    // Sort by creation date/time in descending order (newest first)
+    .sort((a, b) => {
+      const dateA = new Date(a.fullCreatedAt);
+      const dateB = new Date(b.fullCreatedAt);
+      return dateB.getTime() - dateA.getTime();
+    });
 
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = transaction.reservationId.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -602,7 +611,7 @@ const TransactionsPage: React.FC = () => {
         </Box>
       </Box>
 
-      <Box sx={{ height: 600, width: '100%' }}>
+      <Box sx={{ height: 650, width: '100%' }}>
         <DataGrid
           rows={filteredTransactions}
           columns={columns}
@@ -625,7 +634,12 @@ const TransactionsPage: React.FC = () => {
             '& .MuiDataGrid-cell': { borderBottom: '1px solid', borderColor: 'divider', fontSize: '0.875rem' },
             '& .MuiDataGrid-row:hover': { backgroundColor: 'grey.50' },
             '& .MuiDataGrid-columnSeparator': { display: 'none' },
-            '& .MuiDataGrid-virtualScroller': { overflow: 'hidden' }
+            '& .MuiDataGrid-virtualScroller': { overflow: 'hidden' },
+            '& .MuiDataGrid-footerContainer': { 
+              borderTop: '1px solid', 
+              borderColor: 'divider',
+              minHeight: 52 // Ensure enough space for pagination
+            }
           }}
           autoHeight={false}
           disableColumnMenu
