@@ -2,9 +2,8 @@
 export const runtime = "nodejs";
 
 export async function GET() {
-  // Usar variable de entorno personalizada API_BASE_URL, si no está definida usar localhost
-  const apiBaseUrl = process.env.API_BASE_URL;
-  const baseUrl = apiBaseUrl || 'http://localhost:3000';
+  // La variable API_BASE_URL está disponible para uso futuro si es necesario
+  // const apiBaseUrl = process.env.API_BASE_URL;
   
   const html = `<!DOCTYPE html>
 <html>
@@ -25,8 +24,8 @@ export async function GET() {
     <script>
       window.onload = () => {
         SwaggerUIBundle({
-          // Usar la ruta dinámica que genera el YAML con el servidor correcto
-          url: "/api/docs/openapi",
+          // Usar el archivo YAML estático
+          url: "/docs/openapi/payments-openapi.yaml",
           dom_id: "#swagger-ui",
           presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset],
           layout: "BaseLayout",
@@ -34,9 +33,31 @@ export async function GET() {
           showExtensions: true,
           showCommonExtensions: true,
           tryItOutEnabled: true,
-          // El servidor correcto ya está configurado dinámicamente en el YAML
+          // Configurar el servidor por defecto según el entorno
           onComplete: () => {
-            console.log('Swagger UI loaded with environment-specific server');
+            // Seleccionar el servidor correcto automáticamente basado en la URL actual
+            const currentUrl = window.location.origin;
+            
+            // Determinar qué servidor seleccionar basado en la URL actual
+            let targetServer = '';
+            if (currentUrl.includes('preprod')) {
+              targetServer = 'preprod';
+            } else if (currentUrl.includes('localhost')) {
+              targetServer = 'localhost';
+            } else {
+              // Si no es preprod ni localhost, asumir producción
+              targetServer = 'plataforma-pagos-daii.vercel.app';
+            }
+            
+            // Buscar y seleccionar el servidor correcto
+            const serverButtons = document.querySelectorAll('.servers .servers-title + .servers .servers-container .server');
+            for (const button of serverButtons) {
+              const serverUrl = button.getAttribute('data-value');
+              if (serverUrl && serverUrl.includes(targetServer)) {
+                button.click();
+                break;
+              }
+            }
           }
         });
       };
