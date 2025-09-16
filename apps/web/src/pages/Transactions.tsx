@@ -24,10 +24,14 @@ import {
   Check as CheckIcon,
   Close as CloseIcon,
   CurrencyExchange as CurrencyExchangeIcon,
+  Add as AddIcon,
+  SearchOff as SearchOffIcon,
+  Receipt as ReceiptIcon,
 } from '@mui/icons-material';
 import { Transaction } from '../data/mockData';
 import { fetchPayments } from '../lib/apiClient';
 import jsPDF from 'jspdf';
+import DevPaymentModal from '../components/DevPaymentModal';
 
 // Status Chip Component
 const StatusChip: React.FC<{ status: Transaction['status'] }> = ({ status }) => {
@@ -111,6 +115,85 @@ const StatusChip: React.FC<{ status: Transaction['status'] }> = ({ status }) => 
   return <Chip label={config.text} size="small" variant="filled" sx={config.sx} />;
 };
 
+// Custom Empty State Component
+const CustomNoRowsOverlay: React.FC = () => {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        minHeight: 400,
+        textAlign: 'center',
+        p: 4,
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 120,
+          height: 120,
+          borderRadius: '50%',
+          backgroundColor: 'grey.50',
+          mb: 3,
+          border: '2px dashed',
+          borderColor: 'grey.300',
+        }}
+      >
+        <SearchOffIcon 
+          sx={{ 
+            fontSize: 48, 
+            color: 'grey.400' 
+          }} 
+        />
+      </Box>
+      
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          color: 'grey.600', 
+          fontWeight: 600, 
+          mb: 1 
+        }}
+      >
+        No se encontraron transacciones
+      </Typography>
+      
+      <Typography 
+        variant="body2" 
+        sx={{ 
+          color: 'grey.500', 
+          maxWidth: 300,
+          lineHeight: 1.6 
+        }}
+      >
+        No hay transacciones que coincidan con los filtros aplicados. 
+        Intenta ajustar los criterios de búsqueda o crear un nuevo pago de prueba.
+      </Typography>
+      
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          gap: 1, 
+          mt: 3,
+          alignItems: 'center',
+          color: 'grey.400',
+          fontSize: '0.875rem'
+        }}
+      >
+        <ReceiptIcon sx={{ fontSize: 16 }} />
+        <Typography variant="caption">
+          Usa los filtros de arriba para refinar la búsqueda
+        </Typography>
+      </Box>
+    </Box>
+  );
+};
+
 // PDF Generation Function
 const generatePaymentPDF = (transaction: Transaction) => {
   const doc = new jsPDF();
@@ -166,6 +249,7 @@ const TransactionsPage: React.FC = () => {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('todos');
+  const [devModalOpen, setDevModalOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -239,6 +323,16 @@ const TransactionsPage: React.FC = () => {
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
+  };
+
+  const handlePaymentCreated = () => {
+    // Refresh the payments list when a new payment is created
+    queryClient.invalidateQueries({ queryKey: ['payments'] });
+    setSnackbar({
+      open: true,
+      message: 'Pago de prueba creado exitosamente',
+      severity: 'success'
+    });
   };
 
   const columns: GridColDef[] = [
@@ -456,10 +550,29 @@ const TransactionsPage: React.FC = () => {
       </Box>
 
       {/* Subtitle Section */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h2" sx={{ color: 'primary.main', fontWeight: 600, mb: 1 }}>
-          Últimas transacciones
-        </Typography>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box>
+          <Typography variant="h4" component="h2" sx={{ color: 'primary.main', fontWeight: 600, mb: 1 }}>
+            Últimas transacciones
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+            Tus vuelos comprados
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setDevModalOpen(true)}
+          sx={{
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 600,
+            px: 3,
+            py: 1.5,
+          }}
+        >
+          Crear Pago de Prueba
+        </Button>
       </Box>
 
       <Box sx={{ mb: 3, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: 1, borderColor: 'divider' }}>
@@ -496,6 +609,16 @@ const TransactionsPage: React.FC = () => {
           initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
           pageSizeOptions={[10, 25, 50]}
           disableRowSelectionOnClick
+          slots={{
+            noRowsOverlay: CustomNoRowsOverlay,
+          }}
+          slotProps={{
+            pagination: {
+              labelRowsPerPage: 'Filas por página:',
+              labelDisplayedRows: ({ from, to, count }: { from: number; to: number; count: number }) =>
+                `${from}–${to} de ${count !== -1 ? count : `más de ${to}`}`,
+            },
+          }}
           sx={{
             '& .MuiDataGrid-cell:hover': { color: 'primary.main' },
             '& .MuiDataGrid-columnHeaders': { backgroundColor: 'grey.50', fontSize: '0.875rem', fontWeight: 600 },
@@ -525,6 +648,13 @@ const TransactionsPage: React.FC = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Dev Payment Creation Modal */}
+      <DevPaymentModal
+        open={devModalOpen}
+        onClose={() => setDevModalOpen(false)}
+        onPaymentCreated={handlePaymentCreated}
+      />
     </Container>
   );
 };
