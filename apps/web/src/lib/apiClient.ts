@@ -17,7 +17,7 @@ export interface PaymentsApiResponse {
   payments: PaymentRow[];
 }
 
-const apiUrl = process.env.VERCEL_API || 'http://localhost:3000';
+const apiUrl = process.env.REACT_APP_VERCEL_API || 'http://localhost:3000';
 
 export type PaymentsResponse = PaymentRow[];
 
