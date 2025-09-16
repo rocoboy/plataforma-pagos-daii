@@ -15,14 +15,17 @@
     "swagger-ui": "^5.29.0",
     "swagger-ui-express": "^5.0.1",
     "swagger-ui-react": "^5.29.0",
+    "vercel": "^48.0.1",
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/swagger-ui-dist": "^3.30.6",
     "@types/swagger-ui-react": "^5.18.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.2",
