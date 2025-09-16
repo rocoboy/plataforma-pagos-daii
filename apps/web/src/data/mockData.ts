@@ -8,6 +8,7 @@ export interface Transaction {
   purchaseDate: string;
   status: 'pending' | 'success' | 'failure' | 'underpaid' | 'overpaid' | 'expired' | 'refund' | string;
   amount: number;
+  fullCreatedAt?: string; // Optional field for sorting purposes
 }
 
 export interface TransactionDetail {

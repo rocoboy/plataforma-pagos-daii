@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import {
   Button,
@@ -13,16 +13,25 @@ import {
   Container,
   Typography,
   CircularProgress,
+  Alert,
+  Snackbar,
 } from '@mui/material';
 import {
   Clear as ClearIcon,
   Search as SearchIcon,
   Flight as FlightIcon,
-  Download as DownloadIcon
+  Download as DownloadIcon,
+  Check as CheckIcon,
+  Close as CloseIcon,
+  CurrencyExchange as CurrencyExchangeIcon,
+  Add as AddIcon,
+  SearchOff as SearchOffIcon,
+  Receipt as ReceiptIcon,
 } from '@mui/icons-material';
 import { Transaction } from '../data/mockData';
 import { fetchPayments } from '../lib/apiClient';
 import jsPDF from 'jspdf';
+import DevPaymentModal from '../components/DevPaymentModal';
 
 // Status Chip Component
 const StatusChip: React.FC<{ status: Transaction['status'] }> = ({ status }) => {
@@ -106,6 +115,85 @@ const StatusChip: React.FC<{ status: Transaction['status'] }> = ({ status }) => 
   return <Chip label={config.text} size="small" variant="filled" sx={config.sx} />;
 };
 
+// Custom Empty State Component
+const CustomNoRowsOverlay: React.FC = () => {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        minHeight: 400,
+        textAlign: 'center',
+        p: 4,
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 120,
+          height: 120,
+          borderRadius: '50%',
+          backgroundColor: 'grey.50',
+          mb: 3,
+          border: '2px dashed',
+          borderColor: 'grey.300',
+        }}
+      >
+        <SearchOffIcon 
+          sx={{ 
+            fontSize: 48, 
+            color: 'grey.400' 
+          }} 
+        />
+      </Box>
+      
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          color: 'grey.600', 
+          fontWeight: 600, 
+          mb: 1 
+        }}
+      >
+        No se encontraron transacciones
+      </Typography>
+      
+      <Typography 
+        variant="body2" 
+        sx={{ 
+          color: 'grey.500', 
+          maxWidth: 300,
+          lineHeight: 1.6 
+        }}
+      >
+        No hay transacciones que coincidan con los filtros aplicados. 
+        Intenta ajustar los criterios de búsqueda o crear un nuevo pago de prueba.
+      </Typography>
+      
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          gap: 1, 
+          mt: 3,
+          alignItems: 'center',
+          color: 'grey.400',
+          fontSize: '0.875rem'
+        }}
+      >
+        <ReceiptIcon sx={{ fontSize: 16 }} />
+        <Typography variant="caption">
+          Usa los filtros de arriba para refinar la búsqueda
+        </Typography>
+      </Box>
+    </Box>
+  );
+};
+
 // PDF Generation Function
 const generatePaymentPDF = (transaction: Transaction) => {
   const doc = new jsPDF();
@@ -161,6 +249,91 @@ const TransactionsPage: React.FC = () => {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('todos');
+  const [devModalOpen, setDevModalOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+
+  const queryClient = useQueryClient();
+
+  // Mutation for updating payment status
+  const updatePaymentMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const apiUrl = process.env.REACT_APP_VERCEL_API || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/webhooks/payments`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, status }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Error updating payment');
+      }
+
+      return data.payment;
+    },
+    onSuccess: (updatedPayment, { status }) => {
+      // Refresh the payments list
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      
+      // Show success message
+      let statusText: string;
+      switch (status) {
+        case 'SUCCESS':
+          statusText = 'confirmado';
+          break;
+        case 'FAILURE':
+          statusText = 'cancelado';
+          break;
+        case 'REFUND':
+          statusText = 'reembolsado';
+          break;
+        default:
+          statusText = 'actualizado';
+      }
+      
+      setSnackbar({
+        open: true,
+        message: `Pago ${statusText} exitosamente`,
+        severity: 'success'
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating payment:', error);
+      setSnackbar({
+        open: true,
+        message: `Error al actualizar el pago: ${error.message}`,
+        severity: 'error'
+      });
+    }
+  });
+
+  const handleUpdatePaymentStatus = (id: string, status: 'SUCCESS' | 'FAILURE' | 'REFUND') => {
+    updatePaymentMutation.mutate({ id, status });
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  const handlePaymentCreated = () => {
+    // Refresh the payments list when a new payment is created
+    queryClient.invalidateQueries({ queryKey: ['payments'] });
+    setSnackbar({
+      open: true,
+      message: 'Pago de prueba creado exitosamente',
+      severity: 'success'
+    });
+  };
 
   const columns: GridColDef[] = [
     {
@@ -194,8 +367,15 @@ const TransactionsPage: React.FC = () => {
       minWidth: 130,
       headerAlign: 'center',
       align: 'center',
-      type: 'date',
-      valueGetter: (value) => new Date(value)
+      renderCell: (params) => {
+        // Format YYYY-MM-DD string to MM/DD/YYYY for display
+        const value = params.value;
+        if (value && typeof value === 'string') {
+          const [year, month, day] = value.split('-');
+          return `${month}/${day}/${year}`;
+        }
+        return value;
+      }
     },
     {
       field: 'amount',
@@ -218,31 +398,77 @@ const TransactionsPage: React.FC = () => {
     },
     {
       field: 'actions',
-      headerName: 'PDF',
-      flex: 1,
-      minWidth: 120,
+      headerName: 'Acciones',
+      flex: 1.5,
+      minWidth: 180,
       headerAlign: 'center',
       align: 'center',
-      renderCell: (params) => (
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={<DownloadIcon />}
-          onClick={() => handleDownloadPDF(params.id as string)}
-          sx={{
-            backgroundColor: '#1976d2',
-            color: 'white',
-            fontSize: '0.75rem',
-            padding: '4px 12px',
-            minWidth: 'auto',
-            '&:hover': {
-              backgroundColor: '#1565c0',
-            }
-          }}
-        >
-          DESCARGAR PDF
-        </Button>
-      )
+      renderCell: (params) => {
+        const status = params.row.status?.toLowerCase();
+        const isPending = status === 'pending';
+        const isSuccess = status === 'success';
+        const isUpdating = updatePaymentMutation.isPending;
+
+        return (
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+            {/* Status update buttons - only for pending payments (shown first) */}
+            {isPending && (
+              <>
+                <CheckIcon
+                  onClick={() => !isUpdating && handleUpdatePaymentStatus(params.id as string, 'SUCCESS')}
+                  sx={{
+                    color: isUpdating ? '#bdbdbd' : '#757575',
+                    cursor: isUpdating ? 'not-allowed' : 'pointer',
+                    fontSize: '1.25rem',
+                    '&:hover': {
+                      color: isUpdating ? '#bdbdbd' : '#4caf50',
+                    }
+                  }}
+                />
+                <CloseIcon
+                  onClick={() => !isUpdating && handleUpdatePaymentStatus(params.id as string, 'FAILURE')}
+                  sx={{
+                    color: isUpdating ? '#bdbdbd' : '#757575',
+                    cursor: isUpdating ? 'not-allowed' : 'pointer',
+                    fontSize: '1.25rem',
+                    '&:hover': {
+                      color: isUpdating ? '#bdbdbd' : '#f44336',
+                    }
+                  }}
+                />
+              </>
+            )}
+
+            {/* Refund button - only for confirmed payments */}
+            {isSuccess && (
+              <CurrencyExchangeIcon
+                onClick={() => !isUpdating && handleUpdatePaymentStatus(params.id as string, 'REFUND')}
+                sx={{
+                  color: isUpdating ? '#bdbdbd' : '#757575',
+                  cursor: isUpdating ? 'not-allowed' : 'pointer',
+                  fontSize: '1.25rem',
+                  '&:hover': {
+                    color: isUpdating ? '#bdbdbd' : '#ff9800',
+                  }
+                }}
+              />
+            )}
+
+            {/* PDF Download - always available (shown last) */}
+            <DownloadIcon
+              onClick={() => handleDownloadPDF(params.id as string)}
+              sx={{
+                color: '#757575',
+                cursor: 'pointer',
+                fontSize: '1.25rem',
+                '&:hover': {
+                  color: '#1976d2',
+                }
+              }}
+            />
+          </Box>
+        );
+      }
     }
   ];
 
@@ -253,29 +479,44 @@ const TransactionsPage: React.FC = () => {
   });
 
   // Map payments from Supabase into Transaction shape expected by the grid
-  const transactions: Transaction[] = payments.map(p => ({
-    id: p.id,
-    reservationId: p.res_id,
-    userId: p.user_id || 'N/A',
-    destination: '', // Removed - not used in new design
-    airline: '', // Removed - not used in new design
-    purchaseDate: p.created_at?.substring(0, 10) || '',
-    status: p.status || 'pending',
-    amount: p.amount,
-  }));
+  const transactions: Transaction[] = payments
+    .map(p => ({
+      id: p.id,
+      reservationId: p.res_id,
+      userId: p.user_id || 'N/A',
+      destination: '', // Removed - not used in new design
+      airline: '', // Removed - not used in new design
+      purchaseDate: p.created_at?.substring(0, 10) || '',
+      status: p.status || 'pending',
+      amount: p.amount,
+      // Keep full timestamp for sorting
+      fullCreatedAt: p.created_at || '',
+    }))
+    // Sort by creation date/time in descending order (newest first)
+    .sort((a, b) => {
+      const dateA = new Date(a.fullCreatedAt);
+      const dateB = new Date(b.fullCreatedAt);
+      return dateB.getTime() - dateA.getTime();
+    });
 
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = transaction.reservationId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transaction.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transaction.userId.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = selectedStatus === 'todos' || transaction.status === selectedStatus;
+    const matchesStatus = selectedStatus === 'todos' || transaction.status?.toLowerCase() === selectedStatus;
 
     let matchesDate = true;
     if (dateFrom || dateTo) {
-      const transactionDate = new Date(transaction.purchaseDate); transactionDate.setHours(0,0,0,0);
-      if (dateFrom) { const fromDate = new Date(dateFrom); fromDate.setHours(0,0,0,0); matchesDate = matchesDate && transactionDate >= fromDate; }
-      if (dateTo) { const toDate = new Date(dateTo); toDate.setHours(23,59,59,999); matchesDate = matchesDate && transactionDate <= toDate; }
+      // Transaction date is in YYYY-MM-DD format
+      const transactionDateStr = transaction.purchaseDate; // e.g., "2025-09-15"
+      
+      if (dateFrom) {
+        matchesDate = matchesDate && transactionDateStr >= dateFrom;
+      }
+      if (dateTo) {
+        matchesDate = matchesDate && transactionDateStr <= dateTo;
+      }
     }
     return matchesSearch && matchesStatus && matchesDate;
   });
@@ -318,13 +559,29 @@ const TransactionsPage: React.FC = () => {
       </Box>
 
       {/* Subtitle Section */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h2" sx={{ color: 'primary.main', fontWeight: 600, mb: 1 }}>
-          Últimas transacciones
-        </Typography>
-        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-          Tus vuelos comprados
-        </Typography>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box>
+          <Typography variant="h4" component="h2" sx={{ color: 'primary.main', fontWeight: 600, mb: 1 }}>
+            Últimas transacciones
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+            Tus vuelos comprados
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setDevModalOpen(true)}
+          sx={{
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 600,
+            px: 3,
+            py: 1.5,
+          }}
+        >
+          Crear Pago de Prueba
+        </Button>
       </Box>
 
       <Box sx={{ mb: 3, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: 1, borderColor: 'divider' }}>
@@ -354,26 +611,64 @@ const TransactionsPage: React.FC = () => {
         </Box>
       </Box>
 
-      <Box sx={{ height: 600, width: '100%' }}>
+      <Box sx={{ height: 650, width: '100%' }}>
         <DataGrid
           rows={filteredTransactions}
           columns={columns}
           initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
           pageSizeOptions={[10, 25, 50]}
           disableRowSelectionOnClick
+          slots={{
+            noRowsOverlay: CustomNoRowsOverlay,
+          }}
+          slotProps={{
+            pagination: {
+              labelRowsPerPage: 'Filas por página:',
+              labelDisplayedRows: ({ from, to, count }: { from: number; to: number; count: number }) =>
+                `${from}–${to} de ${count !== -1 ? count : `más de ${to}`}`,
+            },
+          }}
           sx={{
             '& .MuiDataGrid-cell:hover': { color: 'primary.main' },
             '& .MuiDataGrid-columnHeaders': { backgroundColor: 'grey.50', fontSize: '0.875rem', fontWeight: 600 },
             '& .MuiDataGrid-cell': { borderBottom: '1px solid', borderColor: 'divider', fontSize: '0.875rem' },
             '& .MuiDataGrid-row:hover': { backgroundColor: 'grey.50' },
             '& .MuiDataGrid-columnSeparator': { display: 'none' },
-            '& .MuiDataGrid-virtualScroller': { overflow: 'hidden' }
+            '& .MuiDataGrid-virtualScroller': { overflow: 'hidden' },
+            '& .MuiDataGrid-footerContainer': { 
+              borderTop: '1px solid', 
+              borderColor: 'divider',
+              minHeight: 52 // Ensure enough space for pagination
+            }
           }}
           autoHeight={false}
           disableColumnMenu
           disableColumnResize
         />
       </Box>
+
+      {/* Success/Error Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity} 
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
+      {/* Dev Payment Creation Modal */}
+      <DevPaymentModal
+        open={devModalOpen}
+        onClose={() => setDevModalOpen(false)}
+        onPaymentCreated={handlePaymentCreated}
+      />
     </Container>
   );
 };
