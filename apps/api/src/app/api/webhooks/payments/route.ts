@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createPayment, createPaymentBodySchema } from "./create-payment";
 import { updatePayment, updatePaymentBodySchema } from "./update-payment";
 import { createCorsResponse, createCorsOptionsResponse } from "@/lib/cors";
