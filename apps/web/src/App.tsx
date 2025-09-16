@@ -7,6 +7,7 @@ import { muiTheme } from './theme/muiTheme';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import TransactionsPage from './pages/Transactions';
 import TransactionDetailPage from './pages/TransactionDetail';
+import DevPaymentCreator from './pages/DevPaymentCreator';
 import './App.css';
 
 // Create a client
@@ -26,7 +27,18 @@ function App() {
     <ThemeProvider theme={muiTheme}>
       <CssBaseline />
       <QueryClientProvider client={queryClient}>
-        <div className="bg-white min-h-screen">
+        <AppContent />
+        
+        {/* React Query DevTools - only in development */}
+        {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
+      </QueryClientProvider>
+    </ThemeProvider>
+  );
+}
+
+function AppContent() {
+  return (
+    <div className="bg-white min-h-screen">
         {/* Header */}
         <header className="bg-white shadow-sm border-b border-gray-200">
           <div className="px-6 py-4 flex items-center justify-between">
@@ -47,6 +59,7 @@ function App() {
           <Routes>
             <Route path="/payments" element={<TransactionsPage />} />
             <Route path="/payments/:transactionId" element={<TransactionDetailPage />} />
+            <Route path="/dev/create-payment" element={<DevPaymentCreator />} />
             <Route path="*" element={<Navigate to="/payments" replace />} />
           </Routes>
         </main>
@@ -59,11 +72,6 @@ function App() {
           </div>
         </footer>
       </div>
-      
-        {/* React Query DevTools - only in development */}
-        {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
-      </QueryClientProvider>
-    </ThemeProvider>
   );
 }
 
