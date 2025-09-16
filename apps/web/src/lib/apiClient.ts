@@ -21,7 +21,8 @@ export type PaymentsResponse = PaymentRow[];
 
 export async function fetchPayments(): Promise<PaymentsResponse> {
   try {
-    const response = await fetch('http://localhost:3000/api/payments');
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+    const response = await fetch(`${apiUrl}/api/payments`);
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
