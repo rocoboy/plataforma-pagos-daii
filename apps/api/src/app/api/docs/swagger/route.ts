@@ -2,9 +2,9 @@
 export const runtime = "nodejs";
 
 export async function GET() {
-  // Usar variable de entorno VERCEL_URL, si no está definida usar localhost
-  const vercelUrl = process.env.VERCEL_URL;
-  const baseUrl = vercelUrl ? `https://${vercelUrl}` : 'http://localhost:3000';
+  // Usar variable de entorno personalizada API_BASE_URL, si no está definida usar localhost
+  const apiBaseUrl = process.env.API_BASE_URL;
+  const baseUrl = apiBaseUrl || 'http://localhost:3000';
   
   const html = `<!DOCTYPE html>
 <html>
