@@ -12,6 +12,8 @@ Este es el frontend de la plataforma de pagos desarrollado con **React**, **Mate
 
 ---
 
+
+
 ## 🚀 Inicio Rápido
 
 ```bash
