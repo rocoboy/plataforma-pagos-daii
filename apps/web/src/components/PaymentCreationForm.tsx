@@ -1,10 +1,10 @@
+// Shared payment creation form component
 import React, { useState } from 'react';
 import {
   Box,
   Typography,
   TextField,
   Button,
-  MenuItem,
   Alert,
 } from '@mui/material';
 import {
@@ -12,23 +12,15 @@ import {
 } from '@mui/icons-material';
 import { PaymentRow } from '../lib/apiClient';
 
-const currencies = [
-  { value: 'ARS', label: 'ARS - Peso Argentino' },
-  { value: 'USD', label: 'USD - Dólar Estadounidense' },
-  { value: 'EUR', label: 'EUR - Euro' },
-];
-
 interface CreatePaymentResponse {
   success: boolean;
   payment?: PaymentRow;
   error?: string;
   issues?: any;
-  // Store form data for display purposes
   formData?: {
     res_id: string;
     user_id: string;
     amount: string;
-    currency: string;
   };
 }
 
@@ -49,7 +41,6 @@ const PaymentCreationForm: React.FC<PaymentCreationFormProps> = ({
     res_id: '',
     user_id: '',
     amount: '',
-    currency: 'ARS',
     meta: '',
   });
   
@@ -61,19 +52,7 @@ const PaymentCreationForm: React.FC<PaymentCreationFormProps> = ({
       ...prev,
       [field]: event.target.value
     }));
-    // Clear previous result when user starts typing
     if (result) setResult(null);
-  };
-
-  const resetForm = () => {
-    setFormData({
-      res_id: '',
-      user_id: '',
-      amount: '',
-      currency: 'ARS',
-      meta: '',
-    });
-    setResult(null);
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -82,7 +61,6 @@ const PaymentCreationForm: React.FC<PaymentCreationFormProps> = ({
     setResult(null);
 
     try {
-      // Validate required fields
       if (!formData.res_id || !formData.user_id || !formData.amount) {
         setResult({
           success: false,
@@ -91,7 +69,6 @@ const PaymentCreationForm: React.FC<PaymentCreationFormProps> = ({
         return;
       }
 
-      // Validate amount is a positive number
       const amount = parseFloat(formData.amount);
       if (isNaN(amount) || amount <= 0) {
         setResult({
@@ -112,7 +89,7 @@ const PaymentCreationForm: React.FC<PaymentCreationFormProps> = ({
           res_id: formData.res_id,
           user_id: formData.user_id,
           amount: amount,
-          currency: formData.currency,
+          currency: 'ARS',
           meta: formData.meta || '{}',
         }),
       });
@@ -124,30 +101,25 @@ const PaymentCreationForm: React.FC<PaymentCreationFormProps> = ({
       const data: CreatePaymentResponse = await response.json();
       
       if (data.success) {
-        // Store form data before resetting for display purposes
         const successResult = {
           ...data,
           formData: {
             res_id: formData.res_id,
             user_id: formData.user_id,
             amount: formData.amount,
-            currency: formData.currency,
           }
         };
         setResult(successResult);
         
-        // Reset form on success if requested
         if (resetFormOnSuccess) {
           setFormData({
             res_id: '',
             user_id: '',
             amount: '',
-            currency: 'ARS',
             meta: '',
           });
         }
         
-        // Notify parent component to refresh data
         if (onPaymentCreated) {
           onPaymentCreated();
         }
@@ -169,7 +141,7 @@ const PaymentCreationForm: React.FC<PaymentCreationFormProps> = ({
     <Box>
       {showTitle && (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Complete los datos para crear un nuevo pago de prueba con estado PENDIENTE.
+          Complete los datos para crear un nuevo pago de prueba con estado PENDIENTE. La moneda será ARS por defecto.
         </Typography>
       )}
 
@@ -194,34 +166,17 @@ const PaymentCreationForm: React.FC<PaymentCreationFormProps> = ({
           helperText="Identificador del usuario que realiza el pago"
         />
 
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <TextField
-            label="Monto"
-            type="number"
-            value={formData.amount}
-            onChange={handleInputChange('amount')}
-            required
-            fullWidth
-            placeholder="Ej: 100.50"
-            helperText="Monto del pago"
-            inputProps={{ min: "0", step: "0.01" }}
-          />
-
-          <TextField
-            select
-            label="Moneda"
-            value={formData.currency}
-            onChange={handleInputChange('currency')}
-            sx={{ minWidth: 150 }}
-            helperText="Tipo de moneda"
-          >
-            {currencies.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Box>
+        <TextField
+          label="Monto (ARS)"
+          type="number"
+          value={formData.amount}
+          onChange={handleInputChange('amount')}
+          required
+          fullWidth
+          placeholder="Ej: 100.50"
+          helperText="Monto del pago en pesos argentinos"
+          inputProps={{ min: "0", step: "0.01" }}
+        />
 
         <TextField
           label="Metadatos (Opcional)"
@@ -244,7 +199,6 @@ const PaymentCreationForm: React.FC<PaymentCreationFormProps> = ({
           {loading ? 'Creando...' : submitButtonText}
         </Button>
 
-        {/* Result Display */}
         {result && (
           <Alert 
             severity={result.success ? 'success' : 'error'}
@@ -268,7 +222,7 @@ const PaymentCreationForm: React.FC<PaymentCreationFormProps> = ({
                   <strong>Estado:</strong> PENDIENTE
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Monto:</strong> {result.formData?.currency} {result.formData?.amount}
+                  <strong>Monto:</strong> ARS {result.formData?.amount}
                 </Typography>
               </Box>
             ) : (
