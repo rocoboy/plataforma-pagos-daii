@@ -14,8 +14,9 @@ import { PaymentRow } from '../lib/apiClient';
 
 const currencies = [
   { value: 'ARS', label: 'ARS - Peso Argentino' },
-  { value: 'USD', label: 'USD - Dólar Estadounidense' },
-  { value: 'EUR', label: 'EUR - Euro' },
+  // Future currencies can be added here when needed
+  // { value: 'USD', label: 'USD - Dólar Estadounidense' },
+  // { value: 'EUR', label: 'EUR - Euro' },
 ];
 
 interface CreatePaymentResponse {
@@ -196,14 +197,14 @@ const PaymentCreationForm: React.FC<PaymentCreationFormProps> = ({
 
         <Box sx={{ display: 'flex', gap: 2 }}>
           <TextField
-            label="Monto"
+                        label="Monto"
             type="number"
             value={formData.amount}
             onChange={handleInputChange('amount')}
             required
             fullWidth
             placeholder="Ej: 100.50"
-            helperText="Monto del pago"
+                        helperText="Monto del pago"
             inputProps={{ min: "0", step: "0.01" }}
           />
 
