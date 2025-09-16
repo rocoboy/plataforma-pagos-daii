@@ -8,8 +8,12 @@ info:
     - Expone endpoints para crear, actualizar, listar, obtener por ID y listar por usuario.
     - Incluye **esquemas de eventos** que el módulo publica/recibe
 servers:
+  - url: https://plataforma-pagos-daii-preprod.vercel.app/api
+    description: Servidor de preproducción (Vercel)
   - url: https://plataforma-pagos-daii.vercel.app/api
     description: Servidor de producción (Vercel)
+  - url: http://localhost:3000/api
+    description: Servidor de desarrollo local
 tags:
   - name: Payments
     description: Operaciones sobre pagos

@@ -25,8 +25,8 @@ export async function GET() {
     <script>
       window.onload = () => {
         SwaggerUIBundle({
-          // Usar el archivo YAML estático con múltiples servidores
-          url: "/docs/openapi/payments-openapi.yaml",
+          // Usar la ruta dinámica que genera el YAML con el servidor correcto
+          url: "/api/docs/openapi",
           dom_id: "#swagger-ui",
           presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset],
           layout: "BaseLayout",
@@ -34,20 +34,9 @@ export async function GET() {
           showExtensions: true,
           showCommonExtensions: true,
           tryItOutEnabled: true,
-          // Configurar el servidor por defecto según el entorno
+          // El servidor correcto ya está configurado dinámicamente en el YAML
           onComplete: () => {
-            // Seleccionar el servidor correcto automáticamente basado en la URL actual
-            const currentUrl = window.location.origin;
-            
-            // Buscar el servidor que coincida con la URL actual
-            const serverButtons = document.querySelectorAll('.servers .servers-title + .servers .servers-container .server');
-            for (const button of serverButtons) {
-              const serverUrl = button.getAttribute('data-value');
-              if (serverUrl && currentUrl.includes(serverUrl.replace('https://', '').replace('http://', ''))) {
-                button.click();
-                break;
-              }
-            }
+            console.log('Swagger UI loaded with environment-specific server');
           }
         });
       };
