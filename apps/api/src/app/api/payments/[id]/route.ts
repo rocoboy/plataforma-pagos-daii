@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPayment, getPaymentSchema } from "./get-payment";
+import { createCorsResponse, createCorsOptionsResponse } from "@/lib/cors";
 
 //GET para obtener payments
 export async function GET(
@@ -11,27 +12,26 @@ export async function GET(
     const parsed = getPaymentSchema.safeParse({ id });
 
     if (!parsed.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid request body",
-          issues: parsed.error.message,
-        },
-        { status: 400 }
-      );
+      return createCorsResponse(request, {
+        success: false,
+        error: "Invalid request body",
+        issues: parsed.error.message,
+      }, 400);
     }
 
     const { id: parsedId } = parsed.data;
     const payment = await getPayment(request, parsedId);
 
-    return NextResponse.json({ success: true, payment });
+    return createCorsResponse(request, { success: true, payment });
   } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
+    return createCorsResponse(request, {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    }, 500);
   }
+}
+
+// Handle preflight OPTIONS request
+export async function OPTIONS(request: NextRequest) {
+  return createCorsOptionsResponse(request);
 }
