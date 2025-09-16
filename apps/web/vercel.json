@@ -1,0 +1,14 @@
+{
+  "buildCommand": "pnpm run build",
+  "devCommand": "pnpm start",
+  "installCommand": "pnpm install",
+  "framework": "create-react-app",
+  "outputDirectory": "build",
+  "public": true,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
