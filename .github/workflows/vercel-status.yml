@@ -89,11 +89,16 @@ jobs:
               comment.user.type === 'Bot' && comment.body.includes('🌐 Vercel Web Status')
             );
             
+            const isMain = context.ref === 'refs/heads/main';
+            const webUrl = isMain ? '${{ secrets.WEB_URL }}' : '${{ secrets.WEB_URL_PREPROD }}';
+            const environment = isMain ? 'Production' : 'Pre-production';
+            
             const commentBody = `🌐 **Vercel Web Status**
             
             ✅ **Build Status**: Success
-            🔗 **Preview URL**: https://${{ secrets.VERCEL_WEB_PROJECT_ID }}.vercel.app
+            🔗 **Preview URL**: ${webUrl}
             📊 **Project**: plataforma-pagos-daii-web
+            🌍 **Environment**: ${environment}
             🕒 **Last Check**: ${new Date().toISOString()}
             
             ---
@@ -159,11 +164,16 @@ jobs:
               comment.user.type === 'Bot' && comment.body.includes('🚀 Vercel API Status')
             );
             
+            const isMain = context.ref === 'refs/heads/main';
+            const apiUrl = isMain ? '${{ secrets.API_URL }}' : '${{ secrets.API_URL_PREPROD }}';
+            const environment = isMain ? 'Production' : 'Pre-production';
+            
             const commentBody = `🚀 **Vercel API Status**
             
             ✅ **Build Status**: Success
-            🔗 **Preview URL**: https://${{ secrets.VERCEL_API_PROJECT_ID }}.vercel.app
+            🔗 **Preview URL**: ${apiUrl}
             📊 **Project**: plataforma-pagos-daii-api
+            🌍 **Environment**: ${environment}
             🕒 **Last Check**: ${new Date().toISOString()}
             
             ---
