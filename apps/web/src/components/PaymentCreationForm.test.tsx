@@ -5,8 +5,8 @@ import PaymentCreationForm from './PaymentCreationForm';
 // Mock all dependencies
 jest.mock('@mui/material', () => ({
   Box: ({ children }: any) => <div>{children}</div>,
-  TextField: ({ label, ...props }: any) => <input placeholder={label} />,
-  Button: ({ children, ...props }: any) => <button>{children}</button>,
+  TextField: ({ placeholder, children, ...props }: any) => <input placeholder={placeholder} />,
+  Button: ({ children }: any) => <button>{children}</button>,
   Typography: ({ children }: any) => <div>{children}</div>,
   FormControl: ({ children }: any) => <div>{children}</div>,
   InputLabel: ({ children }: any) => <label>{children}</label>,
@@ -23,18 +23,18 @@ jest.mock('@mui/icons-material', () => ({
 
 describe('PaymentCreationForm Component', () => {
   it('renders without crashing', () => {
-    render(<PaymentCreationForm onSubmit={() => {}} onCancel={() => {}} />);
+    render(<PaymentCreationForm />);
     expect(screen.getByText('Complete los datos para crear un nuevo pago de prueba con estado PENDIENTE.')).toBeInTheDocument();
   });
 
   it('renders form fields', () => {
-    render(<PaymentCreationForm onSubmit={() => {}} onCancel={() => {}} />);
-    expect(screen.getByPlaceholderText('Monto')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('ID de Reserva')).toBeInTheDocument();
+    render(<PaymentCreationForm />);
+    expect(screen.getByPlaceholderText('Ej: 100.50')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Ej: BKG123456')).toBeInTheDocument();
   });
 
   it('renders action buttons', () => {
-    render(<PaymentCreationForm onSubmit={() => {}} onCancel={() => {}} />);
+    render(<PaymentCreationForm />);
     expect(screen.getByText('Crear Pago')).toBeInTheDocument();
   });
 });
