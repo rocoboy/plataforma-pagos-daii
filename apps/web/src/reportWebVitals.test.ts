@@ -35,3 +35,6 @@ describe('reportWebVitals', () => {
     expect(mockOnTTFB).toHaveBeenCalled();
   });
 });
+
+// Make this file a module to satisfy TypeScript's isolatedModules requirement
+export {};

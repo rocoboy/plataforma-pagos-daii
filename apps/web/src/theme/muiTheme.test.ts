@@ -17,7 +17,7 @@ describe('MUI Theme', () => {
   });
 
   it('has custom component overrides', () => {
-    expect(muiTheme.components.MuiButton).toBeDefined();
-    expect(muiTheme.components.MuiCard).toBeDefined();
+    expect(muiTheme.components?.MuiButton).toBeDefined();
+    expect(muiTheme.components?.MuiCard).toBeDefined();
   });
 });
