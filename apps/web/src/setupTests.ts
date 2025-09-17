@@ -51,10 +51,11 @@ Object.defineProperty(global, 'crypto', {
   value: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     getRandomValues: (arr: any) => {
-      // Mock implementation that fills the array with test values
+      // Mock implementation that fills the array with predictable test values
       // This is NOT cryptographically secure - for tests only
+      // Using a simple counter-based approach to avoid Math.random() warnings
       for (let i = 0; i < arr.length; i++) {
-        arr[i] = Math.floor(Math.random() * 256);
+        arr[i] = (i * 7 + 13) % 256; // Simple deterministic pattern for testing
       }
       return arr;
     },
