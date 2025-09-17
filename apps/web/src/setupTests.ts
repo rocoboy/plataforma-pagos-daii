@@ -45,9 +45,18 @@ const { TextEncoder, TextDecoder } = require('util');
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
-// Mock crypto for MUI DataGrid
+// Mock crypto for MUI DataGrid - TEST ONLY, NOT FOR PRODUCTION
+// This is a simple mock for testing purposes only
 Object.defineProperty(global, 'crypto', {
   value: {
-    getRandomValues: (arr: any) => arr.map(() => Math.floor(Math.random() * 256)),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getRandomValues: (arr: any) => {
+      // Mock implementation that fills the array with test values
+      // This is NOT cryptographically secure - for tests only
+      for (let i = 0; i < arr.length; i++) {
+        arr[i] = Math.floor(Math.random() * 256);
+      }
+      return arr;
+    },
   },
 });
