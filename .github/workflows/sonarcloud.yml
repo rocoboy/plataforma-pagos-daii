@@ -1,10 +1,10 @@
-name: SonarCloud Analysis
+name: Build
 
 on:
   push:
     branches: [ main, develop ]
   pull_request:
-    branches: [ main, develop ]
+    types: [opened, synchronize, reopened]
 
 jobs:
   sonarqube:
@@ -25,32 +25,20 @@ jobs:
         with:
           version: 8
 
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies and run tests with coverage
+      - name: Install dependencies
         working-directory: apps/web
-        run: |
-          pnpm install
-          pnpm run test:ci
+        run: pnpm install
+
+      - name: Test and coverage
+        working-directory: apps/web
+        run: pnpm run test:ci
 
       - name: Fix coverage file paths
         run: |
           # Convert Windows paths to Unix paths in lcov.info
           sed -i 's|\\|/|g' apps/web/coverage/lcov.info
 
-      - name: SonarCloud Scan
+      - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
