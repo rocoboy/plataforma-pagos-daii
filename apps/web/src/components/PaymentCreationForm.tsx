@@ -66,17 +66,6 @@ const PaymentCreationForm: React.FC<PaymentCreationFormProps> = ({
     if (result) setResult(null);
   };
 
-  const resetForm = () => {
-    setFormData({
-      res_id: '',
-      user_id: '',
-      amount: '',
-      currency: 'ARS',
-      meta: '',
-    });
-    setResult(null);
-  };
-
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);

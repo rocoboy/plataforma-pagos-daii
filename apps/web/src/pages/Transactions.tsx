@@ -27,6 +27,7 @@ import {
   Add as AddIcon,
   SearchOff as SearchOffIcon,
   Receipt as ReceiptIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { Transaction } from '../data/mockData';
 import { fetchPayments } from '../lib/apiClient';
@@ -257,6 +258,16 @@ const TransactionsPage: React.FC = () => {
   });
 
   const queryClient = useQueryClient();
+
+  // Function to refresh payments data
+  const handleRefreshPayments = () => {
+    queryClient.invalidateQueries({ queryKey: ['payments'] });
+    setSnackbar({
+      open: true,
+      message: 'Actualizando datos de pagos...',
+      severity: 'success'
+    });
+  };
 
   // Mutation for updating payment status
   const updatePaymentMutation = useMutation({
@@ -607,7 +618,26 @@ const TransactionsPage: React.FC = () => {
               <MenuItem value="refund">Reembolsada</MenuItem>
             </Select>
           </FormControl>
-          <Button variant="outlined" color="secondary" startIcon={<ClearIcon />} onClick={() => { setSearchTerm(''); setDateFrom(''); setDateTo(''); setSelectedStatus('todos'); }} fullWidth>Limpiar Filtros</Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button 
+              variant="outlined" 
+              color="secondary" 
+              startIcon={<ClearIcon />} 
+              onClick={() => { setSearchTerm(''); setDateFrom(''); setDateTo(''); setSelectedStatus('todos'); }} 
+              fullWidth
+            >
+              Limpiar Filtros
+            </Button>
+            <Button 
+              variant="outlined" 
+              color="primary" 
+              startIcon={<RefreshIcon />} 
+              onClick={handleRefreshPayments} 
+              fullWidth
+            >
+              Actualizar
+            </Button>
+          </Box>
         </Box>
       </Box>
 
