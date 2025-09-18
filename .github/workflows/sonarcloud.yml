@@ -1,0 +1,64 @@
+name: SonarCloud Analysis
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test-and-analyze:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for better analysis
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+
+    - name: Install dependencies
+      run: |
+        cd apps/web
+        pnpm install
+
+    - name: Run tests with coverage
+      run: |
+        cd apps/web
+        pnpm run test:ci
+      env:
+        CI: true
+        GENERATE_SOURCEMAP: false
+
+    - name: Fix coverage file paths
+      run: |
+        # Convert Windows paths to Unix paths in lcov.info
+        sed -i 's|\\|/|g' apps/web/coverage/lcov.info
+
+    - name: Verify coverage file
+      run: |
+        ls -la apps/web/coverage/
+        head -20 apps/web/coverage/lcov.info
+
+    - name: Build project
+      run: |
+        cd apps/web
+        pnpm run build
+
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      with:
+        projectBaseDir: .
