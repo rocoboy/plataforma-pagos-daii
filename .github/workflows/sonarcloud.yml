@@ -11,17 +11,17 @@ jobs:
     name: SonarQube
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@f43a0e5ff7bd5d7853b4f3f3f3f3f3f3f3f3f3f3f3f
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@f43a0e5ff7bd5d7853b4f3f3f3f3f3f3f3f3f3f3f3f
         with:
           node-version: '20'
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v3.0.0
+        uses: pnpm/action-setup@f43a0e5ff7bd5d7853b4f3f3f3f3f3f3f3f3f3f3f3f
         with:
           version: 8
 
@@ -31,7 +31,7 @@ jobs:
           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
       - name: Setup pnpm cache
-        uses: actions/cache@v3
+        uses: actions/cache@f43a0e5ff7bd5d7853b4f3f3f3f3f3f3f3f3f3f3f3f
         with:
           path: ${{ env.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -50,7 +50,7 @@ jobs:
           sed -i 's|\\|/|g' apps/web/coverage/lcov.info
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@1e8e2b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
