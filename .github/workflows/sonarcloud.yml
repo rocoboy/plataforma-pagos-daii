@@ -11,17 +11,17 @@ jobs:
     name: SonarQube
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Install pnpm
-        uses: pnpm/action-setup@4d6c5733c8c4b3ce3f4f4b8b8b8b8b8b8b8b8b8b
+        uses: pnpm/action-setup@v3
         with:
           version: 8
 
@@ -31,7 +31,7 @@ jobs:
           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
       - name: Setup pnpm cache
-        uses: actions/cache@88522ab9f39a2a970e3217e8e213e1a79a0c6d6d
+        uses: actions/cache@v3
         with:
           path: ${{ env.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
