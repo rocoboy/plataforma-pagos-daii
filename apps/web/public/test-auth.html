@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Authentication Testing Tool</title>
+    <title>Herramienta de Pruebas de Autenticación</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -56,30 +56,26 @@
 </head>
 <body>
     <div class="container">
-        <h1>🔐 Authentication Testing Tool</h1>
-        <p>This tool simulates the authentication redirect from the external service. Click the buttons below to test different user roles:</p>
-        
-        <div class="info">
-            <strong>Note:</strong> These buttons will redirect to your frontend with test JWT tokens that contain different user roles.
-        </div>
+        <h1>Herramienta de Pruebas de Autenticación</h1>
+        <p>Esto simula la redirección de autenticación del Módulo de Usuarios del Grupo 5, dependiendo del Rol dado, se rechaza o concede el acceso.</p>
 
-        <h3>Test with Admin User (should grant access)</h3>
+        <h3>Prueba con Usuario Administrador</h3>
         <button class="button admin" onclick="loginAsAdmin()">
-            🔑 Login as Administrator
+            Iniciar sesión como Administrador
         </button>
         
-        <h3>Test with Regular User (should deny access)</h3>
+        <h3>Prueba con Usuario Regular</h3>
         <button class="button user" onclick="loginAsUser()">
-            👤 Login as Regular User
+            Iniciar sesión como Usuario
         </button>
 
-        <h3>Generated Test URLs:</h3>
+        <h3>URLs de Prueba Generadas:</h3>
         <div>
-            <strong>Admin URL:</strong>
+            <strong>URL de Administrador:</strong>
             <div class="code" id="adminUrl"></div>
         </div>
         <div>
-            <strong>User URL:</strong>
+            <strong>URL de Usuario:</strong>
             <div class="code" id="userUrl"></div>
         </div>
     </div>
@@ -159,39 +155,39 @@
         }
 
         async function loginAsAdmin() {
-            const token = await generateRealJWT("Administrador", "admin@test.com", "Test Admin", "123");
+            const token = await generateRealJWT("Administrador", "admin@test.com", "Administrador de Prueba", "123");
             const user = {
                 id: "123",
                 email: "admin@test.com", 
                 role: "Administrador",
-                name: "Test Admin"
+                name: "Administrador de Prueba"
             };
-            console.log('Generated admin token:', token);
+            console.log('Token de administrador generado:', token);
             const url = createRedirectUrl(token, user);
             window.location.href = url;
         }
 
         async function loginAsUser() {
-            const token = await generateRealJWT("Usuario", "user@test.com", "Test User", "456");
+            const token = await generateRealJWT("Usuario", "usuario@test.com", "Usuario de Prueba", "456");
             const user = {
                 id: "456",
-                email: "user@test.com",
+                email: "usuario@test.com",
                 role: "Usuario", 
-                name: "Test User"
+                name: "Usuario de Prueba"
             };
-            console.log('Generated user token:', token);
+            console.log('Token de usuario generado:', token);
             const url = createRedirectUrl(token, user);
             window.location.href = url;
         }
 
         // Display the URLs on page load
         window.onload = async function() {
-            const adminToken = await generateRealJWT("Administrador", "admin@test.com", "Test Admin", "123");
-            const adminUser = { id: "123", email: "admin@test.com", role: "Administrador", name: "Test Admin" };
+            const adminToken = await generateRealJWT("Administrador", "admin@test.com", "Administrador de Prueba", "123");
+            const adminUser = { id: "123", email: "admin@test.com", role: "Administrador", name: "Administrador de Prueba" };
             document.getElementById('adminUrl').textContent = createRedirectUrl(adminToken, adminUser);
 
-            const userToken = await generateRealJWT("Usuario", "user@test.com", "Test User", "456");
-            const userUser = { id: "456", email: "user@test.com", role: "Usuario", name: "Test User" };
+            const userToken = await generateRealJWT("Usuario", "usuario@test.com", "Usuario de Prueba", "456");
+            const userUser = { id: "456", email: "usuario@test.com", role: "Usuario", name: "Usuario de Prueba" };
             document.getElementById('userUrl').textContent = createRedirectUrl(userToken, userUser);
         };
     </script>
