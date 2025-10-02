@@ -137,19 +137,86 @@ export const createLoginRedirectUrl = (): string => {
 };
 
 /**
+ * Check for token in URL fragment (#) and extract it
+ * This specifically handles the acceptance criteria requirement
+ */
+export const checkUrlForToken = (): { token: string; user: User } | null => {
+  try {
+    console.log('🔍 Checking URL for token fragment...', window.location.hash);
+    
+    // Check if URL contains hash fragment with token
+    if (window.location.hash) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const token = hashParams.get('token');
+      const userData = hashParams.get('user');
+      
+      console.log('📍 Found hash params:', { hasToken: !!token, hasUser: !!userData });
+      
+      if (token) {
+        let user: User;
+        
+        // If user data is provided, parse it; otherwise create minimal user object
+        if (userData) {
+          user = JSON.parse(decodeURIComponent(userData));
+          console.log('👤 Parsed user data:', user);
+        } else {
+          // Fallback user object if only token is provided
+          user = {
+            id: 'unknown',
+            email: 'unknown@example.com',
+            role: 'Usuario', // Default role
+            name: 'Usuario'
+          };
+          console.log('👤 Using fallback user data:', user);
+        }
+        
+        // Store token securely in browser storage
+        storeAuthData(token, user);
+        console.log('💾 Token stored securely');
+        
+        // Clean URL to remove visible token from address bar
+        const cleanUrl = window.location.pathname + window.location.search;
+        window.history.replaceState({}, document.title, cleanUrl);
+        console.log('🧹 URL cleaned, token removed from address bar');
+        
+        return { token, user };
+      }
+    }
+    
+    console.log('❌ No token found in URL fragment');
+    return null;
+  } catch (error) {
+    console.error('❌ Error checking URL for token:', error);
+    return null;
+  }
+};
+
+/**
  * Handle login redirect from external auth service
+ * Supports both URL parameters and hash fragments for token capture
  */
 export const handleAuthCallback = (): { token: string; user: User } | null => {
   try {
+    let token: string | null = null;
+    let userData: string | null = null;
+    
+    // Check URL parameters first (original implementation)
     const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    const userData = urlParams.get('user');
+    token = urlParams.get('token');
+    userData = urlParams.get('user');
+    
+    // If not found in parameters, check hash fragment (#token=...)
+    if (!token && window.location.hash) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1)); // Remove # prefix
+      token = hashParams.get('token');
+      userData = hashParams.get('user');
+    }
     
     if (token && userData) {
       const user: User = JSON.parse(decodeURIComponent(userData));
       storeAuthData(token, user);
       
-      // Clean up URL parameters
+      // Clean up URL parameters AND hash fragments
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, document.title, cleanUrl);
       

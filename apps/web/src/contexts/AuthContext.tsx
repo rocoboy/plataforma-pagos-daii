@@ -7,7 +7,8 @@ import {
   clearAuthData, 
   isAuthenticated as checkAuthenticated,
   isAdmin as checkIsAdmin,
-  handleAuthCallback 
+  handleAuthCallback,
+  checkUrlForToken
 } from '../lib/auth';
 
 interface AuthContextType {
@@ -32,12 +33,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize auth state from localStorage
+  // Initialize auth state from localStorage and URL
   useEffect(() => {
     const initializeAuth = () => {
       setIsLoading(true);
       
-      // Check for auth callback first (from external login)
+      // FIRST: Check URL for token fragment (#token=...) - Acceptance Criteria requirement
+      const urlTokenData = checkUrlForToken();
+      if (urlTokenData) {
+        setToken(urlTokenData.token);
+        setUser(urlTokenData.user);
+        setIsLoading(false);
+        return;
+      }
+      
+      // SECOND: Check for auth callback in URL parameters (from external login)
       const callbackData = handleAuthCallback();
       if (callbackData) {
         setToken(callbackData.token);
@@ -46,7 +56,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
       
-      // Otherwise, check localStorage
+      // THIRD: Check localStorage for existing session
       const storedToken = getStoredToken();
       const storedUser = getStoredUser();
       
