@@ -1,5 +1,5 @@
 // API client for backend communication
-import { getAuthHeader } from './auth';
+// Note: JWT tokens are automatically added by the API interceptor
 
 export interface PaymentRow {
   id: string;
@@ -23,18 +23,19 @@ const apiUrl = process.env.REACT_APP_VERCEL_API || 'http://localhost:3000';
 export type PaymentsResponse = PaymentRow[];
 
 /**
- * Create headers with authentication
+ * Create standard headers for API requests
+ * JWT tokens are automatically added by the API interceptor
  */
 const createHeaders = (additionalHeaders: Record<string, string> = {}): HeadersInit => {
   return {
     'Content-Type': 'application/json',
-    ...getAuthHeader(),
     ...additionalHeaders,
   };
 };
 
 export async function fetchPayments(): Promise<PaymentsResponse> {
   try {
+    // JWT token will be automatically added by the interceptor
     const response = await fetch(`${apiUrl}/api/payments`, {
       method: 'GET',
       headers: createHeaders(),
@@ -57,6 +58,7 @@ export async function fetchPayments(): Promise<PaymentsResponse> {
 
 /**
  * Create a new payment
+ * JWT token will be automatically added by the interceptor
  */
 export async function createPayment(paymentData: {
   res_id: string;
@@ -90,6 +92,7 @@ export async function createPayment(paymentData: {
 
 /**
  * Update payment status
+ * JWT token will be automatically added by the interceptor
  */
 export async function updatePaymentStatus(paymentId: string, status: string): Promise<PaymentRow> {
   try {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ThemeProvider } from '@mui/material/styles';
@@ -12,6 +12,7 @@ import LoginPage from './pages/Login';
 import TransactionsPage from './pages/Transactions';
 import TransactionDetailPage from './pages/TransactionDetail';
 import DevPaymentCreator from './pages/DevPaymentCreator';
+import { initializeApiInterceptor } from './lib/apiInterceptor';
 import './App.css';
 
 // Create a client
@@ -25,6 +26,12 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  // Initialize API interceptor on app startup
+  useEffect(() => {
+    initializeApiInterceptor();
+    console.log('🚀 Application started with API interceptor enabled');
+  }, []);
+
   return (
     <ThemeProvider theme={muiTheme}>
       <CssBaseline />
