@@ -49,21 +49,58 @@ const interceptedFetch = async (
     
     // Log response for debugging
     if (isApiCall) {
-      console.log('📡 API Response:', {
+      console.log('API Response:', {
         url,
         status: response.status,
         statusText: response.statusText,
         hasAuthHeader: enhancedInit.headers.has('Authorization')
       });
+
+      // Handle specific error responses
+      if (response.status === 403) {
+        console.error('Access denied: Insufficient permissions');
+        // Show user-friendly error message
+        showAccessDeniedMessage();
+      } else if (response.status === 401) {
+        console.error('Unauthorized: Invalid or expired token');
+        // Could handle token refresh here
+        showUnauthorizedMessage();
+      }
     }
 
     return response;
   } catch (error) {
     if (isApiCall) {
-      console.error('❌ API Request failed:', error);
+      console.error('API Request failed:', error);
     }
     throw error;
   }
+};
+
+/**
+ * Show access denied message to user
+ */
+const showAccessDeniedMessage = (): void => {
+  // Navigate to access denied page
+  window.location.href = '/access-denied';
+  
+  // Also dispatch custom event for components that want to listen
+  window.dispatchEvent(new CustomEvent('accessDenied', { 
+    detail: { message: 'Acceso denegado: No tienes permisos suficientes' } 
+  }));
+};
+
+/**
+ * Show unauthorized message to user  
+ */
+const showUnauthorizedMessage = (): void => {
+  // Navigate to access denied page  
+  window.location.href = '/access-denied';
+  
+  // Also dispatch custom event for components that want to listen
+  window.dispatchEvent(new CustomEvent('unauthorized', { 
+    detail: { message: 'No autorizado: Tu sesión ha expirado' } 
+  }));
 };
 
 /**

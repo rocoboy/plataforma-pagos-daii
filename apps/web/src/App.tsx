@@ -12,6 +12,7 @@ import LoginPage from './pages/Login';
 import TransactionsPage from './pages/Transactions';
 import TransactionDetailPage from './pages/TransactionDetail';
 import DevPaymentCreator from './pages/DevPaymentCreator';
+import AccessDeniedPage from './pages/AccessDeniedPage';
 import { initializeApiInterceptorV2 } from './lib/apiInterceptorV2';
 import './App.css';
 
@@ -52,8 +53,9 @@ function AppContent() {
 
   const handleLogout = () => {
     logout();
-    // Redirect to external logout or login page
-    window.location.href = 'https://grupo5-usuarios.vercel.app/logout';
+    // Redirect to login page with proper redirect_uri
+    const redirectUri = encodeURIComponent('http://localhost:3001/payments');
+    window.location.href = `https://grupo5-usuarios.vercel.app/login?redirect_uri=${redirectUri}`;
   };
 
   return (
@@ -96,6 +98,7 @@ function AppContent() {
       <main>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/access-denied" element={<AccessDeniedPage />} />
           <Route path="/payments" element={
             <AuthGuard>
               <TransactionsPage />
