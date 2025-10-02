@@ -1,4 +1,5 @@
 // API client for backend communication
+import { getAuthHeader } from './auth';
 
 export interface PaymentRow {
   id: string;
@@ -21,12 +22,28 @@ const apiUrl = process.env.REACT_APP_VERCEL_API || 'http://localhost:3000';
 
 export type PaymentsResponse = PaymentRow[];
 
+/**
+ * Create headers with authentication
+ */
+const createHeaders = (additionalHeaders: Record<string, string> = {}): HeadersInit => {
+  return {
+    'Content-Type': 'application/json',
+    ...getAuthHeader(),
+    ...additionalHeaders,
+  };
+};
+
 export async function fetchPayments(): Promise<PaymentsResponse> {
   try {
-    const response = await fetch(`${apiUrl}/api/payments`);
+    const response = await fetch(`${apiUrl}/api/payments`, {
+      method: 'GET',
+      headers: createHeaders(),
+    });
+    
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
+    
     const data: PaymentsApiResponse = await response.json();
     if (!data.success) {
       throw new Error(`API Error: ${JSON.stringify(data)}`);
@@ -34,6 +51,66 @@ export async function fetchPayments(): Promise<PaymentsResponse> {
     return data.payments;
   } catch (error) {
     console.error('fetchPayments error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create a new payment
+ */
+export async function createPayment(paymentData: {
+  res_id: string;
+  user_id: string;
+  amount: number;
+  currency: string;
+  meta?: string;
+}): Promise<PaymentRow> {
+  try {
+    const response = await fetch(`${apiUrl}/api/webhooks/payments`, {
+      method: 'POST',
+      headers: createHeaders(),
+      body: JSON.stringify(paymentData),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to create payment');
+    }
+    
+    return data.payment;
+  } catch (error) {
+    console.error('createPayment error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update payment status
+ */
+export async function updatePaymentStatus(paymentId: string, status: string): Promise<PaymentRow> {
+  try {
+    const response = await fetch(`${apiUrl}/api/webhooks/payments`, {
+      method: 'PUT',
+      headers: createHeaders(),
+      body: JSON.stringify({ id: paymentId, status }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to update payment');
+    }
+    
+    return data.payment;
+  } catch (error) {
+    console.error('updatePaymentStatus error:', error);
     throw error;
   }
 }
