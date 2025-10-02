@@ -151,7 +151,8 @@
 
         function createRedirectUrl(token, user) {
             const userEncoded = encodeURIComponent(JSON.stringify(user));
-            return `http://localhost:3001/payments#token=${token}&user=${userEncoded}`;
+            const currentOrigin = window.location.origin; // Gets current domain (localhost:3001 or preprod URL)
+            return `${currentOrigin}/payments#token=${token}&user=${userEncoded}`;
         }
 
         async function loginAsAdmin() {
