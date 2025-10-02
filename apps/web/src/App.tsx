@@ -12,7 +12,7 @@ import LoginPage from './pages/Login';
 import TransactionsPage from './pages/Transactions';
 import TransactionDetailPage from './pages/TransactionDetail';
 import DevPaymentCreator from './pages/DevPaymentCreator';
-import { initializeApiInterceptor } from './lib/apiInterceptor';
+import { initializeApiInterceptorV2 } from './lib/apiInterceptorV2';
 import './App.css';
 
 // Create a client
@@ -28,8 +28,8 @@ const queryClient = new QueryClient({
 function App() {
   // Initialize API interceptor on app startup
   useEffect(() => {
-    initializeApiInterceptor();
-    console.log('🚀 Application started with API interceptor enabled');
+    initializeApiInterceptorV2();
+    console.log('🚀 Application started with API interceptor V2 enabled');
   }, []);
 
   return (

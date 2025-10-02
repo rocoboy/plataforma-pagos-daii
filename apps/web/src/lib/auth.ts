@@ -21,6 +21,12 @@ const USER_STORAGE_KEY = 'auth_user';
  * Store JWT token and user data in localStorage
  */
 export const storeAuthData = (token: string, user: User, expiresIn: number = 3600): void => {
+  console.log('💾 Storing auth data:', { 
+    tokenLength: token.length, 
+    tokenStart: token.substring(0, 50),
+    user 
+  });
+  
   const expiresAt = Date.now() + (expiresIn * 1000); // Convert seconds to milliseconds
   
   const authToken: AuthToken = {
@@ -31,6 +37,8 @@ export const storeAuthData = (token: string, user: User, expiresIn: number = 360
   
   localStorage.setItem(TOKEN_STORAGE_KEY, token);
   localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(authToken));
+  
+  console.log('💾 Token stored. Retrieved immediately:', localStorage.getItem(TOKEN_STORAGE_KEY)?.substring(0, 50));
 };
 
 /**
@@ -39,6 +47,8 @@ export const storeAuthData = (token: string, user: User, expiresIn: number = 360
 export const getStoredToken = (): string | null => {
   try {
     const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+    console.log('🔍 Retrieved token from storage:', token ? `${token.substring(0, 50)}... (length: ${token.length})` : 'null');
+    
     if (!token) return null;
     
     // Check if token is expired
@@ -47,6 +57,7 @@ export const getStoredToken = (): string | null => {
       const authData: AuthToken = JSON.parse(userData);
       if (Date.now() > authData.expiresAt) {
         // Token expired, clear storage
+        console.log('⏰ Token expired, clearing storage');
         clearAuthData();
         return null;
       }
@@ -146,11 +157,19 @@ export const checkUrlForToken = (): { token: string; user: User } | null => {
     
     // Check if URL contains hash fragment with token
     if (window.location.hash) {
+      console.log('🔍 Full hash:', window.location.hash);
+      console.log('🔍 Hash length:', window.location.hash.length);
+      
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const token = hashParams.get('token');
       const userData = hashParams.get('user');
       
-      console.log('📍 Found hash params:', { hasToken: !!token, hasUser: !!userData });
+      console.log('📍 Found hash params:', { 
+        hasToken: !!token, 
+        hasUser: !!userData,
+        tokenLength: token?.length,
+        tokenStart: token?.substring(0, 50)
+      });
       
       if (token) {
         let user: User;

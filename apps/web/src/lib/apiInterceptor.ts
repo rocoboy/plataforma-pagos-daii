@@ -9,7 +9,8 @@ class ApiInterceptor {
   private originalFetch: typeof fetch;
 
   constructor() {
-    this.originalFetch = window.fetch;
+    // Properly bind the original fetch to maintain context
+    this.originalFetch = window.fetch.bind(window);
   }
 
   /**
@@ -17,7 +18,9 @@ class ApiInterceptor {
    * This replaces the native fetch with our enhanced version
    */
   install(): void {
-    window.fetch = this.interceptedFetch.bind(this);
+    // Create a bound version of our intercepted fetch
+    const boundInterceptedFetch = this.interceptedFetch.bind(this);
+    window.fetch = boundInterceptedFetch;
     console.log('🚀 API Interceptor installed - JWT tokens will be added automatically');
   }
 
@@ -66,7 +69,7 @@ class ApiInterceptor {
       }
     }
 
-    // Call the original fetch with enhanced headers
+    // Call the original fetch with enhanced headers using proper context
     try {
       const response = await this.originalFetch(input, enhancedInit);
       
