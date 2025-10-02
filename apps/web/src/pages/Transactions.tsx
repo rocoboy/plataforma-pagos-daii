@@ -28,9 +28,12 @@ import {
   SearchOff as SearchOffIcon,
   Receipt as ReceiptIcon,
   Refresh as RefreshIcon,
+  Logout as LogoutIcon,
+  Person as PersonIcon,
 } from '@mui/icons-material';
 import { Transaction } from '../data/mockData';
 import { fetchPayments } from '../lib/apiClient';
+import { useAuth } from '../contexts/AuthContext';
 import jsPDF from 'jspdf';
 import DevPaymentModal from '../components/DevPaymentModal';
 
@@ -246,6 +249,7 @@ const generatePaymentPDF = (transaction: Transaction) => {
 };
 
 const TransactionsPage: React.FC = () => {
+  const { user, logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -258,6 +262,14 @@ const TransactionsPage: React.FC = () => {
   });
 
   const queryClient = useQueryClient();
+
+  // Handle logout functionality
+  const handleLogout = () => {
+    logout();
+    // Redirect to login page with proper redirect_uri
+    const redirectUri = encodeURIComponent('http://localhost:3001/payments');
+    window.location.href = `https://grupo5-usuarios.vercel.app/login?redirect_uri=${redirectUri}`;
+  };
 
   // Function to refresh payments data
   const handleRefreshPayments = () => {
@@ -566,6 +578,29 @@ const TransactionsPage: React.FC = () => {
         </Box>
         <Box sx={{ flexGrow: 1, maxWidth: 400, ml: 4 }}>
           <TextField fullWidth size="small" placeholder="Buscar transacciones..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} InputProps={{ startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} /> }} />
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 2 }}>
+          {user && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <PersonIcon sx={{ color: 'text.secondary' }} />
+              <Typography variant="body2" color="text.secondary">
+                {user.name || user.email}
+              </Typography>
+            </Box>
+          )}
+          <Button
+            variant="outlined"
+            size="medium"
+            startIcon={<LogoutIcon />}
+            onClick={handleLogout}
+            sx={{ 
+              textTransform: 'none',
+              fontWeight: 600,
+              minWidth: '140px'
+            }}
+          >
+            Cerrar Sesión
+          </Button>
         </Box>
       </Box>
 

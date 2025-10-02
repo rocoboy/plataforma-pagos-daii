@@ -2,8 +2,7 @@ import React, { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ThemeProvider } from '@mui/material/styles';
-import { CssBaseline, Box, Typography, Button } from '@mui/material';
-import { Logout as LogoutIcon, Person as PersonIcon } from '@mui/icons-material';
+import { CssBaseline } from '@mui/material';
 import { muiTheme } from './theme/muiTheme';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -49,15 +48,6 @@ function App() {
 }
 
 function AppContent() {
-  const { user, logout, isAuthenticated } = useAuth();
-
-  const handleLogout = () => {
-    logout();
-    // Redirect to login page with proper redirect_uri
-    const redirectUri = encodeURIComponent('http://localhost:3001/payments');
-    window.location.href = `https://grupo5-usuarios.vercel.app/login?redirect_uri=${redirectUri}`;
-  };
-
   return (
     <div className="bg-white min-h-screen">
       {/* Header */}
@@ -68,25 +58,6 @@ function AppContent() {
             <p className="text-gray-600 font-normal mt-2">Sistema de gestión de pagos - Módulo Pagos y Facturación</p>
           </div>
           <div className="flex items-center gap-4">
-            {isAuthenticated && user && (
-              <>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <PersonIcon sx={{ color: 'text.secondary' }} />
-                  <Typography variant="body2" color="text.secondary">
-                    {user.name || user.email} ({user.role})
-                  </Typography>
-                </Box>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<LogoutIcon />}
-                  onClick={handleLogout}
-                  sx={{ ml: 2 }}
-                >
-                  Cerrar Sesión
-                </Button>
-              </>
-            )}
             <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
               En Desarrollo
             </span>
