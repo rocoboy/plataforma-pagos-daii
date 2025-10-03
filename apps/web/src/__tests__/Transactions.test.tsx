@@ -4,6 +4,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@mui/material/styles';
 import { muiTheme } from '../theme/muiTheme';
 import TransactionsPage from '../pages/Transactions';
+// Mock useAuth to satisfy AuthContext
+jest.mock('../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { name: 'Test User', email: 'test@example.com' },
+    logout: jest.fn()
+  })
+}));
 
 // Mock dependencies
 jest.mock('../lib/apiClient', () => ({
@@ -86,6 +93,8 @@ jest.mock('@mui/icons-material', () => ({
   SearchOff: () => <span data-testid="search-off-icon" />,
   Receipt: () => <span data-testid="receipt-icon" />,
   Refresh: () => <span data-testid="refresh-icon" />,
+  Logout: () => <span data-testid="logout-icon" />,
+  Person: () => <span data-testid="person-icon" />,
 }));
 
 // Test wrapper component
@@ -100,7 +109,9 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={muiTheme}>
-        {children}
+        <div data-testid="auth-provider">
+          {children}
+        </div>
       </ThemeProvider>
     </QueryClientProvider>
   );

@@ -35,7 +35,7 @@ describe('API Client', () => {
 
     const result = await fetchPayments();
 
-    expect(mockFetch).toHaveBeenCalledWith('http://localhost:3000/api/payments');
+    expect(mockFetch).toHaveBeenCalledWith('http://localhost:3000/api/payments', expect.any(Object));
     expect(result).toEqual(mockResponse.payments);
   });
 
