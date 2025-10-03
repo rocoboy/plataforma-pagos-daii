@@ -9,9 +9,8 @@ const AccessDenied: React.FC = () => {
   // Handle logout functionality
   const handleLogout = () => {
     logout();
-    // Redirect to login page with proper redirect_uri
-    const redirectUri = encodeURIComponent('http://localhost:3001/payments');
-    window.location.href = `https://grupo5-usuarios.vercel.app/login?redirect_uri=${redirectUri}`;
+    // Redirect to our custom login page
+    window.location.href = '/login';
   };
 
   return (

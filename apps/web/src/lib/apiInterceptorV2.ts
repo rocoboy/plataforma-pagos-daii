@@ -20,6 +20,7 @@ const interceptedFetch = async (
   // Check if this is an API call to our backend
   const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
   const isApiCall = isApiCallToBackend(url);
+  const isAuthLogin = isAuthLoginEndpoint(url);
 
   if (isApiCall) {
     console.log('🔗 Intercepting API call:', url);
@@ -29,11 +30,11 @@ const interceptedFetch = async (
     
     console.log('🎫 Token from storage:', token ? `${token.substring(0, 50)}... (length: ${token.length})` : 'null');
     
-    if (token) {
-      // Add Authorization header with Bearer token format
+    if (!isAuthLogin && token) {
+      // Add Authorization header with Bearer token format (skip for login endpoint)
       enhancedInit.headers.set('Authorization', `Bearer ${token}`);
       console.log('🔐 JWT token added to request headers');
-    } else {
+    } else if (!token) {
       console.log('⚠️ No JWT token found in localStorage');
     }
 
@@ -57,11 +58,11 @@ const interceptedFetch = async (
       });
 
       // Handle specific error responses
-      if (response.status === 403) {
+      if (response.status === 403 && !isAuthLogin) {
         console.error('Access denied: Insufficient permissions');
         // Show user-friendly error message
         showAccessDeniedMessage();
-      } else if (response.status === 401) {
+      } else if (response.status === 401 && !isAuthLogin) {
         console.error('Unauthorized: Invalid or expired token');
         // Could handle token refresh here
         showUnauthorizedMessage();
@@ -94,8 +95,8 @@ const showAccessDeniedMessage = (): void => {
  * Show unauthorized message to user  
  */
 const showUnauthorizedMessage = (): void => {
-  // Navigate to access denied page  
-  window.location.href = '/access-denied';
+  // Navigate to our custom login page  
+  window.location.href = '/login';
   
   // Also dispatch custom event for components that want to listen
   window.dispatchEvent(new CustomEvent('unauthorized', { 
@@ -113,6 +114,22 @@ const isApiCallToBackend = (url: string): boolean => {
   return url.startsWith(apiUrl) || 
          url.startsWith('/api/') || 
          url.includes('/api/');
+};
+
+/**
+ * Determine if the request targets the auth login endpoint. We skip global
+ * unauthorized/forbidden redirects for this endpoint to allow the UI to show
+ * proper error messages (e.g., wrong credentials).
+ */
+const isAuthLoginEndpoint = (url: string): boolean => {
+  try {
+    const u = new URL(url, window.location.origin);
+    const path = u.pathname.toLowerCase();
+    return path === '/api/auth/login' || path.endsWith('/api/auth/login');
+  } catch {
+    // Fallback string check
+    return url.includes('/api/auth/login');
+  }
 };
 
 let isInstalled = false;

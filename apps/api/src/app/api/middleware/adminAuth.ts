@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import jwt from "jsonwebtoken";
 import { createCorsResponse } from "@/lib/cors";
 
@@ -22,16 +22,15 @@ export function adminAuthMiddleware(request: NextRequest) {
   console.log("Using JWT_SECRET:", SECRET_KEY ? "Set" : "Missing");
   
   try {
-    // First, let's decode the JWT without verification to see its contents
     const decoded_unverified = jwt.decode(token, { complete: true });
     console.log("JWT header (unverified):", decoded_unverified?.header);
     console.log("JWT payload (unverified):", decoded_unverified?.payload);
     
-    const decoded = jwt.verify(token, SECRET_KEY) as { role?: string };
-    console.log("Token decoded successfully, role:", decoded.role);
+    const decoded = jwt.verify(token, SECRET_KEY) as { rol?: string };
+    console.log("Token decoded successfully, role:", decoded.rol); 
     
-    if (decoded.role !== "Administrador") {
-      console.log("Access denied - role mismatch. Expected: 'Administrador', Got:", decoded.role);
+    if (decoded.rol !== "admin") {
+      console.log("Access denied - role mismatch. Expected: 'admin', Got:", decoded.rol);
       return createCorsResponse(request, { error: "Acceso denegado: rol insuficiente" }, 403);
     }
     
