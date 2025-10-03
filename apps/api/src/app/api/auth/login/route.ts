@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Intentar parsear el cuerpo; si falla, usar objeto vacío
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const raw: any = await response.json().catch(() => ({}));
 
     // Normalizar campos variables desde el servicio externo
