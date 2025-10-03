@@ -4,7 +4,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import { muiTheme } from './theme/muiTheme';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import AuthGuard from './components/AuthGuard';
 import LoginPage from './pages/Login';
@@ -49,6 +49,8 @@ function App() {
 }
 
 function AppContent() {
+  const location = useLocation();
+  
   return (
     <div className="bg-white min-h-screen">
       {/* Header */}
@@ -87,7 +89,10 @@ function AppContent() {
               <DevPaymentCreator />
             </AuthGuard>
           } />
-          <Route path="*" element={<Navigate to="/payments" replace />} />
+          {/* Only redirect to payments if not on login-related pages */}
+          {!location.pathname.startsWith('/login') && !location.pathname.startsWith('/access-denied') && (
+            <Route path="*" element={<Navigate to="/payments" replace />} />
+          )}
         </Routes>
       </main>
 

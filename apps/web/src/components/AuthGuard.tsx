@@ -10,6 +10,18 @@ interface AuthGuardProps {
 const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false }) => {
   const { isAuthenticated, isAdmin, isLoading, user } = useAuth();
 
+  // Debug logging to understand what's happening
+  React.useEffect(() => {
+    console.log('🛡️ AuthGuard Debug:', {
+      isLoading,
+      isAuthenticated,
+      isAdmin,
+      requireAdmin,
+      userRole: user?.role,
+      userName: user?.name
+    });
+  }, [isLoading, isAuthenticated, isAdmin, requireAdmin, user]);
+
   useEffect(() => {
     // If loading is complete and user is not authenticated
     if (!isLoading && !isAuthenticated) {

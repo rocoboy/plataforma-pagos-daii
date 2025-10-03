@@ -37,10 +37,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initializeAuth = () => {
       setIsLoading(true);
+      console.log('🔄 AuthContext: Initializing auth, current path:', window.location.pathname);
+      
+      // Skip initialization if we're on the login page to avoid conflicts
+      if (window.location.pathname === '/login') {
+        console.log('⏭️ AuthContext: Skipping initialization on login page');
+        // Check if there's already stored auth data, but don't auto-redirect
+        const storedToken = getStoredToken();
+        const storedUser = getStoredUser();
+        
+        if (storedToken && storedUser) {
+          console.log('🎯 AuthContext: Found stored auth data on login page, setting state but not redirecting');
+          setToken(storedToken);
+          setUser(storedUser);
+        }
+        
+        setIsLoading(false);
+        return;
+      }
       
       // FIRST: Check URL for token fragment (#token=...) - Acceptance Criteria requirement
       const urlTokenData = checkUrlForToken();
       if (urlTokenData) {
+        console.log('🎯 AuthContext: Found URL token data');
         setToken(urlTokenData.token);
         setUser(urlTokenData.user);
         setIsLoading(false);
@@ -50,6 +69,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // SECOND: Check for auth callback in URL parameters (from external login)
       const callbackData = handleAuthCallback();
       if (callbackData) {
+        console.log('🎯 AuthContext: Found callback data');
         setToken(callbackData.token);
         setUser(callbackData.user);
         setIsLoading(false);
@@ -61,8 +81,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const storedUser = getStoredUser();
       
       if (storedToken && storedUser) {
+        console.log('🎯 AuthContext: Found stored auth data');
         setToken(storedToken);
         setUser(storedUser);
+      } else {
+        console.log('❌ AuthContext: No stored auth data found');
       }
       
       setIsLoading(false);

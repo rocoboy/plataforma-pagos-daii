@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -30,15 +30,39 @@ const CustomLoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Track loading and error; no need for extra attempt flag
+
+  // Prevent unwanted redirects when on login page
+  useEffect(() => {
+    console.log('🔒 Login page mounted, preventing auto-redirects');
+    
+    // Override any navigation attempts while we're actively trying to login
+    const handlePopState = (e: PopStateEvent) => {
+      if (loading) {
+        console.log('🚫 Preventing navigation during login attempt');
+        e.preventDefault();
+        window.history.pushState(null, '', '/login');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [loading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🚀 Form submitted, preventing default...');
     setLoading(true);
     setError('');
 
     try {
       // Llamada a nuestro backend proxy (evita problemas de CORS)
       const apiUrl = process.env.REACT_APP_VERCEL_API || 'http://localhost:3000';
+      console.log('📡 Making API call to:', `${apiUrl}/api/auth/login`);
+      
       const response = await fetch(`${apiUrl}/api/auth/login`, {
         method: 'POST',
         headers: {
@@ -48,6 +72,12 @@ const CustomLoginPage: React.FC = () => {
           email: email.trim(),
           password: password
         })
+      });
+
+      console.log('📥 Response received:', { 
+        status: response.status, 
+        ok: response.ok,
+        statusText: response.statusText 
       });
 
       const data: any = await response.json();
@@ -99,6 +129,7 @@ const CustomLoginPage: React.FC = () => {
         // Guardar en nuestro sistema de autenticación usando el contexto
         login(resolvedToken!, resolvedUser);
         console.log('✅ Usuario autenticado, rol:', resolvedUser.role);
+        console.log('🔍 Datos completos del usuario:', resolvedUser);
         
         // Guardar referencia al usuario para evitar problemas de tipado
         const authenticatedUser = resolvedUser as { role: string };
@@ -115,21 +146,41 @@ const CustomLoginPage: React.FC = () => {
           }
         }, 100);
       } else {
-        // Error de autenticación: mostrar mensaje solo si realmente falló
+        // Error de autenticación: mostrar mensaje apropiado según el tipo de error
         const message: string = data?.message || data?.mensaje || 'Error de autenticación';
-        console.error('❌ Error de login:', { httpOk, message, data });
-        // Evitar mostrar "Login exitoso" como error si llega desde el backend externo
-        if (/exitoso/i.test(message) && httpOk) {
+        console.error('❌ Error de login:', { httpOk, message, data, status: response.status });
+        
+        // Determinar el mensaje de error apropiado
+        let errorMessage = message;
+        
+        console.log('🔍 Determining error message for status:', response.status);
+        
+        if (response.status === 401 || response.status === 403) {
+          // Credenciales incorrectas
+          errorMessage = 'Credenciales inválidas. Verifica tu email y contraseña.';
+          console.log('🔒 Setting credentials error message');
+        } else if (/exitoso/i.test(message) && httpOk) {
           // Si llega un mensaje "Login exitoso" pero faltaron campos, informar más detallado
-          setError('Error en la respuesta de autenticación. Intenta nuevamente.');
-        } else {
-          setError(message);
+          errorMessage = 'Error en la respuesta de autenticación. Intenta nuevamente.';
+          console.log('⚠️ Setting response format error message');
+        } else if (response.status >= 500) {
+          // Error del servidor
+          errorMessage = 'Error del servidor. Intenta nuevamente más tarde.';
+          console.log('🖥️ Setting server error message');
+        } else if (!httpOk && !message) {
+          // Error genérico sin mensaje específico
+          errorMessage = 'Error de autenticación. Verifica tus credenciales.';
+          console.log('❓ Setting generic error message');
         }
+        
+        console.log('📝 Final error message:', errorMessage);
+        setError(errorMessage);
       }
     } catch (error) {
       console.error('❌ Error de red:', error);
       setError('Error de conexión. Verifica tu internet e inténtalo de nuevo.');
     } finally {
+      console.log('🏁 Setting loading to false');
       setLoading(false);
     }
   };
@@ -202,7 +253,11 @@ const CustomLoginPage: React.FC = () => {
             )}
 
             {/* Login Form */}
-            <Box component="form" onSubmit={handleSubmit}>
+            <Box 
+              component="form" 
+              onSubmit={handleSubmit}
+              noValidate
+            >
               <TextField
                 fullWidth
                 label="Email"
@@ -258,6 +313,12 @@ const CustomLoginPage: React.FC = () => {
                 variant="contained"
                 size="large"
                 disabled={loading || !email || !password}
+                onClick={(e) => {
+                  // Extra prevention in case form submit doesn't work
+                  if (!email || !password) {
+                    e.preventDefault();
+                  }
+                }}
                 sx={{
                   py: 1.5,
                   fontSize: '1.1rem',
