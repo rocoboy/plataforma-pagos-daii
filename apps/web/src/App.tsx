@@ -5,9 +5,10 @@ import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import { muiTheme } from './theme/muiTheme';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthProvider } from './contexts/AuthContext';
 import AuthGuard from './components/AuthGuard';
 import LoginPage from './pages/Login';
+import CustomLoginPage from './pages/CustomLogin';
 import TransactionsPage from './pages/Transactions';
 import TransactionDetailPage from './pages/TransactionDetail';
 import DevPaymentCreator from './pages/DevPaymentCreator';
@@ -68,7 +69,8 @@ function AppContent() {
       {/* Main Content */}
       <main>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/login" element={<CustomLoginPage />} />
+          <Route path="/login-old" element={<LoginPage />} />
           <Route path="/access-denied" element={<AccessDeniedPage />} />
           <Route path="/payments" element={
             <AuthGuard>

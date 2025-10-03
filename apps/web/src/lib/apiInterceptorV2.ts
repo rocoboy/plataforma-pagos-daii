@@ -94,8 +94,8 @@ const showAccessDeniedMessage = (): void => {
  * Show unauthorized message to user  
  */
 const showUnauthorizedMessage = (): void => {
-  // Navigate to access denied page  
-  window.location.href = '/access-denied';
+  // Navigate to our custom login page  
+  window.location.href = '/login';
   
   // Also dispatch custom event for components that want to listen
   window.dispatchEvent(new CustomEvent('unauthorized', { 

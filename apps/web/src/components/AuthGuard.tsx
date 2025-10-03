@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
-import { createLoginRedirectUrl } from '../lib/auth';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -14,16 +13,15 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false })
   useEffect(() => {
     // If loading is complete and user is not authenticated
     if (!isLoading && !isAuthenticated) {
-      // Redirect to external login with current URL as redirect_uri
-      const loginUrl = createLoginRedirectUrl();
-      window.location.href = loginUrl;
+      // Redirect to our custom login page
+      window.location.href = '/login';
       return;
     }
 
     // If user is authenticated but doesn't have admin role when required
     if (!isLoading && isAuthenticated && requireAdmin && !isAdmin) {
-      // You could redirect to a "Access Denied" page or show an error
-      console.error('Access denied: Admin role required');
+      // Redirect to access denied page
+      window.location.href = '/access-denied';
       return;
     }
   }, [isLoading, isAuthenticated, requireAdmin, isAdmin]);
