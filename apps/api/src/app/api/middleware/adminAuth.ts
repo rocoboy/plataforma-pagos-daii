@@ -26,11 +26,11 @@ export function adminAuthMiddleware(request: NextRequest) {
     console.log("JWT header (unverified):", decoded_unverified?.header);
     console.log("JWT payload (unverified):", decoded_unverified?.payload);
     
-    const decoded = jwt.verify(token, SECRET_KEY) as { role?: string };
-    console.log("Token decoded successfully, role:", decoded.role);
+    const decoded = jwt.verify(token, SECRET_KEY) as { rol?: string };
+    console.log("Token decoded successfully, role:", decoded.rol); 
     
-    if (decoded.role !== "admin") {
-      console.log("Access denied - role mismatch. Expected: 'admin', Got:", decoded.role);
+    if (decoded.rol !== "admin") {
+      console.log("Access denied - role mismatch. Expected: 'admin', Got:", decoded.rol);
       return createCorsResponse(request, { error: "Acceso denegado: rol insuficiente" }, 403);
     }
     
