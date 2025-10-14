@@ -143,8 +143,9 @@ export const createLoginRedirectUrl = (): string => {
     redirectUrl = getDashboardUrl(); // Main dashboard
   }
   
+  const authServiceUrl = process.env.REACT_APP_AUTH_SERVICE_URL || 'https://grupo5-usuarios.vercel.app';
   const encodedUrl = encodeURIComponent(redirectUrl);
-  return `https://grupo5-usuarios.vercel.app/login?redirect_uri=${encodedUrl}`;
+  return `${authServiceUrl}/login?redirect_uri=${encodedUrl}`;
 };
 
 /**

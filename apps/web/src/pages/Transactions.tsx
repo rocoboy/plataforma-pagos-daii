@@ -1,200 +1,82 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import {
-  Button,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Chip,
-  Box,
-  Container,
-  Typography,
-  CircularProgress,
-  Alert,
-  Snackbar,
-} from '@mui/material';
-import {
-  Clear as ClearIcon,
-  Search as SearchIcon,
-  Flight as FlightIcon,
-  Download as DownloadIcon,
-  Check as CheckIcon,
-  Close as CloseIcon,
-  CurrencyExchange as CurrencyExchangeIcon,
-  Add as AddIcon,
-  SearchOff as SearchOffIcon,
-  Receipt as ReceiptIcon,
-  Refresh as RefreshIcon,
-  Logout as LogoutIcon,
-  Person as PersonIcon,
-} from '@mui/icons-material';
 import { Transaction } from '../data/mockData';
 import { fetchPayments } from '../lib/apiClient';
 import { useAuth } from '../contexts/AuthContext';
 import jsPDF from 'jspdf';
 import DevPaymentModal from '../components/DevPaymentModal';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Badge } from '../components/ui/badge';
+import { Card } from '../components/ui/card';
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import { 
+  Search, 
+  LogOut, 
+  User, 
+  Plus, 
+  RotateCw, 
+  X as XIcon, 
+  Download, 
+  Check, 
+  XCircle, 
+  RefreshCw,
+  SearchX,
+  Receipt,
+  Loader2
+} from 'lucide-react';
 
-// Status Chip Component
-const StatusChip: React.FC<{ status: Transaction['status'] }> = ({ status }) => {
+// Status Badge Component
+const StatusBadge: React.FC<{ status: Transaction['status'] }> = ({ status }) => {
   const getStatusConfig = (status: Transaction['status']) => {
     switch (status?.toLowerCase()) {
       case 'success':
-        return { 
-          text: 'CONFIRMADA', 
-          sx: { 
-            backgroundColor: '#4caf50', 
-            color: 'white',
-            '&:hover': { backgroundColor: '#388e3c' }
-          }
-        };
+        return { text: 'CONFIRMADA', variant: 'success' as const };
       case 'pending':
-        return { 
-          text: 'PENDIENTE', 
-          sx: { 
-            backgroundColor: '#ff9800', 
-            color: 'white',
-            '&:hover': { backgroundColor: '#f57c00' }
-          }
-        };
+        return { text: 'PENDIENTE', variant: 'pending' as const };
       case 'failure':
-        return { 
-          text: 'CANCELADA', 
-          sx: { 
-            backgroundColor: '#f44336', 
-            color: 'white',
-            '&:hover': { backgroundColor: '#d32f2f' }
-          }
-        };
+        return { text: 'CANCELADA', variant: 'destructive' as const };
       case 'underpaid':
-        return { 
-          text: 'PAGO INSUFICIENTE', 
-          sx: { 
-            backgroundColor: '#ff9800', 
-            color: 'white',
-            '&:hover': { backgroundColor: '#f57c00' }
-          }
-        };
+        return { text: 'PAGO INSUFICIENTE', variant: 'warning' as const };
       case 'overpaid':
-        return { 
-          text: 'SOBREPAGO', 
-          sx: { 
-            backgroundColor: '#2196f3', 
-            color: 'white',
-            '&:hover': { backgroundColor: '#1976d2' }
-          }
-        };
+        return { text: 'SOBREPAGO', variant: 'default' as const };
       case 'expired':
-        return { 
-          text: 'EXPIRADA', 
-          sx: { 
-            backgroundColor: '#f44336', 
-            color: 'white',
-            '&:hover': { backgroundColor: '#d32f2f' }
-          }
-        };
+        return { text: 'EXPIRADA', variant: 'destructive' as const };
       case 'refund':
-        return { 
-          text: 'REEMBOLSADA', 
-          sx: { 
-            backgroundColor: '#2196f3', 
-            color: 'white',
-            '&:hover': { backgroundColor: '#1976d2' }
-          }
-        };
+        return { text: 'REEMBOLSADA', variant: 'default' as const };
       default:
-        return { 
-          text: status?.toUpperCase() || 'DESCONOCIDO', 
-          sx: { 
-            backgroundColor: '#9e9e9e', 
-            color: 'white',
-            '&:hover': { backgroundColor: '#757575' }
-          }
-        };
+        return { text: status?.toUpperCase() || 'DESCONOCIDO', variant: 'outline' as const };
     }
   };
   const config = getStatusConfig(status);
-  return <Chip label={config.text} size="small" variant="filled" sx={config.sx} />;
+  return <Badge variant={config.variant}>{config.text}</Badge>;
 };
 
-// Custom Empty State Component
-const CustomNoRowsOverlay: React.FC = () => {
+// Empty State Component
+const EmptyState: React.FC = () => {
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100%',
-        minHeight: 400,
-        textAlign: 'center',
-        p: 4,
-      }}
-    >
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: 120,
-          height: 120,
-          borderRadius: '50%',
-          backgroundColor: 'grey.50',
-          mb: 3,
-          border: '2px dashed',
-          borderColor: 'grey.300',
-        }}
-      >
-        <SearchOffIcon 
-          sx={{ 
-            fontSize: 48, 
-            color: 'grey.400' 
-          }} 
-        />
-      </Box>
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center mb-4 border-2 border-dashed border-border">
+        <SearchX className="w-12 h-12 text-muted-foreground" />
+      </div>
       
-      <Typography 
-        variant="h6" 
-        sx={{ 
-          color: 'grey.600', 
-          fontWeight: 600, 
-          mb: 1 
-        }}
-      >
+      <h3 className="text-lg font-semibold text-foreground mb-2">
         No se encontraron transacciones
-      </Typography>
+      </h3>
       
-      <Typography 
-        variant="body2" 
-        sx={{ 
-          color: 'grey.500', 
-          maxWidth: 300,
-          lineHeight: 1.6 
-        }}
-      >
+      <p className="text-sm text-muted-foreground max-w-md mb-4">
         No hay transacciones que coincidan con los filtros aplicados. 
         Intenta ajustar los criterios de búsqueda o crear un nuevo pago de prueba.
-      </Typography>
+      </p>
       
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          gap: 1, 
-          mt: 3,
-          alignItems: 'center',
-          color: 'grey.400',
-          fontSize: '0.875rem'
-        }}
-      >
-        <ReceiptIcon sx={{ fontSize: 16 }} />
-        <Typography variant="caption">
-          Usa los filtros de arriba para refinar la búsqueda
-        </Typography>
-      </Box>
-    </Box>
+      <div className="flex items-center gap-2 text-muted-foreground text-xs">
+        <Receipt className="w-4 h-4" />
+        <span>Usa los filtros de arriba para refinar la búsqueda</span>
+      </div>
+    </div>
   );
 };
 
@@ -202,17 +84,14 @@ const CustomNoRowsOverlay: React.FC = () => {
 const generatePaymentPDF = (transaction: Transaction) => {
   const doc = new jsPDF();
   
-  // PDF Header
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  doc.text('SKYTRACKER', 20, 20);
+  doc.text('SISTEMA DE PAGOS', 20, 20);
   doc.text('Detalle de Transacción', 20, 35);
   
-  // Reset font
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
   
-  // Transaction Information (only from Supabase data)
   let yPosition = 55;
   const lineHeight = 8;
   
@@ -237,15 +116,13 @@ const generatePaymentPDF = (transaction: Transaction) => {
   yPosition += lineHeight;
   doc.text(`Estado: ${transaction.status?.toUpperCase()}`, 20, yPosition);
   
-  // Footer
   yPosition = 280;
   doc.setFontSize(10);
   doc.setFont('helvetica', 'italic');
-  doc.text('Documento generado automáticamente por Skytracker', 20, yPosition);
+  doc.text('Documento generado automáticamente', 20, yPosition);
   doc.text(`Fecha de generación: ${new Date().toLocaleDateString('es-ES')}`, 20, yPosition + 5);
   
-  // Download the PDF
-  doc.save(`skytracker-pago-${transaction.id}.pdf`);
+  doc.save(`pago-${transaction.id}.pdf`);
 };
 
 const TransactionsPage: React.FC = () => {
@@ -255,29 +132,21 @@ const TransactionsPage: React.FC = () => {
   const [dateTo, setDateTo] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('todos');
   const [devModalOpen, setDevModalOpen] = useState(false);
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: false,
-    message: '',
-    severity: 'success'
-  });
+  const [snackbar, setSnackbar] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
 
   const queryClient = useQueryClient();
 
-  // Handle logout functionality
   const handleLogout = () => {
     logout();
-    // Redirect to our custom login page
     window.location.href = '/login';
   };
 
-  // Function to refresh payments data
   const handleRefreshPayments = () => {
     queryClient.invalidateQueries({ queryKey: ['payments'] });
-    setSnackbar({
-      open: true,
-      message: 'Actualizando datos de pagos...',
-      severity: 'success'
-    });
+    setSnackbar({ message: 'Actualizando datos de pagos...', type: 'success' });
+    setTimeout(() => setSnackbar(null), 3000);
   };
 
   // Mutation for updating payment status
@@ -304,10 +173,8 @@ const TransactionsPage: React.FC = () => {
       return data.payment;
     },
     onSuccess: (updatedPayment, { status }) => {
-      // Refresh the payments list
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       
-      // Show success message
       let statusText: string;
       switch (status) {
         case 'SUCCESS':
@@ -323,19 +190,13 @@ const TransactionsPage: React.FC = () => {
           statusText = 'actualizado';
       }
       
-      setSnackbar({
-        open: true,
-        message: `Pago ${statusText} exitosamente`,
-        severity: 'success'
-      });
+      setSnackbar({ message: `Pago ${statusText} exitosamente`, type: 'success' });
+      setTimeout(() => setSnackbar(null), 3000);
     },
     onError: (error) => {
       console.error('Error updating payment:', error);
-      setSnackbar({
-        open: true,
-        message: `Error al actualizar el pago: ${error.message}`,
-        severity: 'error'
-      });
+      setSnackbar({ message: `Error al actualizar el pago: ${error.message}`, type: 'error' });
+      setTimeout(() => setSnackbar(null), 3000);
     }
   });
 
@@ -343,156 +204,11 @@ const TransactionsPage: React.FC = () => {
     updatePaymentMutation.mutate({ id, status });
   };
 
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
-
   const handlePaymentCreated = () => {
-    // Refresh the payments list when a new payment is created
     queryClient.invalidateQueries({ queryKey: ['payments'] });
-    setSnackbar({
-      open: true,
-      message: 'Pago de prueba creado exitosamente',
-      severity: 'success'
-    });
+    setSnackbar({ message: 'Pago de prueba creado exitosamente', type: 'success' });
+    setTimeout(() => setSnackbar(null), 3000);
   };
-
-  const columns: GridColDef[] = [
-    {
-      field: 'reservationId',
-      headerName: 'ID Reserva',
-      flex: 1,
-      minWidth: 120,
-      headerAlign: 'center',
-      align: 'center'
-    },
-    {
-      field: 'id',
-      headerName: 'ID Pago',
-      flex: 1,
-      minWidth: 120,
-      headerAlign: 'center',
-      align: 'center'
-    },
-    {
-      field: 'userId',
-      headerName: 'ID Usuario',
-      flex: 1,
-      minWidth: 120,
-      headerAlign: 'center',
-      align: 'center'
-    },
-    {
-      field: 'purchaseDate',
-      headerName: 'Fecha',
-      flex: 1,
-      minWidth: 130,
-      headerAlign: 'center',
-      align: 'center',
-      renderCell: (params) => {
-        // Format YYYY-MM-DD string to MM/DD/YYYY for display
-        const value = params.value;
-        if (value && typeof value === 'string') {
-          const [year, month, day] = value.split('-');
-          return `${month}/${day}/${year}`;
-        }
-        return value;
-      }
-    },
-    {
-      field: 'amount',
-      headerName: 'Monto',
-      flex: 0.8,
-      minWidth: 100,
-      headerAlign: 'center',
-      align: 'center',
-      type: 'number',
-      valueFormatter: (value) => `$${Number(value).toFixed(2)}`
-    },
-    {
-      field: 'status',
-      headerName: 'Estado',
-      flex: 0.8,
-      minWidth: 120,
-      headerAlign: 'center',
-      align: 'center',
-      renderCell: (params) => <StatusChip status={params.value} />
-    },
-    {
-      field: 'actions',
-      headerName: 'Acciones',
-      flex: 1.5,
-      minWidth: 180,
-      headerAlign: 'center',
-      align: 'center',
-      renderCell: (params) => {
-        const status = params.row.status?.toLowerCase();
-        const isPending = status === 'pending';
-        const isSuccess = status === 'success';
-        const isUpdating = updatePaymentMutation.isPending;
-
-        return (
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-            {/* Status update buttons - only for pending payments (shown first) */}
-            {isPending && (
-              <>
-                <CheckIcon
-                  onClick={() => !isUpdating && handleUpdatePaymentStatus(params.id as string, 'SUCCESS')}
-                  sx={{
-                    color: isUpdating ? '#bdbdbd' : '#757575',
-                    cursor: isUpdating ? 'not-allowed' : 'pointer',
-                    fontSize: '1.25rem',
-                    '&:hover': {
-                      color: isUpdating ? '#bdbdbd' : '#4caf50',
-                    }
-                  }}
-                />
-                <CloseIcon
-                  onClick={() => !isUpdating && handleUpdatePaymentStatus(params.id as string, 'FAILURE')}
-                  sx={{
-                    color: isUpdating ? '#bdbdbd' : '#757575',
-                    cursor: isUpdating ? 'not-allowed' : 'pointer',
-                    fontSize: '1.25rem',
-                    '&:hover': {
-                      color: isUpdating ? '#bdbdbd' : '#f44336',
-                    }
-                  }}
-                />
-              </>
-            )}
-
-            {/* Refund button - only for confirmed payments */}
-            {isSuccess && (
-              <CurrencyExchangeIcon
-                onClick={() => !isUpdating && handleUpdatePaymentStatus(params.id as string, 'REFUND')}
-                sx={{
-                  color: isUpdating ? '#bdbdbd' : '#757575',
-                  cursor: isUpdating ? 'not-allowed' : 'pointer',
-                  fontSize: '1.25rem',
-                  '&:hover': {
-                    color: isUpdating ? '#bdbdbd' : '#ff9800',
-                  }
-                }}
-              />
-            )}
-
-            {/* PDF Download - always available (shown last) */}
-            <DownloadIcon
-              onClick={() => handleDownloadPDF(params.id as string)}
-              sx={{
-                color: '#757575',
-                cursor: 'pointer',
-                fontSize: '1.25rem',
-                '&:hover': {
-                  color: '#1976d2',
-                }
-              }}
-            />
-          </Box>
-        );
-      }
-    }
-  ];
 
   const { data: payments = [], isLoading, error } = useQuery({
     queryKey: ['payments'],
@@ -500,21 +216,19 @@ const TransactionsPage: React.FC = () => {
     staleTime: 60_000,
   });
 
-  // Map payments from Supabase into Transaction shape expected by the grid
+  // Map payments from Supabase
   const transactions: Transaction[] = payments
     .map(p => ({
       id: p.id,
       reservationId: p.res_id,
       userId: p.user_id || 'N/A',
-      destination: '', // Removed - not used in new design
-      airline: '', // Removed - not used in new design
+      destination: '',
+      airline: '',
       purchaseDate: p.created_at?.substring(0, 10) || '',
       status: p.status || 'pending',
       amount: p.amount,
-      // Keep full timestamp for sorting
       fullCreatedAt: p.created_at || '',
     }))
-    // Sort by creation date/time in descending order (newest first)
     .sort((a, b) => {
       const dateA = new Date(a.fullCreatedAt);
       const dateB = new Date(b.fullCreatedAt);
@@ -530,8 +244,7 @@ const TransactionsPage: React.FC = () => {
 
     let matchesDate = true;
     if (dateFrom || dateTo) {
-      // Transaction date is in YYYY-MM-DD format
-      const transactionDateStr = transaction.purchaseDate; // e.g., "2025-09-15"
+      const transactionDateStr = transaction.purchaseDate;
       
       if (dateFrom) {
         matchesDate = matchesDate && transactionDateStr >= dateFrom;
@@ -543,197 +256,274 @@ const TransactionsPage: React.FC = () => {
     return matchesSearch && matchesStatus && matchesDate;
   });
 
-  const handleDownloadPDF = (transactionId: string) => {
-    const transaction = transactions.find(t => t.id === transactionId);
-    if (transaction) {
-      generatePaymentPDF(transaction);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" minHeight="100vh">
-        <CircularProgress size={48} sx={{ mb: 2 }} />
-        <Typography variant="body1" color="text.secondary">Cargando transacciones...</Typography>
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" minHeight="100vh">
-        <Typography variant="body1" color="error" sx={{ mb: 2 }}>Error al cargar las transacciones</Typography>
-        <Button variant="contained" onClick={() => window.location.reload()}>Reintentar</Button>
-      </Box>
-    );
-  }
+  // Pagination
+  const totalPages = Math.ceil(filteredTransactions.length / pageSize);
+  const paginatedTransactions = filteredTransactions.slice(
+    currentPage * pageSize,
+    (currentPage + 1) * pageSize
+  );
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3, minHeight: '100vh' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, pb: 2, borderBottom: 1, borderColor: 'divider' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <FlightIcon sx={{ fontSize: 28, color: 'primary.main', mr: 1.5 }} />
-          <Typography variant="h2" component="h1">Skytracker</Typography>
-        </Box>
-        <Box sx={{ flexGrow: 1, maxWidth: 400, ml: 4 }}>
-          <TextField fullWidth size="small" placeholder="Buscar transacciones..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} InputProps={{ startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} /> }} />
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 2 }}>
+    <div className="container mx-auto py-6 space-y-6 min-h-screen">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-4 border-b">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-semibold">Transacciones</h1>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex-1 max-w-md">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input 
+                placeholder="Buscar transacciones..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
           {user && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <PersonIcon sx={{ color: 'text.secondary' }} />
-              <Typography variant="body2" color="text.secondary">
-                {user.name || user.email}
-              </Typography>
-            </Box>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <User className="w-4 h-4" />
+              <span>{user.name || user.email}</span>
+            </div>
           )}
-          <Button
-            variant="outlined"
-            size="medium"
-            startIcon={<LogoutIcon />}
-            onClick={handleLogout}
-            sx={{ 
-              textTransform: 'none',
-              fontWeight: 600,
-              minWidth: '140px'
-            }}
-          >
+          <Button variant="outline" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
             Cerrar Sesión
           </Button>
-        </Box>
-      </Box>
+        </div>
+      </div>
 
-      {/* Subtitle Section */}
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Typography variant="h4" component="h2" sx={{ color: 'primary.main', fontWeight: 600, mb: 1 }}>
+      {/* Title Section */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h2 className="text-xl font-medium mb-2">
             Últimas transacciones
-          </Typography>
-          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-            Tus vuelos comprados
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setDevModalOpen(true)}
-          sx={{
-            borderRadius: 2,
-            textTransform: 'none',
-            fontWeight: 600,
-            px: 3,
-            py: 1.5,
-          }}
-        >
+          </h2>
+        </div>
+        <Button onClick={() => setDevModalOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
           Crear Pago de Prueba
         </Button>
-      </Box>
+      </div>
 
-      <Box sx={{ mb: 3, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: 1, borderColor: 'divider' }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 3, alignItems: 'end' }}>
-          <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>Rango de Fecha</Typography>
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1, alignItems: 'center' }}>
-              <TextField type="date" size="small" label="Desde" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
-              <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>a</Typography>
-              <TextField type="date" size="small" label="Hasta" value={dateTo} onChange={(e) => setDateTo(e.target.value)} InputLabelProps={{ shrink: true }} />
-            </Box>
-          </Box>
-          <FormControl size="small" fullWidth>
-            <InputLabel>Estado</InputLabel>
-            <Select value={selectedStatus} label="Estado" onChange={(e) => setSelectedStatus(e.target.value)}>
-              <MenuItem value="todos">Todos</MenuItem>
-              <MenuItem value="pending">Pendiente</MenuItem>
-              <MenuItem value="success">Confirmada</MenuItem>
-              <MenuItem value="failure">Cancelada</MenuItem>
-              <MenuItem value="underpaid">Pago Insuficiente</MenuItem>
-              <MenuItem value="overpaid">Sobrepago</MenuItem>
-              <MenuItem value="expired">Expirada</MenuItem>
-              <MenuItem value="refund">Reembolsada</MenuItem>
+      {/* Filters */}
+      <Card className="p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="space-y-2">
+            <Label>Desde</Label>
+            <Input 
+              type="date" 
+              value={dateFrom} 
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Hasta</Label>
+            <Input 
+              type="date" 
+              value={dateTo} 
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Estado</Label>
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="pending">Pendiente</SelectItem>
+                <SelectItem value="success">Confirmada</SelectItem>
+                <SelectItem value="failure">Cancelada</SelectItem>
+                <SelectItem value="underpaid">Pago Insuficiente</SelectItem>
+                <SelectItem value="overpaid">Sobrepago</SelectItem>
+                <SelectItem value="expired">Expirada</SelectItem>
+                <SelectItem value="refund">Reembolsada</SelectItem>
+              </SelectContent>
             </Select>
-          </FormControl>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          </div>
+          <div className="flex items-end gap-2">
             <Button 
-              variant="outlined" 
-              color="secondary" 
-              startIcon={<ClearIcon />} 
+              variant="outline" 
               onClick={() => { setSearchTerm(''); setDateFrom(''); setDateTo(''); setSelectedStatus('todos'); }} 
-              fullWidth
+              className="flex-1"
             >
-              Limpiar Filtros
+              <XIcon className="mr-2 h-4 w-4" />
+              Limpiar
             </Button>
             <Button 
-              variant="outlined" 
-              color="primary" 
-              startIcon={<RefreshIcon />} 
+              variant="outline"
               onClick={handleRefreshPayments} 
-              fullWidth
+              className="flex-1"
             >
+              <RotateCw className="mr-2 h-4 w-4" />
               Actualizar
             </Button>
-          </Box>
-        </Box>
-      </Box>
+          </div>
+        </div>
+      </Card>
 
-      <Box sx={{ height: 650, width: '100%' }}>
-        <DataGrid
-          rows={filteredTransactions}
-          columns={columns}
-          initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
-          pageSizeOptions={[10, 25, 50]}
-          disableRowSelectionOnClick
-          slots={{
-            noRowsOverlay: CustomNoRowsOverlay,
-          }}
-          slotProps={{
-            pagination: {
-              labelRowsPerPage: 'Filas por página:',
-              labelDisplayedRows: ({ from, to, count }: { from: number; to: number; count: number }) =>
-                `${from}–${to} de ${count !== -1 ? count : `más de ${to}`}`,
-            },
-          }}
-          sx={{
-            '& .MuiDataGrid-cell:hover': { color: 'primary.main' },
-            '& .MuiDataGrid-columnHeaders': { backgroundColor: 'grey.50', fontSize: '0.875rem', fontWeight: 600 },
-            '& .MuiDataGrid-cell': { borderBottom: '1px solid', borderColor: 'divider', fontSize: '0.875rem' },
-            '& .MuiDataGrid-row:hover': { backgroundColor: 'grey.50' },
-            '& .MuiDataGrid-columnSeparator': { display: 'none' },
-            '& .MuiDataGrid-virtualScroller': { overflow: 'hidden' },
-            '& .MuiDataGrid-footerContainer': { 
-              borderTop: '1px solid', 
-              borderColor: 'divider',
-              minHeight: 52 // Ensure enough space for pagination
-            }
-          }}
-          autoHeight={false}
-          disableColumnMenu
-          disableColumnResize
-        />
-      </Box>
-
-      {/* Success/Error Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert 
-          onClose={handleCloseSnackbar} 
-          severity={snackbar.severity} 
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
+      {/* Snackbar */}
+      {snackbar && (
+        <Alert variant={snackbar.type === 'success' ? 'default' : 'destructive'} className="mb-4">
+          <AlertDescription>{snackbar.message}</AlertDescription>
         </Alert>
-      </Snackbar>
+      )}
 
-      {/* Dev Payment Creation Modal */}
+      {/* Table */}
+      <Card>
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-16">
+            <Loader2 className="w-12 h-12 animate-spin text-gray-900 mb-4" />
+            <p className="text-lg text-muted-foreground">Cargando transacciones...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
+            <p className="text-lg text-gray-900">Error al cargar las transacciones</p>
+            <Button onClick={() => window.location.reload()}>Reintentar</Button>
+          </div>
+        ) : paginatedTransactions.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-center">ID Reserva</TableHead>
+                  <TableHead className="text-center">ID Pago</TableHead>
+                  <TableHead className="text-center">ID Usuario</TableHead>
+                  <TableHead className="text-center">Fecha</TableHead>
+                  <TableHead className="text-center">Monto</TableHead>
+                  <TableHead className="text-center">Estado</TableHead>
+                  <TableHead className="text-center">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedTransactions.map((transaction) => {
+                  const status = transaction.status?.toLowerCase();
+                  const isPending = status === 'pending';
+                  const isSuccess = status === 'success';
+                  const isUpdating = updatePaymentMutation.isPending;
+
+                  return (
+                    <TableRow key={transaction.id}>
+                      <TableCell className="text-center">{transaction.reservationId}</TableCell>
+                      <TableCell className="text-center">{transaction.id}</TableCell>
+                      <TableCell className="text-center">{transaction.userId}</TableCell>
+                      <TableCell className="text-center">
+                        {transaction.purchaseDate && (() => {
+                          const [year, month, day] = transaction.purchaseDate.split('-');
+                          return `${month}/${day}/${year}`;
+                        })()}
+                      </TableCell>
+                      <TableCell className="text-center">${transaction.amount.toFixed(2)}</TableCell>
+                      <TableCell className="text-center">
+                        <StatusBadge status={transaction.status} />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          {isPending && (
+                            <>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => !isUpdating && handleUpdatePaymentStatus(transaction.id, 'SUCCESS')}
+                                disabled={isUpdating}
+                                className="h-8 w-8"
+                              >
+                                <Check className="h-4 w-4 text-gray-700" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => !isUpdating && handleUpdatePaymentStatus(transaction.id, 'FAILURE')}
+                                disabled={isUpdating}
+                                className="h-8 w-8"
+                              >
+                                <XCircle className="h-4 w-4 text-gray-700" />
+                              </Button>
+                            </>
+                          )}
+                          {isSuccess && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => !isUpdating && handleUpdatePaymentStatus(transaction.id, 'REFUND')}
+                              disabled={isUpdating}
+                              className="h-8 w-8"
+                            >
+                              <RefreshCw className="h-4 w-4 text-gray-700" />
+                            </Button>
+                          )}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => generatePaymentPDF(transaction)}
+                            className="h-8 w-8"
+                          >
+                            <Download className="h-4 w-4 text-gray-700" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+
+            {/* Pagination */}
+            <div className="flex items-center justify-between px-6 py-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Mostrando {currentPage * pageSize + 1} - {Math.min((currentPage + 1) * pageSize, filteredTransactions.length)} de {filteredTransactions.length}
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm">Filas:</Label>
+                  <Select value={pageSize.toString()} onValueChange={(v) => { setPageSize(Number(v)); setCurrentPage(0); }}>
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-1">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+                    disabled={currentPage === 0}
+                  >
+                    Anterior
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
+                    disabled={currentPage >= totalPages - 1}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </Card>
+
+      {/* Dev Payment Modal */}
       <DevPaymentModal
         open={devModalOpen}
         onClose={() => setDevModalOpen(false)}
         onPaymentCreated={handlePaymentCreated}
       />
-    </Container>
+    </div>
   );
 };
 

@@ -1,9 +1,6 @@
 import React, { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { ThemeProvider } from '@mui/material/styles';
-import { CssBaseline } from '@mui/material';
-import { muiTheme } from './theme/muiTheme';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import AuthGuard from './components/AuthGuard';
@@ -34,17 +31,14 @@ function App() {
   }, []);
 
   return (
-    <ThemeProvider theme={muiTheme}>
-      <CssBaseline />
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-        
-        {/* React Query DevTools - only in development */}
-        {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
-      </QueryClientProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+      
+      {/* React Query DevTools - only in development */}
+      {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
+    </QueryClientProvider>
   );
 }
 
@@ -53,20 +47,6 @@ function AppContent() {
   
   return (
     <div className="bg-white min-h-screen">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Desarrollo de Apps II - Grupo 7</h1>
-            <p className="text-gray-600 font-normal mt-2">Sistema de gestión de pagos - Módulo Pagos y Facturación</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
-              En Desarrollo
-            </span>
-          </div>
-        </div>
-      </header>
 
       {/* Main Content */}
       <main>
@@ -97,10 +77,9 @@ function AppContent() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8 mt-12">
+      <footer className="bg-white border-t border-gray-200 py-6 mt-12">
         <div className="px-6 text-center">
-          <p className="font-medium">Plataforma de Pagos DAII - 2C2025</p>
-          <p className="text-sm opacity-80 mt-2">Sistema de gestión de pagos</p>
+          <p className="text-sm text-gray-600">© 2025</p>
         </div>
       </footer>
     </div>

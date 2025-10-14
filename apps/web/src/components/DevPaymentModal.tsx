@@ -1,20 +1,14 @@
 import React from 'react';
+import PaymentCreationForm from './PaymentCreationForm';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  IconButton,
-  Box,
-  Typography,
-  Divider,
-} from '@mui/material';
-import {
-  Close as CloseIcon,
-  Add as AddIcon,
-} from '@mui/icons-material';
-import PaymentCreationForm from './PaymentCreationForm';
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
+import { Button } from './ui/button';
+import { Plus } from 'lucide-react';
 
 interface DevPaymentModalProps {
   open: boolean;
@@ -31,57 +25,31 @@ const DevPaymentModal: React.FC<DevPaymentModalProps> = ({
     if (onPaymentCreated) {
       onPaymentCreated();
     }
-    // Don't auto-close the modal to let user see the success message
-    // They can close it manually
-  };
-
-  const handleClose = () => {
-    onClose();
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: { borderRadius: 2 }
-      }}
-    >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        pb: 1 
-      }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AddIcon color="primary" />
-          <Typography variant="h5" component="h2" sx={{ fontWeight: 600 }}>
-            Crear Pago de Prueba
-          </Typography>
-        </Box>
-        <IconButton onClick={handleClose} size="small">
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
-
-      <Divider />
-
-      <DialogContent sx={{ pt: 3 }}>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-center gap-2">
+            <Plus className="w-5 h-5 text-gray-900" />
+            <DialogTitle className="text-xl">Crear Pago de Prueba</DialogTitle>
+          </div>
+        </DialogHeader>
+        
         <PaymentCreationForm 
           onPaymentCreated={handlePaymentCreated}
           showTitle={true}
           submitButtonText="Crear Pago"
           resetFormOnSuccess={false}
         />
-      </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 3, pt: 1 }}>
-        <Button onClick={handleClose} color="secondary">
-          Cerrar
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cerrar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };
