@@ -46,7 +46,7 @@ describe('API Client', () => {
       const result = await fetchPayments();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3000/payments',
+        'http://localhost:3000/api/payments',
         expect.objectContaining({
           method: 'GET',
           headers: expect.objectContaining({
@@ -117,7 +117,7 @@ describe('API Client', () => {
       const result = await createPayment(paymentData);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3000/webhooks/payments',
+        'http://localhost:3000/api/webhooks/payments',
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
@@ -175,7 +175,7 @@ describe('API Client', () => {
       const result = await updatePaymentStatus(paymentId, status);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3000/webhooks/payments',
+        'http://localhost:3000/api/webhooks/payments',
         expect.objectContaining({
           method: 'PUT',
           headers: expect.objectContaining({

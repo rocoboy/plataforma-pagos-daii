@@ -36,7 +36,7 @@ const createHeaders = (additionalHeaders: Record<string, string> = {}): HeadersI
 export async function fetchPayments(): Promise<PaymentsResponse> {
   try {
     // JWT token will be automatically added by the interceptor
-    const response = await fetch(`${getApiUrl()}/payments`, {
+    const response = await fetch(`${getApiUrl()}/api/payments`, {
       method: 'GET',
       headers: createHeaders(),
     });
@@ -68,7 +68,7 @@ export async function createPayment(paymentData: {
   meta?: string;
 }): Promise<PaymentRow> {
   try {
-    const response = await fetch(`${getApiUrl()}/webhooks/payments`, {
+    const response = await fetch(`${getApiUrl()}/api/webhooks/payments`, {
       method: 'POST',
       headers: createHeaders(),
       body: JSON.stringify(paymentData),
@@ -96,7 +96,7 @@ export async function createPayment(paymentData: {
  */
 export async function updatePaymentStatus(paymentId: string, status: string): Promise<PaymentRow> {
   try {
-    const response = await fetch(`${getApiUrl()}/webhooks/payments`, {
+    const response = await fetch(`${getApiUrl()}/api/webhooks/payments`, {
       method: 'PUT',
       headers: createHeaders(),
       body: JSON.stringify({ id: paymentId, status }),
