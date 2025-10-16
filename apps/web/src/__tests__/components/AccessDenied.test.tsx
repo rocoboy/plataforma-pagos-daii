@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import AccessDenied from '../AccessDenied';
+import AccessDenied from '../../components/AccessDenied';
 import { AuthProvider } from '../../contexts/AuthContext';
 
 const renderWithAuth = (component: React.ReactElement) => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { Alert, AlertDescription, AlertTitle } from '../alert';
+import { Alert, AlertDescription, AlertTitle } from '../../../components/ui/alert';
 
 describe('Alert Components', () => {
   it('renders Alert component', () => {

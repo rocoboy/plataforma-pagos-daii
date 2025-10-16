@@ -11,7 +11,7 @@ import {
   checkUrlForToken,
   handleAuthCallback,
   User
-} from '../auth';
+} from '../../lib/auth';
 
 // Mock localStorage
 const localStorageMock = (() => {

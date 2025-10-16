@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import LoginPage from '../Login';
+import LoginPage from '../../pages/Login';
 
 // Mock window.location
 delete (window as any).location;

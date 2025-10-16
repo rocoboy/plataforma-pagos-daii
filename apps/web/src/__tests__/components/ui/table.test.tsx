@@ -7,7 +7,7 @@ import {
   TableHead, 
   TableHeader, 
   TableRow 
-} from '../table';
+} from '../../../components/ui/table';
 
 describe('Table Components', () => {
   it('renders Table component', () => {

@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 
 // Mock the entire DevPaymentModal component to avoid complex dependencies
-jest.mock('./DevPaymentModal', () => {
+jest.mock('../../components/DevPaymentModal', () => {
   return function MockDevPaymentModal({ open, onClose }: any) {
     if (!open) return null;
     return (
@@ -17,7 +17,7 @@ jest.mock('./DevPaymentModal', () => {
   };
 });
 
-import DevPaymentModal from './DevPaymentModal';
+import DevPaymentModal from '../../components/DevPaymentModal';
 
 describe('DevPaymentModal Component', () => {
   it('renders without crashing when closed', () => {

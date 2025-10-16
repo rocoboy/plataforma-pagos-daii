@@ -4,7 +4,7 @@ import {
   showError,
   showWarning,
   showInfo
-} from '../notifications';
+} from '../../lib/notifications';
 
 describe('Notifications', () => {
   let appendChildSpy: jest.SpyInstance;

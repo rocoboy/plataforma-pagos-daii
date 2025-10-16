@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import PaymentCreationForm from '../PaymentCreationForm';
+import PaymentCreationForm from '../../components/PaymentCreationForm';
 
 // Mock fetch globally
 global.fetch = jest.fn();

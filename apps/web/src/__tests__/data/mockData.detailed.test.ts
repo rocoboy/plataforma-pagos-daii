@@ -1,4 +1,4 @@
-import { mockTransactionDetails } from '../mockData';
+import { mockTransactionDetails } from '../../data/mockData';
 
 describe('mockTransactionDetails', () => {
   it('contains transaction with ID 1', () => {

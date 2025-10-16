@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 
 describe('Select Components', () => {
   it('renders SelectTrigger with placeholder', () => {

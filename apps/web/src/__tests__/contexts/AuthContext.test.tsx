@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, act } from '@testing-library/react';
-import { AuthProvider, useAuth } from '../AuthContext';
+import { AuthProvider, useAuth } from '../../contexts/AuthContext';
 
 // Test component to access context
 const TestComponent: React.FC = () => {
