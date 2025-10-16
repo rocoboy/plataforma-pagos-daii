@@ -18,6 +18,20 @@ module.exports = {
         background: "#FFFFFF", // Fondo principal blanco
         foreground: "#222222", // Texto principal (negro/gris oscuro)
         
+        // Shadcn UI required colors
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        
         // Additional semantic colors
         muted: {
           DEFAULT: "#F5F5F5", // Gris claro para áreas secundarias

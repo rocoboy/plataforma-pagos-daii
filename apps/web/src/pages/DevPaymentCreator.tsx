@@ -1,96 +1,79 @@
 import React from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Paper,
-  Button,
-} from '@mui/material';
-import {
-  ArrowBack as ArrowBackIcon,
-} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import PaymentCreationForm from '../components/PaymentCreationForm';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { ArrowLeft } from 'lucide-react';
 
 const DevPaymentCreator: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate('/transactions')}
-            variant="outlined"
-            size="small"
-          >
-            Volver a Transacciones
-          </Button>
-        </Box>
-        <Typography variant="h4" component="h1" sx={{ mb: 2 }}>
-          Creador de Pagos - Desarrollo
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Esta página permite crear pagos para pruebas usando los métodos existentes del backend.
-          Los pagos se crean con estado PENDING por defecto.
-        </Typography>
-      </Paper>
+    <div className="container mx-auto py-6 space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-4 mb-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/payments')}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Volver a Transacciones
+            </Button>
+          </div>
+          <CardTitle className="text-2xl">Creador de Pagos</CardTitle>
+          <CardDescription>
+            Crea pagos de prueba. Los pagos se crean con estado PENDING por defecto.
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Form */}
-        <Box sx={{ flex: 1 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Crear Nuevo Pago
-              </Typography>
-              
-              <PaymentCreationForm 
-                submitButtonText="Crear Pago"
-                resetFormOnSuccess={true}
-              />
-            </CardContent>
-          </Card>
-        </Box>
+        <Card>
+          <CardHeader>
+            <CardTitle>Crear Nuevo Pago</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PaymentCreationForm 
+              submitButtonText="Crear Pago"
+              resetFormOnSuccess={true}
+            />
+          </CardContent>
+        </Card>
 
         {/* Information Section */}
-        <Box sx={{ flex: 1 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Información del Sistema
-              </Typography>
-              
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="body2" color="text.secondary" paragraph>
-                  Esta interfaz utiliza el endpoint existente <code>/api/webhooks/payments</code> para crear pagos.
-                  Los pagos se crean con estado PENDING por defecto y pueden ser actualizados posteriormente desde la tabla de transacciones.
-                </Typography>
-                
-                <Typography variant="body2" color="text.secondary" paragraph>
-                  <strong>Estados disponibles:</strong>
-                </Typography>
-                <ul style={{ margin: 0, paddingLeft: '20px', color: 'text.secondary' }}>
-                  <li><Typography variant="body2" color="text.secondary">PENDING - Pago pendiente de procesamiento</Typography></li>
-                  <li><Typography variant="body2" color="text.secondary">SUCCESS - Pago procesado exitosamente</Typography></li>
-                  <li><Typography variant="body2" color="text.secondary">FAILURE - Pago falló</Typography></li>
-                  <li><Typography variant="body2" color="text.secondary">UNDERPAID - Pago insuficiente</Typography></li>
-                  <li><Typography variant="body2" color="text.secondary">OVERPAID - Pago en exceso</Typography></li>
-                  <li><Typography variant="body2" color="text.secondary">EXPIRED - Pago expirado</Typography></li>
-                  <li><Typography variant="body2" color="text.secondary">REFUND - Pago reembolsado</Typography></li>
-                </ul>
-                
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                  <strong>Endpoint utilizado:</strong> POST /api/webhooks/payments
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Box>
-      </Box>
-    </Box>
+        <Card>
+          <CardHeader>
+            <CardTitle>Información del Sistema</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Esta interfaz utiliza el endpoint existente <code className="bg-muted px-1 py-0.5 rounded">/api/webhooks/payments</code> para crear pagos.
+              Los pagos se crean con estado PENDING por defecto y pueden ser actualizados posteriormente desde la tabla de transacciones.
+            </p>
+            
+            <div>
+              <p className="text-sm font-semibold mb-2">Estados disponibles:</p>
+              <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                <li>PENDING - Pago pendiente de procesamiento</li>
+                <li>SUCCESS - Pago procesado exitosamente</li>
+                <li>FAILURE - Pago falló</li>
+                <li>UNDERPAID - Pago insuficiente</li>
+                <li>OVERPAID - Pago en exceso</li>
+                <li>EXPIRED - Pago expirado</li>
+                <li>REFUND - Pago reembolsado</li>
+              </ul>
+            </div>
+            
+            <p className="text-sm text-muted-foreground">
+              <strong>Endpoint utilizado:</strong> POST /api/webhooks/payments
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 };
 

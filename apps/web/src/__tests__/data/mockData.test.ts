@@ -1,4 +1,4 @@
-import { mockTransactions, mockTransactionDetails } from './mockData';
+import { mockTransactions, mockTransactionDetails } from '../../data/mockData';
 
 describe('Mock Data', () => {
   describe('mockTransactions', () => {
