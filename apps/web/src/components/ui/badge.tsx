@@ -13,14 +13,16 @@ const badgeVariants = cva(
         secondary:
           "border-gray-300 bg-gray-100 text-gray-900",
         destructive:
-          "border-gray-900 bg-gray-900 text-white",
+          "border-red-500 bg-red-500 text-white",
         outline: "border-gray-300 text-gray-900",
         success:
-          "border-gray-900 bg-gray-900 text-white",
+          "border-green-500 bg-green-500 text-white",
         warning:
-          "border-gray-500 bg-gray-500 text-white",
+          "border-orange-500 bg-orange-500 text-white",
         pending:
-          "border-gray-400 bg-gray-100 text-gray-900",
+          "border-orange-500 bg-orange-500 text-white",
+        info:
+          "border-blue-500 bg-blue-500 text-white",
       },
     },
     defaultVariants: {
