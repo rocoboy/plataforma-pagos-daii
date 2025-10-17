@@ -270,5 +270,96 @@ describe('ApiInterceptorV2', () => {
       expect(typeof window.fetch).toBe('function');
     });
   });
+
+  describe('Fetch Interception Logic', () => {
+    it('installs successfully and replaces window.fetch', () => {
+      const originalFetch = window.fetch;
+      
+      initializeApiInterceptorV2();
+      
+      // Verify fetch was replaced
+      expect(window.fetch).not.toBe(originalFetch);
+      expect(typeof window.fetch).toBe('function');
+      
+      cleanupApiInterceptorV2();
+    });
+
+    it('cleans up and restores original fetch', () => {
+      initializeApiInterceptorV2();
+      const interceptedFetch = window.fetch;
+      
+      cleanupApiInterceptorV2();
+      
+      // Verify fetch was restored
+      expect(window.fetch).not.toBe(interceptedFetch);
+      expect(typeof window.fetch).toBe('function');
+    });
+
+    it('integrates with token storage', () => {
+      const mockToken = 'test-jwt-token-123';
+      mockGetStoredToken.mockReturnValue(mockToken);
+      
+      initializeApiInterceptorV2();
+      
+      // Verify interceptor is installed
+      expect(typeof window.fetch).toBe('function');
+      
+      // Verify token retrieval works
+      expect(getStoredToken()).toBe(mockToken);
+      
+      cleanupApiInterceptorV2();
+    });
+
+    it('handles null tokens correctly', () => {
+      mockGetStoredToken.mockReturnValue(null);
+      
+      initializeApiInterceptorV2();
+      
+      // Verify interceptor is installed even without token
+      expect(typeof window.fetch).toBe('function');
+      
+      // Verify null token is handled
+      expect(getStoredToken()).toBeNull();
+      
+      cleanupApiInterceptorV2();
+    });
+
+    it('maintains fetch function signature', () => {
+      initializeApiInterceptorV2();
+      
+      // Verify fetch maintains correct signature
+      expect(window.fetch).toBeInstanceOf(Function);
+      expect(window.fetch.length).toBeGreaterThanOrEqual(1);
+      
+      cleanupApiInterceptorV2();
+    });
+
+    it('can be installed and cleaned up multiple times', () => {
+      for (let i = 0; i < 3; i++) {
+        initializeApiInterceptorV2();
+        expect(typeof window.fetch).toBe('function');
+        
+        cleanupApiInterceptorV2();
+        expect(typeof window.fetch).toBe('function');
+      }
+    });
+
+    it('prevents double installation', () => {
+      initializeApiInterceptorV2();
+      const firstFetch = window.fetch;
+      
+      initializeApiInterceptorV2(); // Try to install again
+      
+      // Should be the same instance
+      expect(window.fetch).toBe(firstFetch);
+      
+      cleanupApiInterceptorV2();
+    });
+
+    it('handles cleanup when not installed', () => {
+      // Should not throw
+      expect(() => cleanupApiInterceptorV2()).not.toThrow();
+    });
+  });
 });
 

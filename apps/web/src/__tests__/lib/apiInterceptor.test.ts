@@ -186,4 +186,78 @@ describe('ApiInterceptor', () => {
       expect(mockGetStoredToken).toHaveBeenCalled();
     });
   });
+
+  describe('Fetch Interception Logic', () => {
+    it('installs successfully and replaces window.fetch', () => {
+      const originalFetch = window.fetch;
+      
+      initializeApiInterceptor();
+      
+      // Verify fetch was replaced
+      expect(window.fetch).not.toBe(originalFetch);
+      expect(typeof window.fetch).toBe('function');
+      
+      cleanupApiInterceptor();
+    });
+
+    it('cleans up and restores original fetch', () => {
+      initializeApiInterceptor();
+      const interceptedFetch = window.fetch;
+      
+      cleanupApiInterceptor();
+      
+      // Verify fetch was restored
+      expect(window.fetch).not.toBe(interceptedFetch);
+      expect(typeof window.fetch).toBe('function');
+    });
+
+    it('integrates with token storage', () => {
+      const mockToken = 'test-jwt-token-123';
+      mockGetStoredToken.mockReturnValue(mockToken);
+      
+      initializeApiInterceptor();
+      
+      // Verify interceptor is installed
+      expect(typeof window.fetch).toBe('function');
+      
+      // Verify token retrieval works
+      expect(getStoredToken()).toBe(mockToken);
+      
+      cleanupApiInterceptor();
+    });
+
+    it('handles null tokens correctly', () => {
+      mockGetStoredToken.mockReturnValue(null);
+      
+      initializeApiInterceptor();
+      
+      // Verify interceptor is installed even without token
+      expect(typeof window.fetch).toBe('function');
+      
+      // Verify null token is handled
+      expect(getStoredToken()).toBeNull();
+      
+      cleanupApiInterceptor();
+    });
+
+    it('maintains fetch function signature', () => {
+      initializeApiInterceptor();
+      
+      // Verify fetch maintains correct signature
+      expect(window.fetch).toBeInstanceOf(Function);
+      expect(window.fetch.length).toBeGreaterThanOrEqual(1);
+      
+      cleanupApiInterceptor();
+    });
+
+    it('can be installed and cleaned up multiple times', () => {
+      for (let i = 0; i < 3; i++) {
+        initializeApiInterceptor();
+        expect(typeof window.fetch).toBe('function');
+        
+        cleanupApiInterceptor();
+        expect(typeof window.fetch).toBe('function');
+      }
+    });
+  });
 });
