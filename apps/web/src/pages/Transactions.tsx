@@ -4,7 +4,6 @@ import { Transaction } from '../data/mockData';
 import { fetchPayments } from '../lib/apiClient';
 import { useAuth } from '../contexts/AuthContext';
 import jsPDF from 'jspdf';
-import DevPaymentModal from '../components/DevPaymentModal';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -17,13 +16,9 @@ import {
   Search, 
   LogOut, 
   User, 
-  Plus, 
   RotateCw, 
   X as XIcon, 
   Download, 
-  Check, 
-  XCircle, 
-  RefreshCw,
   SearchX,
   Receipt,
   Loader2
@@ -46,7 +41,7 @@ const StatusBadge: React.FC<{ status: Transaction['status'] }> = ({ status }) =>
       case 'expired':
         return { text: 'EXPIRADA', variant: 'destructive' as const };
       case 'refund':
-        return { text: 'REEMBOLSADA', variant: 'default' as const };
+        return { text: 'REEMBOLSADA', variant: 'info' as const };
       default:
         return { text: status?.toUpperCase() || 'DESCONOCIDO', variant: 'outline' as const };
     }
@@ -131,7 +126,6 @@ const TransactionsPage: React.FC = () => {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('todos');
-  const [devModalOpen, setDevModalOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
@@ -146,67 +140,6 @@ const TransactionsPage: React.FC = () => {
   const handleRefreshPayments = () => {
     queryClient.invalidateQueries({ queryKey: ['payments'] });
     setSnackbar({ message: 'Actualizando datos de pagos...', type: 'success' });
-    setTimeout(() => setSnackbar(null), 3000);
-  };
-
-  // Mutation for updating payment status
-  const updatePaymentMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const apiUrl = process.env.REACT_APP_VERCEL_API || 'http://localhost:3000';
-      const response = await fetch(`${apiUrl}/api/webhooks/payments`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id, status }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      if (!data.success) {
-        throw new Error(data.error || 'Error updating payment');
-      }
-
-      return data.payment;
-    },
-    onSuccess: (updatedPayment, { status }) => {
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
-      
-      let statusText: string;
-      switch (status) {
-        case 'SUCCESS':
-          statusText = 'confirmado';
-          break;
-        case 'FAILURE':
-          statusText = 'cancelado';
-          break;
-        case 'REFUND':
-          statusText = 'reembolsado';
-          break;
-        default:
-          statusText = 'actualizado';
-      }
-      
-      setSnackbar({ message: `Pago ${statusText} exitosamente`, type: 'success' });
-      setTimeout(() => setSnackbar(null), 3000);
-    },
-    onError: (error) => {
-      console.error('Error updating payment:', error);
-      setSnackbar({ message: `Error al actualizar el pago: ${error.message}`, type: 'error' });
-      setTimeout(() => setSnackbar(null), 3000);
-    }
-  });
-
-  const handleUpdatePaymentStatus = (id: string, status: 'SUCCESS' | 'FAILURE' | 'REFUND') => {
-    updatePaymentMutation.mutate({ id, status });
-  };
-
-  const handlePaymentCreated = () => {
-    queryClient.invalidateQueries({ queryKey: ['payments'] });
-    setSnackbar({ message: 'Pago de prueba creado exitosamente', type: 'success' });
     setTimeout(() => setSnackbar(null), 3000);
   };
 
@@ -302,10 +235,6 @@ const TransactionsPage: React.FC = () => {
             Últimas transacciones
           </h2>
         </div>
-        <Button onClick={() => setDevModalOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Crear Pago de Prueba
-        </Button>
       </div>
 
       {/* Filters */}
@@ -402,13 +331,7 @@ const TransactionsPage: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedTransactions.map((transaction) => {
-                  const status = transaction.status?.toLowerCase();
-                  const isPending = status === 'pending';
-                  const isSuccess = status === 'success';
-                  const isUpdating = updatePaymentMutation.isPending;
-
-                  return (
+                {paginatedTransactions.map((transaction) => (
                     <TableRow key={transaction.id}>
                       <TableCell className="text-center">{transaction.reservationId}</TableCell>
                       <TableCell className="text-center">{transaction.id}</TableCell>
@@ -424,53 +347,20 @@ const TransactionsPage: React.FC = () => {
                         <StatusBadge status={transaction.status} />
                       </TableCell>
                       <TableCell className="text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          {isPending && (
-                            <>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => !isUpdating && handleUpdatePaymentStatus(transaction.id, 'SUCCESS')}
-                                disabled={isUpdating}
-                                className="h-8 w-8"
-                              >
-                                <Check className="h-4 w-4 text-gray-700" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => !isUpdating && handleUpdatePaymentStatus(transaction.id, 'FAILURE')}
-                                disabled={isUpdating}
-                                className="h-8 w-8"
-                              >
-                                <XCircle className="h-4 w-4 text-gray-700" />
-                              </Button>
-                            </>
-                          )}
-                          {isSuccess && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => !isUpdating && handleUpdatePaymentStatus(transaction.id, 'REFUND')}
-                              disabled={isUpdating}
-                              className="h-8 w-8"
-                            >
-                              <RefreshCw className="h-4 w-4 text-gray-700" />
-                            </Button>
-                          )}
+                        <div className="flex items-center justify-center">
                           <Button
                             size="icon"
                             variant="ghost"
                             onClick={() => generatePaymentPDF(transaction)}
                             className="h-8 w-8"
+                            title="Descargar PDF"
                           >
                             <Download className="h-4 w-4 text-gray-700" />
                           </Button>
                         </div>
                       </TableCell>
                     </TableRow>
-                  );
-                })}
+                  ))}
               </TableBody>
             </Table>
 
@@ -516,13 +406,6 @@ const TransactionsPage: React.FC = () => {
           </>
         )}
       </Card>
-
-      {/* Dev Payment Modal */}
-      <DevPaymentModal
-        open={devModalOpen}
-        onClose={() => setDevModalOpen(false)}
-        onPaymentCreated={handlePaymentCreated}
-      />
     </div>
   );
 };
