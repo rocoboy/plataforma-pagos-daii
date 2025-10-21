@@ -9,7 +9,7 @@ export const appConfig: Config = {
     topics: process.env.KAFKA_TOPICS?.split(',') || [
       // Team's specified topics
       'flights.events',
-      'reservations.events', 
+      'reservations.events',
       'payments.events',
       'users.events',
       'search.events',
@@ -30,5 +30,10 @@ export const appConfig: Config = {
   },
   logging: {
     level: (process.env.LOG_LEVEL as any) || 'info',
+  },
+  rabbitmq: {// agregue para que me funcione, sino no me andaba el codigo
+    url: process.env.RABBITMQ_URL || 'amqp://user:pass@localhost:5672',
+    queue: process.env.RABBITMQ_QUEUE || 'default-queue',
+    exchange: process.env.RABBITMQ_EXCHANGE || 'default-exchange',
   },
 };

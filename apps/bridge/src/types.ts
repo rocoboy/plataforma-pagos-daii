@@ -42,5 +42,10 @@ export interface Config {
   };
   logging: {
     level: 'debug' | 'info' | 'warn' | 'error';
+  }; //agregado porque me rompia el codigo, después ver.
+   rabbitmq: {
+    url: string;
+    queue: string;
+    exchange: string;
   };
 }

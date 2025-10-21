@@ -41,7 +41,7 @@ export function createServer() {
           timestamp: new Date().toISOString(),
           uptime: process.uptime(),
           config: {
-            rabbitmq: {
+            rabbitmq: { //aca se me rompia
               url: appConfig.rabbitmq.url.replace(/\/\/.*@/, '//***:***@'), // Hide credentials
               queue: appConfig.rabbitmq.queue,
               exchange: appConfig.rabbitmq.exchange,

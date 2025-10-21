@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll } from "@jest/globals";
 import { Kafka, Producer } from 'kafkajs';
 import { appConfig } from './config';
 
