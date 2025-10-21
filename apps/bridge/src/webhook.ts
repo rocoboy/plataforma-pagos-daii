@@ -1,40 +1,75 @@
 import { appConfig } from './config';
-import type { RabbitMQMessage, WebhookPayload, WebhookResponse } from './types';
+import type { KafkaMessage, WebhookPayload, WebhookResponse } from './types';
 
 export class WebhookHandler {
   private getEndpoint(eventType: string): string {
-    // Map RabbitMQ routing keys to webhook endpoints
+    // Map team's event types to webhook endpoints
     const endpointMap: Record<string, string> = {
-      'payment.completed': 'payments',
-      'payment.failed': 'payments',
-      'payment.refunded': 'payments',
-      'payment.pending': 'payments',
-      'user.created': 'users',
-      'user.updated': 'users',
-      'user.deleted': 'users',
-      'subscription.created': 'subscriptions',
-      'subscription.updated': 'subscriptions',
-      'subscription.cancelled': 'subscriptions',
-      'subscription.renewed': 'subscriptions',
-      'invoice.created': 'invoices',
-      'invoice.paid': 'invoices',
-      'invoice.overdue': 'invoices',
+      'flights.flight.created': 'flights',
+      'flights.flight.updated': 'flights',
+      'flights.flight.cancelled': 'flights',
+      'reservations.reservation.created': 'reservations',
+      'reservations.reservation.updated': 'reservations',
+      'reservations.reservation.cancelled': 'reservations',
+      'payments.payment.completed': 'payments',
+      'payments.payment.failed': 'payments',
+      'payments.payment.refunded': 'payments',
+      'payments.payment.updated': 'payments',
+      'users.user.created': 'users',
+      'users.user.updated': 'users',
+      'users.user.deleted': 'users',
+      'search.search.performed': 'search',
+      'metrics.metric.recorded': 'metrics',
+      'core.system.event': 'events',
     };
 
     return endpointMap[eventType] || 'events';
   }
 
-  async sendWebhook(message: RabbitMQMessage): Promise<void> {
+  async sendWebhook(message: KafkaMessage): Promise<void> {
+    // Extract event type from topic or message content
+    const eventType = this.extractEventType(message);
+    
+    // Build payload following team's format only
     const payload: WebhookPayload = {
-      event: message.routingKey,
-      data: message.content,
+      event: eventType,
+      data: message.content?.payload || message.content, // Use payload field (team's format)
       timestamp: message.timestamp,
       messageId: message.messageId,
-      source: 'rabbitmq',
-      headers: message.headers,
+      source: 'kafka',
+      headers: {
+        ...message.headers,
+        'kafka-topic': message.topic,
+        'kafka-partition': message.partition.toString(),
+        'kafka-offset': message.offset,
+        'kafka-key': message.key || '',
+        // Include team's standard fields
+        ...(message.content?.schema_version && { 'schema-version': message.content.schema_version }),
+        ...(message.content?.event_type && { 'event-type': message.content.event_type }),
+      },
     };
 
     await this.sendWithRetry(payload);
+  }
+
+  private extractEventType(message: KafkaMessage): string {
+    // Only support team's standard message format
+    if (message.content && message.content.event_type) {
+      return message.content.event_type;
+    }
+    
+    // If no event_type, use topic-based fallback
+    const topicEventMap: Record<string, string> = {
+      'payments.events': 'payments.payment.updated',
+      'users.events': 'users.user.updated',
+      'flights.events': 'flights.flight.updated',
+      'reservations.events': 'reservations.reservation.updated',
+      'search.events': 'search.search.performed',
+      'metrics.events': 'metrics.metric.recorded',
+      'core.ingress': 'core.system.event',
+    };
+    
+    return topicEventMap[message.topic] || 'unknown.event';
   }
 
   private async sendWithRetry(payload: WebhookPayload): Promise<void> {
@@ -73,10 +108,15 @@ export class WebhookHandler {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'rabbitmq-bridge/1.0',
+          'User-Agent': 'kafka-bridge/1.0',
           'X-Message-ID': payload.messageId,
           'X-Event-Type': payload.event,
           'X-Source': payload.source,
+          'X-API-Key': 'microservices-api-key-2024-secure',
+          ...(payload.headers && Object.entries(payload.headers).reduce((acc, [key, value]) => {
+            acc[`X-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`] = String(value);
+            return acc;
+          }, {} as Record<string, string>)),
         },
         body: JSON.stringify(payload),
         signal: controller.signal,

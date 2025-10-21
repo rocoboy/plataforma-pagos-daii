@@ -1,10 +1,12 @@
-export interface RabbitMQMessage {
+export interface KafkaMessage {
   content: any;
-  routingKey: string;
-  exchange: string;
+  topic: string;
+  partition: number;
+  offset: string;
   timestamp: Date;
   messageId: string;
   headers?: Record<string, any>;
+  key?: string;
 }
 
 export interface WebhookPayload {
@@ -23,10 +25,10 @@ export interface WebhookResponse {
 }
 
 export interface Config {
-  rabbitmq: {
-    url: string;
-    queue: string;
-    exchange: string;
+  kafka: {
+    broker: string;
+    topics: string[];
+    consumerGroup: string;
   };
   webhook: {
     baseUrl: string;

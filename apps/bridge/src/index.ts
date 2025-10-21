@@ -1,27 +1,27 @@
-import { RabbitMQClient } from './rabbitmq';
+import { KafkaClient } from './kafka';
 import { WebhookHandler } from './webhook';
 import { createServer } from './server';
 import { appConfig } from './config';
 
 class BridgeService {
-  private rabbitmq: RabbitMQClient;
+  private kafka: KafkaClient;
   private webhookHandler: WebhookHandler;
   private server: ReturnType<typeof createServer>;
 
   constructor() {
-    this.rabbitmq = new RabbitMQClient();
+    this.kafka = new KafkaClient();
     this.webhookHandler = new WebhookHandler();
     this.server = createServer();
   }
 
   async start(): Promise<void> {
     try {
-      console.log('Starting RabbitMQ to Webhook Bridge Service...');
+      console.log('Starting Kafka to Webhook Bridge Service...');
       console.log('Configuration:', {
-        rabbitmq: {
-          url: appConfig.rabbitmq.url.replace(/\/\/.*@/, '//***:***@'), // Hide credentials
-          queue: appConfig.rabbitmq.queue,
-          exchange: appConfig.rabbitmq.exchange,
+        kafka: {
+          broker: appConfig.kafka.broker,
+          topics: appConfig.kafka.topics,
+          consumerGroup: appConfig.kafka.consumerGroup,
         },
         webhook: {
           baseUrl: appConfig.webhook.baseUrl,
@@ -34,19 +34,19 @@ class BridgeService {
         },
       });
       
-      // Connect to RabbitMQ
-      await this.rabbitmq.connect();
+      // Connect to Kafka
+      await this.kafka.connect();
       
       // Start consuming messages
-      await this.rabbitmq.consume(async (message) => {
-        console.log(`Processing message: ${message.messageId} (routing key: ${message.routingKey})`);
+      await this.kafka.consume(async (message) => {
+        console.log(`Processing message: ${message.messageId} (topic: ${message.topic}, partition: ${message.partition})`);
         
         try {
           await this.webhookHandler.sendWebhook(message);
           console.log(`Successfully processed message: ${message.messageId}`);
         } catch (error) {
           console.error(`Failed to process message ${message.messageId}:`, error);
-          throw error; // This will cause the message to be nacked and requeued
+          throw error; // This will cause the message to be retried
         }
       });
 
@@ -61,7 +61,7 @@ class BridgeService {
 
   async stop(): Promise<void> {
     console.log('Stopping bridge service...');
-    await this.rabbitmq.close();
+    await this.kafka.close();
     this.server.stop();
     console.log('Bridge service stopped');
   }
