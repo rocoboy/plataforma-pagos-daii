@@ -26,6 +26,23 @@ export class WebhookHandler {
     return endpointMap[eventType] || 'events';
   }
 
+  private getMethod(eventType: string): string {
+    // Define qué eventos deben usar PUT. El resto usará POST por defecto.
+    const updateEvents = [
+      '.updated', 
+      '.completed', 
+      '.failed', 
+      '.refunded', 
+      '.cancelled'
+    ];
+  
+    // Si alguno de los "updateEvents" está en el nombre del evento, usa PUT
+    if (updateEvents.some(suffix => eventType.includes(suffix))) {
+      return 'PUT';
+    }
+    return 'POST';   
+  }
+
   async sendWebhook(message: KafkaMessage): Promise<void> {
     // Extract event type from topic or message content
     const eventType = this.extractEventType(message);
