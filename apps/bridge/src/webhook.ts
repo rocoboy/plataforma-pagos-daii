@@ -119,10 +119,11 @@ export class WebhookHandler {
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), appConfig.webhook.timeout);
+    const method = this.getMethod(payload.event); // para ver si es put por los refund o cancelations
 
     try {
       const response = await fetch(url, {
-        method: 'POST',
+        method: method,
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': 'kafka-bridge/1.0',
@@ -135,7 +136,7 @@ export class WebhookHandler {
             return acc;
           }, {} as Record<string, string>)),
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payload.data),
         signal: controller.signal,
       });
 
