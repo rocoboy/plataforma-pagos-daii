@@ -75,6 +75,9 @@ export class WebhookHandler {
       return message.content.event_type;
     }
     
+    if (message.content && message.content.name) {
+      return message.content.name;
+    }
     // If no event_type, use topic-based fallback
     const topicEventMap: Record<string, string> = {
       'payments.events': 'payments.payment.updated',
