@@ -12,6 +12,7 @@ export class WebhookHandler {
       'reservations.reservation.updated': 'reservations',
       'reservations.reservation.cancelled': 'reservations',
       'payments.payment.completed': 'payments',
+      'payment.created': 'payments',
       'payments.payment.failed': 'payments',
       'payments.payment.refunded': 'payments',
       'payments.payment.updated': 'payments',
