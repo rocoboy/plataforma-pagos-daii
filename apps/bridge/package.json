@@ -15,11 +15,11 @@
     "clean": "rm -rf dist node_modules bun.lockb"
   },
   "dependencies": {
-    "kafkajs": "^2.2.4",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "kafkajs": "^2.2.4"
   },
   "devDependencies": {
-    "@types/node": "^20.10.0",
+    "@types/node": "^20.19.23",
     "bun-types": "latest",
     "typescript": "^5.3.0"
   },
