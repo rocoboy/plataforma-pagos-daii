@@ -8,7 +8,7 @@ terraform {
 }
 
 provider "vercel" {
-  # El token se configura como variable de entorno VERCEL_TOKEN
+  # El token se configura como variable de entorno VERCEL_API_TOKEN
   # El team_id se configura como variable de entorno VERCEL_TEAM_ID
 }
 
