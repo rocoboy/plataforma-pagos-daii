@@ -54,6 +54,7 @@ jobs:
       working-directory: ./infrastructure/terraform
       env:
         VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
 
     - name: Terraform Validate
       run: terraform validate
@@ -67,22 +68,22 @@ jobs:
     - name: Terraform Plan
       run: |
         terraform plan \
-          -var="vercel_team_id=${{ secrets.VERCEL_TEAM_ID }}" \
           -var="project_name=${{ env.PROJECT_NAME }}" \
           -var="environment=${{ needs.determine-environment.outputs.environment }}" \
           -var="branch=${{ needs.determine-environment.outputs.branch }}"
       working-directory: ./infrastructure/terraform
       env:
         VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
 
     - name: Terraform Apply
       if: github.event_name == 'push'
       run: |
         terraform apply -auto-approve \
-          -var="vercel_team_id=${{ secrets.VERCEL_TEAM_ID }}" \
           -var="project_name=${{ env.PROJECT_NAME }}" \
           -var="environment=${{ needs.determine-environment.outputs.environment }}" \
           -var="branch=${{ needs.determine-environment.outputs.branch }}"
       working-directory: ./infrastructure/terraform
       env:
         VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
