@@ -7,11 +7,6 @@ terraform {
   }
 }
 
-provider "vercel" {
-  # El team_id se configura como variable de entorno VERCEL_TEAM_ID
-  # o se pasa como variable en terraform.tfvars
-}
-
 variable "vercel_team_id" {
   description = "ID del team de Vercel"
   type        = string
