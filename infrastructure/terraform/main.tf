@@ -1,10 +1,10 @@
 terraform {
   required_providers {
     vercel = {
-      source = "vercel/vercel"
+      source  = "vercel/vercel"
       version = "~> 0.3"
     }
-  } 
+  }
 }
 
 provider "vercel" {
@@ -36,53 +36,63 @@ variable "branch" {
 }
 
 resource "vercel_project" "api" {
-  name = var.environment == "production" ? "${var.project_name}-api" : "${var.project_name}-api-${var.environment}"
+  name    = var.environment == "production" ? "${var.project_name}-api" : "${var.project_name}-api-${var.environment}"
   team_id = var.vercel_team_id
-  
+
   framework = "nextjs"
-  
-  env {
-    key   = "NODE_ENV"
-    value = var.environment == "production" ? "production" : "development"
-  }
-  
-  env {
-    key   = "ENVIRONMENT"
-    value = var.environment
-  }
-  
-  build_command = "cd apps/api && bun run build"
+
+  build_command    = "cd apps/api && bun run build"
   output_directory = "apps/api/.next"
-  root_directory = "apps/api"
-  
-  git_repository {
+  root_directory   = "apps/api"
+
+  git_repository = {
     type = "github"
     repo = "rbianucci/plataforma-pagos-daii"
   }
 }
 
 resource "vercel_project" "web" {
-  name = var.environment == "production" ? "${var.project_name}-web" : "${var.project_name}-web-${var.environment}"
+  name    = var.environment == "production" ? "${var.project_name}-web" : "${var.project_name}-web-${var.environment}"
   team_id = var.vercel_team_id
-  
-  framework = "create-react-app"
-  
-  env {
-    key   = "NODE_ENV"
-    value = var.environment == "production" ? "production" : "development"
-  }
-  
-  env {
-    key   = "ENVIRONMENT"
-    value = var.environment
-  }
 
-  build_command = "cd apps/web && pnpm run build"
+  framework = "create-react-app"
+
+  build_command    = "cd apps/web && pnpm run build"
   output_directory = "apps/web/build"
-  root_directory = "apps/web"
-  
-  git_repository {
+  root_directory   = "apps/web"
+
+  git_repository = {
     type = "github"
-    repo = "rbianucci/plataforma-pagos-daii" 
+    repo = "rbianucci/plataforma-pagos-daii"
   }
+}
+
+# Variables de entorno para la API
+resource "vercel_project_environment_variable" "api_node_env" {
+  project_id = vercel_project.api.id
+  key        = "NODE_ENV"
+  value      = var.environment == "production" ? "production" : "development"
+  target     = ["production", "preview"]
+}
+
+resource "vercel_project_environment_variable" "api_environment" {
+  project_id = vercel_project.api.id
+  key        = "ENVIRONMENT"
+  value      = var.environment
+  target     = ["production", "preview"]
+}
+
+# Variables de entorno para la Web
+resource "vercel_project_environment_variable" "web_node_env" {
+  project_id = vercel_project.web.id
+  key        = "NODE_ENV"
+  value      = var.environment == "production" ? "production" : "development"
+  target     = ["production", "preview"]
+}
+
+resource "vercel_project_environment_variable" "web_environment" {
+  project_id = vercel_project.web.id
+  key        = "ENVIRONMENT"
+  value      = var.environment
+  target     = ["production", "preview"]
 }
