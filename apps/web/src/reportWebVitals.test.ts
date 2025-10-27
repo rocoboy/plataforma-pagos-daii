@@ -14,25 +14,48 @@ jest.mock('web-vitals', () => ({
 }));
 
 describe('reportWebVitals', () => {
-  it('calls web-vitals functions', () => {
-    // Import after mocking
-    const reportWebVitals = require('./reportWebVitals');
-    
-    // Call the function with a mock callback
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should not throw when called without a callback', () => {
+    const reportWebVitals = require('./reportWebVitals').default;
+    expect(() => reportWebVitals()).not.toThrow();
+  });
+
+  it('should not throw when called with undefined', () => {
+    const reportWebVitals = require('./reportWebVitals').default;
+    expect(() => reportWebVitals(undefined)).not.toThrow();
+  });
+
+  it('should call web-vitals functions when callback is provided', () => {
+    const reportWebVitals = require('./reportWebVitals').default;
     const mockCallback = jest.fn();
     
-    // Call the functions directly from the mocked web-vitals
-    mockOnCLS(mockCallback);
-    mockOnFID(mockCallback);
-    mockOnFCP(mockCallback);
-    mockOnLCP(mockCallback);
-    mockOnTTFB(mockCallback);
+    reportWebVitals(mockCallback);
 
-    expect(mockOnCLS).toHaveBeenCalled();
-    expect(mockOnFID).toHaveBeenCalled();
-    expect(mockOnFCP).toHaveBeenCalled();
-    expect(mockOnLCP).toHaveBeenCalled();
-    expect(mockOnTTFB).toHaveBeenCalled();
+    // The function should import web-vitals and call each metric function with the callback
+    expect(mockOnCLS).toHaveBeenCalledWith(mockCallback);
+    expect(mockOnFID).toHaveBeenCalledWith(mockCallback);
+    expect(mockOnFCP).toHaveBeenCalledWith(mockCallback);
+    expect(mockOnLCP).toHaveBeenCalledWith(mockCallback);
+    expect(mockOnTTFB).toHaveBeenCalledWith(mockCallback);
+  });
+
+  it('should be a function', () => {
+    const reportWebVitals = require('./reportWebVitals').default;
+    expect(typeof reportWebVitals).toBe('function');
+  });
+
+  it('should handle function callbacks correctly', () => {
+    const reportWebVitals = require('./reportWebVitals').default;
+    const callback = jest.fn();
+    
+    reportWebVitals(callback);
+    
+    // Verify the callback was passed to all metrics
+    expect(mockOnCLS).toHaveBeenCalledWith(callback);
+    expect(mockOnFID).toHaveBeenCalledWith(callback);
   });
 });
 
