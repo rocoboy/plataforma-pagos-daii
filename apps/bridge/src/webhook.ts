@@ -1,64 +1,55 @@
 import { appConfig } from './config';
-import type { KafkaMessage, WebhookPayload, WebhookResponse } from './types';
+import type { KafkaMessage } from './types';
+
+// Define el tipo para el payload que espera el webhook (basado en el cURL)
+interface WebhookApiPayload {
+  messageId: string;
+  eventType: string;
+  schemaVersion: string;
+  occurredAt: string;
+  producer: string;
+  correlationId?: string;
+  idempotencyKey?: string;
+  payload: string; // El payload es un JSON stringificado
+}
 
 export class WebhookHandler {
-  private getEndpoint(eventType: string): string {
-    // Map team's event types to webhook endpoints
-    const endpointMap: Record<string, string> = {
-      'flights.flight.created': 'flights',
-      'flights.flight.updated': 'flights',
-      'flights.flight.cancelled': 'flights',
-      'reservations.reservation.created': 'reservations',
-      'reservations.reservation.updated': 'reservations',
-      'reservations.reservation.cancelled': 'reservations',
-      'payments.payment.completed': 'payments',
-      'payments.payment.failed': 'payments',
-      'payments.payment.refunded': 'payments',
-      'payments.payment.updated': 'payments',
-      'users.user.created': 'users',
-      'users.user.updated': 'users',
-      'users.user.deleted': 'users',
-      'search.search.performed': 'search',
-      'metrics.metric.recorded': 'metrics',
-      'core.system.event': 'events',
-    };
-
-    return endpointMap[eventType] || 'events';
-  }
+  // BORRAMOS getEndpoint. Ya no es necesario, la URL siempre es la misma.
 
   async sendWebhook(message: KafkaMessage): Promise<void> {
-    // Extract event type from topic or message content
+    // 1. Extraer el tipo de evento (CORREGIDO)
     const eventType = this.extractEventType(message);
     
-    // Build payload following team's format only
-    const payload: WebhookPayload = {
-      event: eventType,
-      data: message.content?.payload || message.content, // Use payload field (team's format)
-      timestamp: message.timestamp,
+    // 2. Construir el payload (CORREGIDO para coincidir con el cURL)
+    const payload: WebhookApiPayload = {
+      // Nombres de campos que el servidor espera:
       messageId: message.messageId,
-      source: 'kafka',
-      headers: {
-        ...message.headers,
-        'kafka-topic': message.topic,
-        'kafka-partition': message.partition.toString(),
-        'kafka-offset': message.offset,
-        'kafka-key': message.key || '',
-        // Include team's standard fields
-        ...(message.content?.schema_version && { 'schema-version': message.content.schema_version }),
-        ...(message.content?.event_type && { 'event-type': message.content.event_type }),
-      },
+      eventType: eventType,
+      schemaVersion: message.content?.schema_version || "1.0",
+      // ARREGLO 1: Usar el timestamp del 'content' que sí es válido, no el del broker.
+      occurredAt: message.content?.occurred_at || new Date().toISOString(),
+      producer: message.content?.source || 'kafka-bridge',
+      correlationId: message.content?.correlation_id,
+      idempotencyKey: message.key || message.messageId,
+      
+      // ARREGLO 2: Buscar el payload anidado 'payment' que el test está enviando.
+      payload: JSON.stringify(message.content?.data?.payment || message.content?.data || message.content)
     };
 
     await this.sendWithRetry(payload);
   }
 
   private extractEventType(message: KafkaMessage): string {
-    // Only support team's standard message format
+    // ARREGLO: Buscar 'name' (del test) como fuente principal del evento
+    if (message.content && message.content.name) {
+      return message.content.name; // Ej: "payment.created"
+    }
+    // ARREGLO: Buscar 'event_type' como segunda opción
     if (message.content && message.content.event_type) {
       return message.content.event_type;
     }
     
-    // If no event_type, use topic-based fallback
+    // Fallback (lógica anterior, por si acaso)
     const topicEventMap: Record<string, string> = {
       'payments.events': 'payments.payment.updated',
       'users.events': 'users.user.updated',
@@ -72,7 +63,7 @@ export class WebhookHandler {
     return topicEventMap[message.topic] || 'unknown.event';
   }
 
-  private async sendWithRetry(payload: WebhookPayload): Promise<void> {
+  private async sendWithRetry(payload: WebhookApiPayload): Promise<void> {
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt <= appConfig.webhook.maxRetries; attempt++) {
@@ -89,16 +80,16 @@ export class WebhookHandler {
         return;
       } catch (error) {
         lastError = error as Error;
-        console.error(`Webhook delivery failed (attempt ${attempt + 1}/${appConfig.webhook.maxRetries + 1}):`, error);
+        console.error(`Webhook delivery failed (attempt ${attempt + 1}/${appConfig.webhook.maxTries + 1}):`, error);
       }
     }
 
     throw new Error(`Webhook delivery failed after ${appConfig.webhook.maxRetries + 1} attempts: ${lastError?.message}`);
   }
 
-  private async send(payload: WebhookPayload): Promise<void> {
-    const endpoint = this.getEndpoint(payload.event);
-    const url = `${appConfig.webhook.baseUrl}/${endpoint}`;
+  private async send(payload: WebhookApiPayload): Promise<void> {
+    // ARREGLO: La URL es SIEMPRE la base. No se añade nada.
+    const url = appConfig.webhook.baseUrl; // Ej: http://34.172.179.60/events
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), appConfig.webhook.timeout);
@@ -109,16 +100,11 @@ export class WebhookHandler {
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': 'kafka-bridge/1.0',
-          'X-Message-ID': payload.messageId,
-          'X-Event-Type': payload.event,
-          'X-Source': payload.source,
           'X-API-Key': 'microservices-api-key-2024-secure',
-          ...(payload.headers && Object.entries(payload.headers).reduce((acc, [key, value]) => {
-            acc[`X-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`] = String(value);
-            return acc;
-          }, {} as Record<string, string>)),
+          'X-Message-ID': payload.messageId,
+          'X-Event-Type': payload.eventType, // Enviar header también
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payload), // El body es el payload de la API, stringificado
         signal: controller.signal,
       });
 
@@ -129,7 +115,8 @@ export class WebhookHandler {
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
-      console.log(`Webhook delivered successfully to ${url} (status: ${response.status})`);
+      // ¡Este es el log que queremos ver!
+      console.log(`✅ Webhook delivered successfully to ${url} (status: ${response.status})`);
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === 'AbortError') {
@@ -143,3 +130,4 @@ export class WebhookHandler {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
+

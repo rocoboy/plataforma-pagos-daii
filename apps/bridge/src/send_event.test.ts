@@ -1,198 +1,101 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
-import { Kafka, Producer } from 'kafkajs';
+import { Kafka, Producer, Partitioners } from 'kafkajs';
 import { appConfig } from './config';
 
-// Type definitions (from apps/types)
+// Type definitions (FLAT, based on core schema)
 type ID = string & { readonly __brand: "ID" };
 type ISODateTime = string & { readonly __brand: "ISODateTime" };
-type PaymentProvider = "Talo" | "Interbanking" | "Mercado Pago";
-type PaymentStatus = "APPROVED" | "REJECTED" | "PENDING";
+// El schema del core usa estos estados
+type CorePaymentStatus = "PENDING" | "SUCCESS" | "FAILURE" | "EXPIRED" | "REFUND";
 
-type EPaymentCreated = {
-  id: ID;
-  name: "payment.created";
-  occurred_at: ISODateTime;
-  correlation_id?: ID;
-  source: "core" | "payments-svc" | "psp-emulator" | "billing-svc";
-  data: {
-    payment: {
-      id: ID;
-      payment_intent_id?: ID;
-      booking_id: ID;
-      provider: PaymentProvider;
-      status: PaymentStatus;
-      amount: number;
-      currency: "ARS" | "USD" | "EUR";
-    };
-  };
+// Schema para el payload de status_updated (¡el que SÍ funciona!)
+type EPaymentStatusUpdatedData = {
+  paymentId: ID;
+  reservationId: ID;
+  userId: ID;
+  status: CorePaymentStatus;
+  amount: number;
+  currency: "ARS" | "USD" | "EUR";
+  updatedAt: ISODateTime;
 };
 
-describe('Send Payment Created Event', () => {
+// Tipo del mensaje de Kafka
+type EPaymentStatusUpdated = {
+  id: ID;
+  name: "payments.payment.status_updated"; // <-- ¡El evento correcto!
+  occurred_at: ISODateTime;
+  correlation_id?: ID;
+  source: "payments-svc";
+  schema_version: string;
+  data: EPaymentStatusUpdatedData; // <-- Usando la data plana que SÍ funciona
+};
+
+describe('Send Payment Status Updated Event', () => {
   let producer: Producer;
   let kafka: Kafka;
 
   beforeAll(async () => {
-    // Initialize Kafka client
     kafka = new Kafka({
       clientId: 'test-producer',
       brokers: [appConfig.kafka.broker],
       connectionTimeout: 3000,
       requestTimeout: 25000,
-      retry: {
-        initialRetryTime: 100,
-        retries: 8
-      }
     });
 
-    // Create producer
-    producer = kafka.producer();
+    producer = kafka.producer({ 
+      // Silenciar el warning de particionador
+      createPartitioner: Partitioners.DefaultPartitioner 
+    });
     await producer.connect();
     console.log('✅ Test producer connected to Kafka');
   });
 
   afterAll(async () => {
-    // Cleanup
     await producer.disconnect();
     console.log('✅ Test producer disconnected');
   });
 
-  test('should send payment.created event to payments.events topic', async () => {
-    // Create a payment.created event
-    const paymentCreatedEvent: EPaymentCreated = {
-      id: `evt_${Date.now()}` as ID,
-      name: 'payment.created',
-      occurred_at: new Date().toISOString() as ISODateTime,
-      correlation_id: `corr_${Date.now()}` as ID,
-      source: 'payments-svc',
-      data: {
-        payment: {
-          id: `pay_${Date.now()}` as ID,
-          payment_intent_id: `pi_${Date.now()}` as ID,
-          booking_id: `bkg_${Date.now()}` as ID,
-          provider: 'Talo',
-          status: 'APPROVED',
-          amount: 15000,
-          currency: 'ARS'
-        }
-      }
-    };
-
-    console.log('📤 Sending payment.created event:', JSON.stringify(paymentCreatedEvent, null, 2));
-
-    // Send message to payments.events topic
-    const result = await producer.send({
-      topic: 'payments.events',
-      messages: [
-        {
-          key: paymentCreatedEvent.data.payment.id,
-          value: JSON.stringify(paymentCreatedEvent),
-          headers: {
-            'messageId': paymentCreatedEvent.id,
-            'eventType': 'payment.created',
-            'source': 'payments-svc',
-            'timestamp': new Date().toISOString()
-          }
-        }
-      ]
-    });
-
-    // Verify the message was sent
-    expect(result).toBeDefined();
-    expect(result[0].topicName).toBe('payments.events');
-    expect(result[0].errorCode).toBe(0);
+  test('should send payments.payment.status_updated event', async () => {
+    const now = new Date();
+    const eventId = `evt_upd_${now.getTime()}` as ID;
     
-    console.log('✅ Message sent successfully:', result);
-  });
-
-  test('should send payment.created event with PENDING status', async () => {
-    // Create a payment.created event with PENDING status
-    const paymentCreatedEvent: EPaymentCreated = {
-      id: `evt_${Date.now()}` as ID,
-      name: 'payment.created',
-      occurred_at: new Date().toISOString() as ISODateTime,
-      correlation_id: `corr_${Date.now()}` as ID,
-      source: 'psp-emulator',
-      data: {
-        payment: {
-          id: `pay_${Date.now()}` as ID,
-          payment_intent_id: `pi_${Date.now()}` as ID,
-          booking_id: `bkg_${Date.now()}` as ID,
-          provider: 'Interbanking',
-          status: 'PENDING',
-          amount: 25000,
-          currency: 'USD'
-        }
-      }
-    };
-
-    console.log('📤 Sending payment.created event (PENDING):', JSON.stringify(paymentCreatedEvent, null, 2));
-
-    // Send message to payments.events topic
-    const result = await producer.send({
-      topic: 'payments.events',
-      messages: [
-        {
-          key: paymentCreatedEvent.data.payment.id,
-          value: JSON.stringify(paymentCreatedEvent),
-          headers: {
-            'messageId': paymentCreatedEvent.id,
-            'eventType': 'payment.created',
-            'source': 'psp-emulator',
-            'timestamp': new Date().toISOString()
-          }
-        }
-      ]
-    });
-
-    // Verify the message was sent
-    expect(result).toBeDefined();
-    expect(result[0].topicName).toBe('payments.events');
-    expect(result[0].errorCode).toBe(0);
-    
-    console.log('✅ Message sent successfully:', result);
-  });
-
-  test('should send payment.created event with EUR currency', async () => {
-    // Create a payment.created event with EUR currency
-    const paymentCreatedEvent: EPaymentCreated = {
-      id: `evt_${Date.now()}` as ID,
-      name: 'payment.created',
-      occurred_at: new Date().toISOString() as ISODateTime,
-      correlation_id: `corr_${Date.now()}` as ID,
+    // Crear un evento con la estructura PLANA y correcta
+    const event: EPaymentStatusUpdated = {
+      id: eventId,
+      name: 'payments.payment.status_updated', // <-- El tipo de evento
+      occurred_at: now.toISOString() as ISODateTime,
+      correlation_id: `corr_upd_${now.getTime()}` as ID,
       source: 'payments-svc',
-      data: {
-        payment: {
-          id: `pay_${Date.now()}` as ID,
-          payment_intent_id: `pi_${Date.now()}` as ID,
-          booking_id: `bkg_${Date.now()}` as ID,
-          provider: 'Mercado Pago',
-          status: 'APPROVED',
-          amount: 5000,
-          currency: 'EUR'
-        }
+      schema_version: '1.0',
+      data: { // <-- La data PLANA que te funcionó en Insomnia
+        paymentId: '418f715c-bce8-4a67-8eaf-8aaf485c193a' as ID,
+        reservationId: '1ABCDEF' as ID,
+        userId: '5367' as ID,
+        status: 'SUCCESS',
+        amount: 700000.00,
+        currency: 'ARS',
+        updatedAt: now.toISOString() as ISODateTime
       }
     };
 
-    console.log('📤 Sending payment.created event (EUR):', JSON.stringify(paymentCreatedEvent, null, 2));
+    console.log('📤 Sending payments.payment.status_updated event:', JSON.stringify(event, null, 2));
 
-    // Send message to payments.events topic
     const result = await producer.send({
-      topic: 'payments.events',
+      topic: 'payments.events', // El topic sigue siendo el mismo
       messages: [
         {
-          key: paymentCreatedEvent.data.payment.id,
-          value: JSON.stringify(paymentCreatedEvent),
+          key: event.data.paymentId,
+          value: JSON.stringify(event),
           headers: {
-            'messageId': paymentCreatedEvent.id,
-            'eventType': 'payment.created',
-            'source': 'payments-svc',
-            'timestamp': new Date().toISOString()
+            'messageId': event.id,
+            'eventType': event.name,
+            'source': event.source,
+            'timestamp': event.occurred_at
           }
         }
       ]
     });
 
-    // Verify the message was sent
     expect(result).toBeDefined();
     expect(result[0].topicName).toBe('payments.events');
     expect(result[0].errorCode).toBe(0);
