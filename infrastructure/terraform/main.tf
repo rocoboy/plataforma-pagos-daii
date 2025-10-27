@@ -9,7 +9,13 @@ terraform {
 
 provider "vercel" {
   # El token se configura como variable de entorno VERCEL_TOKEN
-  # El team_id se configura como variable de entorno VERCEL_TEAM_ID
+  # El team_id se pasa como variable
+  team_id = var.vercel_team_id
+}
+
+variable "vercel_team_id" {
+  description = "ID del team de Vercel"
+  type        = string
 }
 
 variable "project_name" {
