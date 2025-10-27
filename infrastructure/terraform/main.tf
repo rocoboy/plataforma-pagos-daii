@@ -32,7 +32,7 @@ variable "branch" {
 
 resource "vercel_project" "api" {
   name    = var.environment == "production" ? "${var.project_name}-api" : "${var.project_name}-api-${var.environment}"
-  team_id = var.vercel_team_id
+  # team_id se configura como variable de entorno VERCEL_TEAM_ID
 
   framework = "nextjs"
 
@@ -48,7 +48,7 @@ resource "vercel_project" "api" {
 
 resource "vercel_project" "web" {
   name    = var.environment == "production" ? "${var.project_name}-web" : "${var.project_name}-web-${var.environment}"
-  team_id = var.vercel_team_id
+  # team_id se configura como variable de entorno VERCEL_TEAM_ID
 
   framework = "create-react-app"
 
