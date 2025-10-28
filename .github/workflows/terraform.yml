@@ -40,6 +40,8 @@ jobs:
 
       - name: Terraform Validate
         run: terraform validate
+        env:
+          TF_VAR_vercel_api_token: ${{ secrets.VERCEL_API_TOKEN }}
 
       - name: Terraform Plan
         env:

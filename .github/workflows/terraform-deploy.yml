@@ -51,6 +51,8 @@ jobs:
     - name: Terraform Validate
       run: terraform validate
       working-directory: ./infrastructure/terraform
+      env:
+        TF_VAR_vercel_api_token: ${{ secrets.VERCEL_API_TOKEN }}
 
     - name: Terraform Plan
       run: terraform plan -var-file="environments/${{ steps.environment.outputs.env_file }}" -no-color
