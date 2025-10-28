@@ -27,6 +27,7 @@ resource "vercel_project" "api" {
   }
 
   vercel_authentication = {
+    deployment_type    = "none"
     protect_production = false
   }
 }
@@ -47,6 +48,7 @@ resource "vercel_project" "web" {
   }
 
   vercel_authentication = {
+    deployment_type    = "none"
     protect_production = false
   }
 }
