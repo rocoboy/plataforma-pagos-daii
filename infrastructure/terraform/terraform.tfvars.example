@@ -1,0 +1,7 @@
+# Copia este archivo a terraform.tfvars y configura los valores apropiados
+
+api_node_env     = "production"
+api_environment  = "production"
+web_node_env     = "production"
+web_environment  = "production"
+
