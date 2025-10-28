@@ -8,7 +8,7 @@ type ISODateTime = string & { readonly __brand: "ISODateTime" };
 // El schema del core usa estos estados
 type CorePaymentStatus = "PENDING" | "SUCCESS" | "FAILURE" | "EXPIRED" | "REFUND";
 
-// Schema para el payload de status_updated (¡el que SÍ funciona!)
+// Schema para el payload de status_updated (
 type EPaymentStatusUpdatedData = {
   paymentId: ID;
   reservationId: ID;
@@ -22,12 +22,12 @@ type EPaymentStatusUpdatedData = {
 // Tipo del mensaje de Kafka
 type EPaymentStatusUpdated = {
   id: ID;
-  name: "payments.payment.status_updated"; // <-- ¡El evento correcto!
+  name: "payments.payment.status_updated"; 
   occurred_at: ISODateTime;
   correlation_id?: ID;
   source: "payments-svc";
   schema_version: string;
-  data: EPaymentStatusUpdatedData; // <-- Usando la data plana que SÍ funciona
+  data: EPaymentStatusUpdatedData;
 };
 
 describe('Send Payment Status Updated Event', () => {
@@ -67,7 +67,7 @@ describe('Send Payment Status Updated Event', () => {
       correlation_id: `corr_upd_${now.getTime()}` as ID,
       source: 'payments-svc',
       schema_version: '1.0',
-      data: { // <-- La data PLANA que te funcionó en Insomnia
+      data: { 
         paymentId: '418f715c-bce8-4a67-8eaf-8aaf485c193a' as ID,
         reservationId: '1ABCDEF' as ID,
         userId: '5367' as ID,
@@ -81,7 +81,7 @@ describe('Send Payment Status Updated Event', () => {
     console.log('📤 Sending payments.payment.status_updated event:', JSON.stringify(event, null, 2));
 
     const result = await producer.send({
-      topic: 'payments.events', // El topic sigue siendo el mismo
+      topic: 'payments.events', 
       messages: [
         {
           key: event.data.paymentId,
