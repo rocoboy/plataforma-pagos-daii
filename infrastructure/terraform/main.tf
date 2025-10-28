@@ -15,12 +15,12 @@ provider "vercel" {
 # Comando para importar: terraform import vercel_project.api <project_id>
 resource "vercel_project" "api" {
   name = "plataforma-pagos-daii"
-  
-  framework                = "nextjs"
-  root_directory           = "apps/api"
-  build_command            = "cd apps/api && bun run build"
-  output_directory         = "apps/api/.next"
-  
+
+  framework        = "nextjs"
+  root_directory   = "apps/api"
+  build_command    = "cd apps/api && bun run build"
+  output_directory = "apps/api/.next"
+
   git_repository = {
     type = "github"
     repo = "rbianucci/plataforma-pagos-daii"
@@ -35,12 +35,12 @@ resource "vercel_project" "api" {
 # Comando para importar: terraform import vercel_project.web <project_id>
 resource "vercel_project" "web" {
   name = "plataforma-pagos-daii-web"
-  
-  framework                = "create-react-app"
-  root_directory           = "apps/web"
-  build_command            = "cd apps/web && pnpm run build"
-  output_directory         = "apps/web/build"
-  
+
+  framework        = "create-react-app"
+  root_directory   = "apps/web"
+  build_command    = "cd apps/web && pnpm run build"
+  output_directory = "apps/web/build"
+
   git_repository = {
     type = "github"
     repo = "rbianucci/plataforma-pagos-daii"
