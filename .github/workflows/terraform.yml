@@ -1,4 +1,4 @@
-name: Terraform Apply
+name: Terraform (Infrastructure Changes Only)
 
 on:
   push:
@@ -31,7 +31,7 @@ jobs:
 
       - name: Terraform Init
         env:
-          VERCEL_API_TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
+          TF_VAR_vercel_api_token: ${{ secrets.VERCEL_API_TOKEN }}
         run: terraform init
 
       - name: Terraform Format Check
@@ -43,21 +43,13 @@ jobs:
 
       - name: Terraform Plan
         env:
-          VERCEL_API_TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
-          TF_VAR_api_node_env: ${{ secrets.API_NODE_ENV }}
-          TF_VAR_api_environment: ${{ secrets.API_ENVIRONMENT }}
-          TF_VAR_web_node_env: ${{ secrets.WEB_NODE_ENV }}
-          TF_VAR_web_environment: ${{ secrets.WEB_ENVIRONMENT }}
-        run: terraform plan -no-color
+          TF_VAR_vercel_api_token: ${{ secrets.VERCEL_API_TOKEN }}
+        run: terraform plan -var-file="environments/production.tfvars" -no-color
         continue-on-error: false
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         env:
-          VERCEL_API_TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
-          TF_VAR_api_node_env: ${{ secrets.API_NODE_ENV }}
-          TF_VAR_api_environment: ${{ secrets.API_ENVIRONMENT }}
-          TF_VAR_web_node_env: ${{ secrets.WEB_NODE_ENV }}
-          TF_VAR_web_environment: ${{ secrets.WEB_ENVIRONMENT }}
-        run: terraform apply -auto-approve
+          TF_VAR_vercel_api_token: ${{ secrets.VERCEL_API_TOKEN }}
+        run: terraform apply -var-file="environments/production.tfvars" -auto-approve
 

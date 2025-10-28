@@ -8,7 +8,7 @@ terraform {
 }
 
 provider "vercel" {
-  # El token se obtiene de la variable de entorno VERCEL_API_TOKEN
+  api_token = var.vercel_api_token
 }
 
 # Importar proyecto existente para backend (API)

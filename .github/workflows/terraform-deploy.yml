@@ -17,6 +17,21 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Determine Environment
+      id: environment
+      run: |
+        if [[ "${{ github.base_ref }}" == "main" ]] || [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          echo "env_file=production.tfvars" >> $GITHUB_OUTPUT
+          echo "environment=production" >> $GITHUB_OUTPUT
+        elif [[ "${{ github.base_ref }}" == "develop" ]] || [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+          echo "env_file=preview.tfvars" >> $GITHUB_OUTPUT
+          echo "environment=preview" >> $GITHUB_OUTPUT
+        else
+          echo "env_file=development.tfvars" >> $GITHUB_OUTPUT
+          echo "environment=development" >> $GITHUB_OUTPUT
+        fi
+        echo "Using environment: $(cat $GITHUB_OUTPUT | grep environment= | cut -d'=' -f2)"
+
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
@@ -31,29 +46,21 @@ jobs:
       run: terraform init
       working-directory: ./infrastructure/terraform
       env:
-        VERCEL_API_TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
+        TF_VAR_vercel_api_token: ${{ secrets.VERCEL_API_TOKEN }}
 
     - name: Terraform Validate
       run: terraform validate
       working-directory: ./infrastructure/terraform
 
     - name: Terraform Plan
-      run: terraform plan -no-color
+      run: terraform plan -var-file="environments/${{ steps.environment.outputs.env_file }}" -no-color
       working-directory: ./infrastructure/terraform
       env:
-        VERCEL_API_TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
-        TF_VAR_api_node_env: ${{ secrets.API_NODE_ENV }}
-        TF_VAR_api_environment: ${{ secrets.API_ENVIRONMENT }}
-        TF_VAR_web_node_env: ${{ secrets.WEB_NODE_ENV }}
-        TF_VAR_web_environment: ${{ secrets.WEB_ENVIRONMENT }}
+        TF_VAR_vercel_api_token: ${{ secrets.VERCEL_API_TOKEN }}
 
     - name: Terraform Apply
       if: github.event_name == 'push'
-      run: terraform apply -auto-approve
+      run: terraform apply -var-file="environments/${{ steps.environment.outputs.env_file }}" -auto-approve
       working-directory: ./infrastructure/terraform
       env:
-        VERCEL_API_TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
-        TF_VAR_api_node_env: ${{ secrets.API_NODE_ENV }}
-        TF_VAR_api_environment: ${{ secrets.API_ENVIRONMENT }}
-        TF_VAR_web_node_env: ${{ secrets.WEB_NODE_ENV }}
-        TF_VAR_web_environment: ${{ secrets.WEB_ENVIRONMENT }}
+        TF_VAR_vercel_api_token: ${{ secrets.VERCEL_API_TOKEN }}
