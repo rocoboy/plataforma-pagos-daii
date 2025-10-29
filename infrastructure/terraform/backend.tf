@@ -11,7 +11,7 @@
 
 terraform {
   cloud {
-    organization = "tu-organizacion"  # CAMBIAR ESTO
+    organization = "plataforma-pagos-daii"
     workspaces {
       name = "plataforma-pagos-vercel"
     }
