@@ -1,4 +1,7 @@
-# Configuración para preview (pre-producción)
-environment = "preview"
-branch = "develop"
-project_name = "plataforma-pagos-daii"
+# Configuración para preview (develop branch)
+# Valores para el ambiente de preview
+
+api_node_env     = "preview"
+api_environment  = "preview"
+web_node_env     = "preview"
+web_environment  = "preview"

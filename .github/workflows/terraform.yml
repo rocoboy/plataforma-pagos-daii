@@ -1,0 +1,57 @@
+name: Terraform (Infrastructure Changes Only)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infrastructure/terraform/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'infrastructure/terraform/**'
+
+jobs:
+  terraform:
+    name: 'Terraform'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infrastructure/terraform
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Terraform Init
+        env:
+          TF_VAR_vercel_api_token: ${{ secrets.VERCEL_API_TOKEN }}
+        run: terraform init
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+        continue-on-error: true
+
+      - name: Terraform Validate
+        run: terraform validate
+        env:
+          TF_VAR_vercel_api_token: ${{ secrets.VERCEL_API_TOKEN }}
+
+      - name: Terraform Plan
+        env:
+          TF_VAR_vercel_api_token: ${{ secrets.VERCEL_API_TOKEN }}
+        run: terraform plan -var-file="environments/production.tfvars" -no-color
+        continue-on-error: false
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          TF_VAR_vercel_api_token: ${{ secrets.VERCEL_API_TOKEN }}
+        run: terraform apply -var-file="environments/production.tfvars" -auto-approve
+

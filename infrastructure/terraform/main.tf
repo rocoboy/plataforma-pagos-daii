@@ -2,92 +2,84 @@ terraform {
   required_providers {
     vercel = {
       source  = "vercel/vercel"
-      version = "~> 0.3"
+      version = "~> 1.0"
     }
   }
 }
 
 provider "vercel" {
-  # El token se configura como variable de entorno VERCEL_API_TOKEN
-  # El team_id se configura como variable de entorno VERCEL_TEAM_ID
+  api_token = var.vercel_api_token
 }
 
-variable "project_name" {
-  description = "Nombre del proyecto"
-  type        = string
-  default     = "plataforma-pagos-daii"
-}
-
-variable "environment" {
-  description = "Entorno de despliegue (production, preview, development)"
-  type        = string
-  default     = "production"
-}
-
-variable "branch" {
-  description = "Rama de Git para el despliegue"
-  type        = string
-  default     = "main"
-}
-
+# Importar proyecto existente para backend (API)
+# Comando para importar: terraform import vercel_project.api <project_id>
 resource "vercel_project" "api" {
-  name = var.environment == "production" ? "${var.project_name}-api" : "${var.project_name}-api-${var.environment}"
-  # team_id se configura como variable de entorno VERCEL_TEAM_ID
+  name = "plataforma-pagos-daii"
 
-  framework = "nextjs"
-
+  framework        = "nextjs"
+  root_directory   = "apps/api"
   build_command    = "cd apps/api && bun run build"
   output_directory = "apps/api/.next"
-  root_directory   = "apps/api"
 
   git_repository = {
     type = "github"
     repo = "rbianucci/plataforma-pagos-daii"
   }
+
+  vercel_authentication = {
+    deployment_type    = "none"
+    protect_production = false
+  }
 }
 
+# Importar proyecto existente para frontend (Web)
+# Comando para importar: terraform import vercel_project.web <project_id>
 resource "vercel_project" "web" {
-  name = var.environment == "production" ? "${var.project_name}-web" : "${var.project_name}-web-${var.environment}"
-  # team_id se configura como variable de entorno VERCEL_TEAM_ID
+  name = "plataforma-pagos-daii-web"
 
-  framework = "create-react-app"
-
+  framework        = "create-react-app"
+  root_directory   = "apps/web"
   build_command    = "cd apps/web && pnpm run build"
   output_directory = "apps/web/build"
-  root_directory   = "apps/web"
 
   git_repository = {
     type = "github"
     repo = "rbianucci/plataforma-pagos-daii"
   }
+
+  vercel_authentication = {
+    deployment_type    = "none"
+    protect_production = false
+  }
 }
 
-# Variables de entorno para la API
+# Variables de entorno para API
 resource "vercel_project_environment_variable" "api_node_env" {
   project_id = vercel_project.api.id
   key        = "NODE_ENV"
-  value      = var.environment == "production" ? "production" : "development"
-  target     = ["production", "preview"]
+  value      = var.api_node_env
+  target     = ["preview", "production"]
 }
 
 resource "vercel_project_environment_variable" "api_environment" {
   project_id = vercel_project.api.id
   key        = "ENVIRONMENT"
-  value      = var.environment
-  target     = ["production", "preview"]
+  value      = var.api_environment
+  target     = ["preview", "production"]
 }
 
-# Variables de entorno para la Web
+# Variables de entorno para Web
 resource "vercel_project_environment_variable" "web_node_env" {
   project_id = vercel_project.web.id
   key        = "NODE_ENV"
-  value      = var.environment == "production" ? "production" : "development"
-  target     = ["production", "preview"]
+  value      = var.web_node_env
+  target     = ["preview", "production"]
 }
 
 resource "vercel_project_environment_variable" "web_environment" {
   project_id = vercel_project.web.id
   key        = "ENVIRONMENT"
-  value      = var.environment
-  target     = ["production", "preview"]
+  value      = var.web_environment
+  target     = ["preview", "production"]
 }
+
