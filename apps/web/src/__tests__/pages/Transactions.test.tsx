@@ -350,6 +350,8 @@ describe('TransactionsPage', () => {
   describe('Logout Functionality', () => {
     it('should logout and redirect to login', async () => {
       const mockLogout = jest.fn();
+      
+      // Mock the AuthContext for this specific test
       jest.doMock('../../contexts/AuthContext', () => ({
         useAuth: () => ({
           user: { id: '1', name: 'Test User', email: 'test@example.com' },
@@ -357,7 +359,10 @@ describe('TransactionsPage', () => {
         })
       }));
 
-      renderWithProviders(<TransactionsPage />);
+      // Re-import the component to get the mocked context
+      const { default: TransactionsPageWithMock } = await import('../../pages/Transactions');
+      
+      renderWithProviders(<TransactionsPageWithMock />);
 
       await waitFor(() => {
         const logoutButton = screen.getByRole('button', { name: 'Cerrar Sesión' });

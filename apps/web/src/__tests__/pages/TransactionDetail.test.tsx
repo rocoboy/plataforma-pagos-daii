@@ -7,10 +7,12 @@ import { mockTransactionDetails } from '../../data/mockData';
 
 // Mock react-router-dom
 const mockNavigate = jest.fn();
+const mockUseParams = jest.fn(() => ({ transactionId: 'TXN001' }));
+
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
-  useParams: () => ({ transactionId: 'TXN001' })
+  useParams: () => mockUseParams()
 }));
 
 // Mock jsPDF
@@ -66,11 +68,7 @@ describe('TransactionDetailPage', () => {
   describe('Error State', () => {
     it('should show error message when transaction not found', async () => {
       // Mock useParams to return non-existent transaction ID
-      jest.doMock('react-router-dom', () => ({
-        ...jest.requireActual('react-router-dom'),
-        useNavigate: () => mockNavigate,
-        useParams: () => ({ transactionId: 'NONEXISTENT' })
-      }));
+      mockUseParams.mockReturnValue({ transactionId: 'NONEXISTENT' });
 
       renderWithProviders(<TransactionDetailPage />);
 
@@ -81,11 +79,7 @@ describe('TransactionDetailPage', () => {
     });
 
     it('should navigate back when error occurs', async () => {
-      jest.doMock('react-router-dom', () => ({
-        ...jest.requireActual('react-router-dom'),
-        useNavigate: () => mockNavigate,
-        useParams: () => ({ transactionId: 'NONEXISTENT' })
-      }));
+      mockUseParams.mockReturnValue({ transactionId: 'NONEXISTENT' });
 
       renderWithProviders(<TransactionDetailPage />);
 
@@ -293,11 +287,7 @@ describe('TransactionDetailPage', () => {
 
   describe('Error Handling', () => {
     it('should handle missing transaction ID gracefully', async () => {
-      jest.doMock('react-router-dom', () => ({
-        ...jest.requireActual('react-router-dom'),
-        useNavigate: () => mockNavigate,
-        useParams: () => ({ transactionId: undefined })
-      }));
+      mockUseParams.mockReturnValue({ transactionId: undefined });
 
       renderWithProviders(<TransactionDetailPage />);
 
