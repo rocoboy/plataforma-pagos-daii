@@ -64,7 +64,6 @@ describe('middleware', () => {
         }
       });
 
-      const mockResponse = new NextResponse('test response');
       const enhancedResponse = new NextResponse('test response with CORS');
       mockAddCorsHeaders.mockReturnValue(enhancedResponse);
 
@@ -84,7 +83,6 @@ describe('middleware', () => {
         body: JSON.stringify({ test: 'data' })
       });
 
-      const mockResponse = new NextResponse('test response');
       const enhancedResponse = new NextResponse('test response with CORS');
       mockAddCorsHeaders.mockReturnValue(enhancedResponse);
 
@@ -102,7 +100,6 @@ describe('middleware', () => {
         }
       });
 
-      const mockResponse = new NextResponse('test response');
       const enhancedResponse = new NextResponse('test response with CORS');
       mockAddCorsHeaders.mockReturnValue(enhancedResponse);
 
@@ -120,7 +117,6 @@ describe('middleware', () => {
         }
       });
 
-      const mockResponse = new NextResponse('test response');
       const enhancedResponse = new NextResponse('test response with CORS');
       mockAddCorsHeaders.mockReturnValue(enhancedResponse);
 
@@ -162,7 +158,6 @@ describe('middleware', () => {
         headers: {}
       });
 
-      const mockResponse = new NextResponse('test response');
       const enhancedResponse = new NextResponse('test response with CORS');
       mockAddCorsHeaders.mockReturnValue(enhancedResponse);
 
@@ -182,7 +177,6 @@ describe('middleware', () => {
         }
       });
 
-      const mockResponse = new NextResponse('test response');
       const enhancedResponse = new NextResponse('test response with CORS');
       mockAddCorsHeaders.mockReturnValue(enhancedResponse);
 
@@ -202,7 +196,6 @@ describe('middleware', () => {
         }
       });
 
-      const mockResponse = new NextResponse('test response');
       const enhancedResponse = new NextResponse('test response with CORS');
       mockAddCorsHeaders.mockReturnValue(enhancedResponse);
 

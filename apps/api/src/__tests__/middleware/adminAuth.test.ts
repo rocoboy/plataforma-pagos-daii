@@ -1,5 +1,7 @@
 import { NextRequest } from 'next/server';
 import { adminAuthMiddleware } from '../../app/api/middleware/adminAuth';
+import { createCorsResponse } from '../../lib/cors';
+import * as jwt from 'jsonwebtoken';
 
 // Mock the cors module
 jest.mock('../../lib/cors', () => ({
@@ -16,9 +18,11 @@ jest.mock('jsonwebtoken', () => ({
   decode: jest.fn()
 }));
 
+const mockCreateCorsResponse = createCorsResponse as jest.MockedFunction<typeof createCorsResponse>;
+const mockJwt = jwt as jest.Mocked<typeof jwt>;
+
 describe('adminAuthMiddleware', () => {
   let mockRequest: NextRequest;
-  const mockCreateCorsResponse = require('../../lib/cors').createCorsResponse;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -79,8 +83,7 @@ describe('adminAuthMiddleware', () => {
     });
 
     it('should return 401 error for invalid JWT token', () => {
-      const jwt = require('jsonwebtoken');
-      jwt.verify.mockImplementation(() => {
+      mockJwt.verify.mockImplementation(() => {
         throw new Error('Invalid token');
       });
 
@@ -95,8 +98,7 @@ describe('adminAuthMiddleware', () => {
     });
 
     it('should return 403 error for non-admin role', () => {
-      const jwt = require('jsonwebtoken');
-      jwt.verify.mockReturnValue({ rol: 'user' });
+      mockJwt.verify.mockReturnValue({ rol: 'user' } as jwt.JwtPayload);
 
       const result = adminAuthMiddleware(mockRequest);
 
@@ -109,8 +111,7 @@ describe('adminAuthMiddleware', () => {
     });
 
     it('should return null for valid admin token', () => {
-      const jwt = require('jsonwebtoken');
-      jwt.verify.mockReturnValue({ rol: 'admin' });
+      mockJwt.verify.mockReturnValue({ rol: 'admin' } as jwt.JwtPayload);
 
       const result = adminAuthMiddleware(mockRequest);
 
@@ -119,8 +120,7 @@ describe('adminAuthMiddleware', () => {
     });
 
     it('should handle JWT verification errors gracefully', () => {
-      const jwt = require('jsonwebtoken');
-      jwt.verify.mockImplementation(() => {
+      mockJwt.verify.mockImplementation(() => {
         throw new Error('Token expired');
       });
 
@@ -137,8 +137,7 @@ describe('adminAuthMiddleware', () => {
     it('should handle missing JWT_SECRET environment variable', () => {
       delete process.env.JWT_SECRET;
       
-      const jwt = require('jsonwebtoken');
-      jwt.verify.mockImplementation(() => {
+      mockJwt.verify.mockImplementation(() => {
         throw new Error('Secret not defined');
       });
 
@@ -155,8 +154,7 @@ describe('adminAuthMiddleware', () => {
 
   describe('token extraction and validation', () => {
     it('should extract token correctly from Bearer header', () => {
-      const jwt = require('jsonwebtoken');
-      jwt.verify.mockReturnValue({ rol: 'admin' });
+      mockJwt.verify.mockReturnValue({ rol: 'admin' } as jwt.JwtPayload);
 
       mockRequest = new NextRequest('http://localhost:3000/api/test', {
         method: 'GET',
@@ -167,7 +165,7 @@ describe('adminAuthMiddleware', () => {
 
       adminAuthMiddleware(mockRequest);
 
-      expect(jwt.verify).toHaveBeenCalledWith(
+      expect(mockJwt.verify).toHaveBeenCalledWith(
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.signature',
         'test-secret'
       );
@@ -195,8 +193,7 @@ describe('adminAuthMiddleware', () => {
   describe('logging behavior', () => {
     it('should log appropriate messages during token validation', () => {
       const consoleSpy = jest.spyOn(console, 'log');
-      const jwt = require('jsonwebtoken');
-      jwt.verify.mockReturnValue({ rol: 'admin' });
+      mockJwt.verify.mockReturnValue({ rol: 'admin' } as jwt.JwtPayload);
 
       mockRequest = new NextRequest('http://localhost:3000/api/test', {
         method: 'GET',
