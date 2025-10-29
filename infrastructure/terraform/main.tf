@@ -23,7 +23,7 @@ resource "vercel_project" "api" {
 
   git_repository = {
     type = "github"
-    repo = "rbianucci/plataforma-pagos-daii"
+    repo = "rocoboy/plataforma-pagos-daii"
   }
 
   vercel_authentication = {
@@ -44,7 +44,7 @@ resource "vercel_project" "web" {
 
   git_repository = {
     type = "github"
-    repo = "rbianucci/plataforma-pagos-daii"
+    repo = "rocoboy/plataforma-pagos-daii"
   }
 
   vercel_authentication = {
