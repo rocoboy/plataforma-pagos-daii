@@ -1,365 +1,424 @@
-import { initializeApiInterceptorV2, cleanupApiInterceptorV2 } from '../../lib/apiInterceptorV2';
+import { 
+  initializeApiInterceptorV2, 
+  cleanupApiInterceptorV2 
+} from '../../lib/apiInterceptorV2';
 import { getStoredToken } from '../../lib/auth';
 
-// Mock the auth module
+// Mock dependencies
 jest.mock('../../lib/auth', () => ({
-  getStoredToken: jest.fn(),
+  getStoredToken: jest.fn()
 }));
 
 const mockGetStoredToken = getStoredToken as jest.MockedFunction<typeof getStoredToken>;
 
-// Mock console methods to reduce test noise
-const originalConsoleLog = console.log;
-const originalConsoleError = console.error;
+// Store original fetch and window properties
+const originalFetch = window.fetch;
+const originalLocation = window.location;
+const originalDispatchEvent = window.dispatchEvent;
 
-beforeAll(() => {
-  console.log = jest.fn();
-  console.error = jest.fn();
-});
-
-afterAll(() => {
-  console.log = originalConsoleLog;
-  console.error = originalConsoleError;
-});
-
-describe('ApiInterceptorV2', () => {
-  let originalFetch: typeof fetch;
-  let originalWindowLocation: Location;
-
+describe('API Interceptor V2', () => {
   beforeEach(() => {
-    // Store original fetch
-    originalFetch = window.fetch;
-    
-    // Store and mock window.location
-    originalWindowLocation = window.location;
-    delete (window as any).location;
-    window.location = { ...originalWindowLocation, href: '' } as any;
-    
-    // Reset mocks
     jest.clearAllMocks();
     
-    // Reset fetch to original before each test
+    // Mock console methods
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    
+    // Mock window.location
+    delete (window as any).location;
+    window.location = { ...originalLocation, href: '' };
+    
+    // Mock window.dispatchEvent
+    window.dispatchEvent = jest.fn();
+    
+    // Reset fetch
     window.fetch = originalFetch;
   });
 
   afterEach(() => {
-    // Always restore original fetch after each test
-    try {
-      cleanupApiInterceptorV2();
-    } catch (e) {
-      // Ignore errors during cleanup
-    }
-    window.fetch = originalFetch;
-    window.location = originalWindowLocation;
-  });
-
-  describe('Installation and Cleanup', () => {
-    it('installs the interceptor and replaces window.fetch', () => {
-      const originalWindowFetch = window.fetch;
-      
-      initializeApiInterceptorV2();
-      
-      expect(window.fetch).not.toBe(originalWindowFetch);
-      expect(typeof window.fetch).toBe('function');
-    });
-
-    it('uninstalls the interceptor', () => {
-      initializeApiInterceptorV2();
-      const interceptedFetch = window.fetch;
-      
-      cleanupApiInterceptorV2();
-      
-      expect(window.fetch).not.toBe(interceptedFetch);
-      expect(typeof window.fetch).toBe('function');
-    });
-
-    it('can be installed and uninstalled multiple times', () => {
-      initializeApiInterceptorV2();
-      cleanupApiInterceptorV2();
-      initializeApiInterceptorV2();
-      cleanupApiInterceptorV2();
-      
-      expect(typeof window.fetch).toBe('function');
-    });
-
-    it('does not install twice if already installed', () => {
-      initializeApiInterceptorV2();
-      const firstInterceptedFetch = window.fetch;
-      
-      initializeApiInterceptorV2();
-      
-      expect(window.fetch).toBe(firstInterceptedFetch);
-    });
-
-    it('handles cleanup when not installed', () => {
-      expect(() => cleanupApiInterceptorV2()).not.toThrow();
-    });
-  });
-
-  describe('Token Management', () => {
-    it('works with token available', () => {
-      const mockToken = 'test-jwt-token-123';
-      mockGetStoredToken.mockReturnValue(mockToken);
-      
-      initializeApiInterceptorV2();
-      
-      expect(typeof window.fetch).toBe('function');
-      expect(mockGetStoredToken).toHaveBeenCalledTimes(0); // Not called until fetch is used
-    });
-
-    it('works without token', () => {
-      mockGetStoredToken.mockReturnValue(null);
-      
-      initializeApiInterceptorV2();
-      
-      expect(typeof window.fetch).toBe('function');
-    });
+    // Cleanup
+    cleanupApiInterceptorV2();
+    
+    // Restore mocks
+    window.location = originalLocation;
+    window.dispatchEvent = originalDispatchEvent;
+    jest.restoreAllMocks();
   });
 
   describe('Initialization', () => {
-    it('initializeApiInterceptorV2 is exported as a function', () => {
-      expect(typeof initializeApiInterceptorV2).toBe('function');
-    });
-
-    it('cleanupApiInterceptorV2 is exported as a function', () => {
-      expect(typeof cleanupApiInterceptorV2).toBe('function');
-    });
-
-    it('does not throw when initializing', () => {
-      expect(() => initializeApiInterceptorV2()).not.toThrow();
-    });
-
-    it('does not throw when cleaning up', () => {
+    it('should install interceptor on first call', () => {
+      const consoleSpy = jest.spyOn(console, 'log');
+      
       initializeApiInterceptorV2();
-      expect(() => cleanupApiInterceptorV2()).not.toThrow();
+      
+      expect(consoleSpy).toHaveBeenCalledWith('🚀 API Interceptor V2 installed - JWT tokens will be added automatically');
+      expect(window.fetch).not.toBe(originalFetch);
+    });
+
+    it('should not install interceptor twice', () => {
+      const consoleSpy = jest.spyOn(console, 'log');
+      
+      initializeApiInterceptorV2();
+      initializeApiInterceptorV2();
+      
+      expect(consoleSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should cleanup and restore original fetch', () => {
+      const consoleSpy = jest.spyOn(console, 'log');
+      
+      initializeApiInterceptorV2();
+      cleanupApiInterceptorV2();
+      
+      expect(consoleSpy).toHaveBeenCalledWith('🔄 API Interceptor V2 uninstalled - restored original fetch');
+      expect(window.fetch).toBe(originalFetch);
     });
   });
 
-  describe('Functional Approach', () => {
-    it('uses functional approach with proper binding', () => {
+  describe('API Call Detection', () => {
+    beforeEach(() => {
       initializeApiInterceptorV2();
-      
-      // Fetch should still be a function
-      expect(typeof window.fetch).toBe('function');
-      
-      // Should maintain function signature
-      expect(window.fetch.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('maintains interceptor state across calls', () => {
-      initializeApiInterceptorV2();
-      const fetch1 = window.fetch;
-      
-      // Try to install again
-      initializeApiInterceptorV2();
-      const fetch2 = window.fetch;
-      
-      // Should be the same instance
-      expect(fetch1).toBe(fetch2);
-    });
-  });
-
-  describe('Environment Configuration', () => {
-    const originalEnv = process.env.REACT_APP_VERCEL_API;
-
-    afterEach(() => {
-      if (originalEnv) {
-        process.env.REACT_APP_VERCEL_API = originalEnv;
-      } else {
-        delete process.env.REACT_APP_VERCEL_API;
-      }
-    });
-
-    it('works with default API URL', () => {
-      delete process.env.REACT_APP_VERCEL_API;
-      
-      initializeApiInterceptorV2();
-      
-      expect(typeof window.fetch).toBe('function');
-    });
-
-    it('works with custom API URL', () => {
-      process.env.REACT_APP_VERCEL_API = 'https://custom-api.com';
-      
-      initializeApiInterceptorV2();
-      
-      expect(typeof window.fetch).toBe('function');
-    });
-  });
-
-  describe('Integration with auth module', () => {
-    it('integrates with getStoredToken function', () => {
+    it('should detect API calls to localhost', async () => {
+      const mockFetch = jest.fn().mockResolvedValue(new Response('test'));
+      window.fetch = mockFetch;
       mockGetStoredToken.mockReturnValue('test-token');
-      
-      expect(getStoredToken()).toBe('test-token');
-      expect(mockGetStoredToken).toHaveBeenCalled();
+
+      await fetch('http://localhost:3000/api/test');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3000/api/test',
+        expect.objectContaining({
+          headers: expect.any(Headers)
+        })
+      );
     });
 
-    it('handles null token from storage', () => {
-      mockGetStoredToken.mockReturnValue(null);
-      
-      expect(getStoredToken()).toBeNull();
-      expect(mockGetStoredToken).toHaveBeenCalled();
+    it('should detect relative API calls', async () => {
+      const mockFetch = jest.fn().mockResolvedValue(new Response('test'));
+      window.fetch = mockFetch;
+      mockGetStoredToken.mockReturnValue('test-token');
+
+      await fetch('/api/test');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/test',
+        expect.objectContaining({
+          headers: expect.any(Headers)
+        })
+      );
     });
 
-    it('handles undefined token from storage', () => {
-      mockGetStoredToken.mockReturnValue(null);
+    it('should detect API calls with /api/ in URL', async () => {
+      const mockFetch = jest.fn().mockResolvedValue(new Response('test'));
+      window.fetch = mockFetch;
+      mockGetStoredToken.mockReturnValue('test-token');
+
+      await fetch('https://example.com/api/test');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://example.com/api/test',
+        expect.objectContaining({
+          headers: expect.any(Headers)
+        })
+      );
+    });
+
+    it('should not intercept non-API calls', async () => {
+      const mockFetch = jest.fn().mockResolvedValue(new Response('test'));
+      window.fetch = mockFetch;
+
+      await fetch('https://example.com/static/image.jpg');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://example.com/static/image.jpg',
+        undefined
+      );
+    });
+  });
+
+  describe('Token Injection', () => {
+    beforeEach(() => {
+      initializeApiInterceptorV2();
+    });
+
+    it('should add Authorization header when token exists', async () => {
+      const mockFetch = jest.fn().mockResolvedValue(new Response('test'));
+      window.fetch = mockFetch;
+      mockGetStoredToken.mockReturnValue('test-token');
+
+      await fetch('/api/test');
+
+      const callArgs = mockFetch.mock.calls[0];
+      const headers = callArgs[1]?.headers as Headers;
       
-      expect(getStoredToken()).toBeNull();
+      expect(headers.get('Authorization')).toBe('Bearer test-token');
+    });
+
+    it('should not add Authorization header when no token', async () => {
+      const mockFetch = jest.fn().mockResolvedValue(new Response('test'));
+      window.fetch = mockFetch;
+      mockGetStoredToken.mockReturnValue(null);
+
+      await fetch('/api/test');
+
+      const callArgs = mockFetch.mock.calls[0];
+      const headers = callArgs[1]?.headers as Headers;
+      
+      expect(headers.get('Authorization')).toBeNull();
+    });
+
+    it('should skip token injection for auth login endpoint', async () => {
+      const mockFetch = jest.fn().mockResolvedValue(new Response('test'));
+      window.fetch = mockFetch;
+      mockGetStoredToken.mockReturnValue('test-token');
+
+      await fetch('/api/auth/login');
+
+      const callArgs = mockFetch.mock.calls[0];
+      const headers = callArgs[1]?.headers as Headers;
+      
+      expect(headers.get('Authorization')).toBeNull();
+    });
+
+    it('should set Content-Type header for API calls', async () => {
+      const mockFetch = jest.fn().mockResolvedValue(new Response('test'));
+      window.fetch = mockFetch;
+      mockGetStoredToken.mockReturnValue('test-token');
+
+      await fetch('/api/test');
+
+      const callArgs = mockFetch.mock.calls[0];
+      const headers = callArgs[1]?.headers as Headers;
+      
+      expect(headers.get('Content-Type')).toBe('application/json');
+    });
+
+    it('should preserve existing headers', async () => {
+      const mockFetch = jest.fn().mockResolvedValue(new Response('test'));
+      window.fetch = mockFetch;
+      mockGetStoredToken.mockReturnValue('test-token');
+
+      await fetch('/api/test', {
+        headers: {
+          'Custom-Header': 'custom-value'
+        }
+      });
+
+      const callArgs = mockFetch.mock.calls[0];
+      const headers = callArgs[1]?.headers as Headers;
+      
+      expect(headers.get('Custom-Header')).toBe('custom-value');
+      expect(headers.get('Authorization')).toBe('Bearer test-token');
     });
   });
 
   describe('Error Handling', () => {
-    it('does not throw when fetch is called after installation', () => {
-      const mockFetch = jest.fn().mockResolvedValue(
-        new Response(JSON.stringify({ data: 'test' }), { status: 200 })
-      );
-      
+    beforeEach(() => {
+      initializeApiInterceptorV2();
+    });
+
+    it('should handle 403 responses and redirect to access denied', async () => {
+      const mockFetch = jest.fn().mockResolvedValue(new Response('Forbidden', { status: 403 }));
       window.fetch = mockFetch;
-      initializeApiInterceptorV2();
-      
-      expect(typeof window.fetch).toBe('function');
+      mockGetStoredToken.mockReturnValue('test-token');
+
+      await fetch('/api/test');
+
+      expect(window.location.href).toBe('/access-denied');
+      expect(window.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'accessDenied',
+          detail: { message: 'Acceso denegado: No tienes permisos suficientes' }
+        })
+      );
+    });
+
+    it('should handle 401 responses and redirect to login', async () => {
+      const mockFetch = jest.fn().mockResolvedValue(new Response('Unauthorized', { status: 401 }));
+      window.fetch = mockFetch;
+      mockGetStoredToken.mockReturnValue('test-token');
+
+      await fetch('/api/test');
+
+      expect(window.location.href).toBe('/login');
+      expect(window.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'unauthorized',
+          detail: { message: 'No autorizado: Tu sesión ha expirado' }
+        })
+      );
+    });
+
+    it('should not redirect for auth login endpoint on 401/403', async () => {
+      const mockFetch = jest.fn().mockResolvedValue(new Response('Unauthorized', { status: 401 }));
+      window.fetch = mockFetch;
+      mockGetStoredToken.mockReturnValue('test-token');
+
+      await fetch('/api/auth/login');
+
+      expect(window.location.href).toBe('');
+      expect(window.dispatchEvent).not.toHaveBeenCalled();
+    });
+
+    it('should handle fetch errors gracefully', async () => {
+      const mockFetch = jest.fn().mockRejectedValue(new Error('Network error'));
+      window.fetch = mockFetch;
+      const consoleSpy = jest.spyOn(console, 'error');
+
+      await expect(fetch('/api/test')).rejects.toThrow('Network error');
+      expect(consoleSpy).toHaveBeenCalledWith('API Request failed:', expect.any(Error));
     });
   });
 
-  describe('V2 Specific Features', () => {
-    it('is version 2 of the interceptor', () => {
-      // This test ensures we're testing V2 specifically
+  describe('Auth Login Endpoint Detection', () => {
+    beforeEach(() => {
       initializeApiInterceptorV2();
-      
-      expect(typeof window.fetch).toBe('function');
-      
-      cleanupApiInterceptorV2();
-      
-      expect(typeof window.fetch).toBe('function');
     });
 
-    it('provides V2-specific initialization function', () => {
-      expect(initializeApiInterceptorV2).toBeDefined();
-      expect(typeof initializeApiInterceptorV2).toBe('function');
+    it('should detect auth login endpoint with absolute URL', async () => {
+      const mockFetch = jest.fn().mockResolvedValue(new Response('test'));
+      window.fetch = mockFetch;
+      mockGetStoredToken.mockReturnValue('test-token');
+
+      await fetch('http://localhost:3000/api/auth/login');
+
+      const callArgs = mockFetch.mock.calls[0];
+      const headers = callArgs[1]?.headers as Headers;
+      
+      expect(headers.get('Authorization')).toBeNull();
     });
 
-    it('provides V2-specific cleanup function', () => {
-      expect(cleanupApiInterceptorV2).toBeDefined();
-      expect(typeof cleanupApiInterceptorV2).toBe('function');
+    it('should detect auth login endpoint with relative URL', async () => {
+      const mockFetch = jest.fn().mockResolvedValue(new Response('test'));
+      window.fetch = mockFetch;
+      mockGetStoredToken.mockReturnValue('test-token');
+
+      await fetch('/api/auth/login');
+
+      const callArgs = mockFetch.mock.calls[0];
+      const headers = callArgs[1]?.headers as Headers;
+      
+      expect(headers.get('Authorization')).toBeNull();
+    });
+
+    it('should detect auth login endpoint with ending path', async () => {
+      const mockFetch = jest.fn().mockResolvedValue(new Response('test'));
+      window.fetch = mockFetch;
+      mockGetStoredToken.mockReturnValue('test-token');
+
+      await fetch('https://example.com/api/auth/login');
+
+      const callArgs = mockFetch.mock.calls[0];
+      const headers = callArgs[1]?.headers as Headers;
+      
+      expect(headers.get('Authorization')).toBeNull();
+    });
+
+    it('should handle malformed URLs gracefully', async () => {
+      const mockFetch = jest.fn().mockResolvedValue(new Response('test'));
+      window.fetch = mockFetch;
+      mockGetStoredToken.mockReturnValue('test-token');
+
+      await fetch('invalid-url/api/auth/login');
+
+      const callArgs = mockFetch.mock.calls[0];
+      const headers = callArgs[1]?.headers as Headers;
+      
+      expect(headers.get('Authorization')).toBeNull();
     });
   });
 
-  describe('State Management', () => {
-    it('maintains installation state', () => {
-      // Not installed initially
-      cleanupApiInterceptorV2(); // Ensure clean state
+  describe('Environment Configuration', () => {
+    it('should use REACT_APP_VERCEL_API when set', async () => {
+      const originalEnv = process.env.REACT_APP_VERCEL_API;
+      process.env.REACT_APP_VERCEL_API = 'https://custom-api.com';
       
-      // Install
-      initializeApiInterceptorV2();
-      const interceptedFetch = window.fetch;
-      
-      // Try to install again - should not change
       initializeApiInterceptorV2();
       
-      expect(window.fetch).toBe(interceptedFetch);
+      const mockFetch = jest.fn().mockResolvedValue(new Response('test'));
+      window.fetch = mockFetch;
+      mockGetStoredToken.mockReturnValue('test-token');
+
+      await fetch('https://custom-api.com/api/test');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://custom-api.com/api/test',
+        expect.objectContaining({
+          headers: expect.any(Headers)
+        })
+      );
+
+      process.env.REACT_APP_VERCEL_API = originalEnv;
     });
 
-    it('resets state on cleanup', () => {
-      initializeApiInterceptorV2();
-      cleanupApiInterceptorV2();
+    it('should use default localhost when REACT_APP_VERCEL_API not set', async () => {
+      const originalEnv = process.env.REACT_APP_VERCEL_API;
+      delete process.env.REACT_APP_VERCEL_API;
       
-      // Should be able to install again
       initializeApiInterceptorV2();
       
-      expect(typeof window.fetch).toBe('function');
+      const mockFetch = jest.fn().mockResolvedValue(new Response('test'));
+      window.fetch = mockFetch;
+      mockGetStoredToken.mockReturnValue('test-token');
+
+      await fetch('http://localhost:3000/api/test');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3000/api/test',
+        expect.objectContaining({
+          headers: expect.any(Headers)
+        })
+      );
+
+      process.env.REACT_APP_VERCEL_API = originalEnv;
     });
   });
 
-  describe('Fetch Interception Logic', () => {
-    it('installs successfully and replaces window.fetch', () => {
-      const originalFetch = window.fetch;
-      
+  describe('Logging', () => {
+    beforeEach(() => {
       initializeApiInterceptorV2();
-      
-      // Verify fetch was replaced
-      expect(window.fetch).not.toBe(originalFetch);
-      expect(typeof window.fetch).toBe('function');
-      
-      cleanupApiInterceptorV2();
     });
 
-    it('cleans up and restores original fetch', () => {
-      initializeApiInterceptorV2();
-      const interceptedFetch = window.fetch;
-      
-      cleanupApiInterceptorV2();
-      
-      // Verify fetch was restored
-      expect(window.fetch).not.toBe(interceptedFetch);
-      expect(typeof window.fetch).toBe('function');
+    it('should log API call interception', async () => {
+      const consoleSpy = jest.spyOn(console, 'log');
+      const mockFetch = jest.fn().mockResolvedValue(new Response('test'));
+      window.fetch = mockFetch;
+      mockGetStoredToken.mockReturnValue('test-token');
+
+      await fetch('/api/test');
+
+      expect(consoleSpy).toHaveBeenCalledWith('🔗 Intercepting API call:', '/api/test');
+      expect(consoleSpy).toHaveBeenCalledWith('🎫 Token from storage:', expect.stringContaining('test-token'));
+      expect(consoleSpy).toHaveBeenCalledWith('🔐 JWT token added to request headers');
     });
 
-    it('integrates with token storage', () => {
-      const mockToken = 'test-jwt-token-123';
-      mockGetStoredToken.mockReturnValue(mockToken);
-      
-      initializeApiInterceptorV2();
-      
-      // Verify interceptor is installed
-      expect(typeof window.fetch).toBe('function');
-      
-      // Verify token retrieval works
-      expect(getStoredToken()).toBe(mockToken);
-      
-      cleanupApiInterceptorV2();
-    });
-
-    it('handles null tokens correctly', () => {
+    it('should log when no token is found', async () => {
+      const consoleSpy = jest.spyOn(console, 'log');
+      const mockFetch = jest.fn().mockResolvedValue(new Response('test'));
+      window.fetch = mockFetch;
       mockGetStoredToken.mockReturnValue(null);
-      
-      initializeApiInterceptorV2();
-      
-      // Verify interceptor is installed even without token
-      expect(typeof window.fetch).toBe('function');
-      
-      // Verify null token is handled
-      expect(getStoredToken()).toBeNull();
-      
-      cleanupApiInterceptorV2();
+
+      await fetch('/api/test');
+
+      expect(consoleSpy).toHaveBeenCalledWith('⚠️ No JWT token found in localStorage');
     });
 
-    it('maintains fetch function signature', () => {
-      initializeApiInterceptorV2();
-      
-      // Verify fetch maintains correct signature
-      expect(window.fetch).toBeInstanceOf(Function);
-      expect(window.fetch.length).toBeGreaterThanOrEqual(1);
-      
-      cleanupApiInterceptorV2();
-    });
+    it('should log API response details', async () => {
+      const consoleSpy = jest.spyOn(console, 'log');
+      const mockFetch = jest.fn().mockResolvedValue(new Response('test', { status: 200, statusText: 'OK' }));
+      window.fetch = mockFetch;
+      mockGetStoredToken.mockReturnValue('test-token');
 
-    it('can be installed and cleaned up multiple times', () => {
-      for (let i = 0; i < 3; i++) {
-        initializeApiInterceptorV2();
-        expect(typeof window.fetch).toBe('function');
-        
-        cleanupApiInterceptorV2();
-        expect(typeof window.fetch).toBe('function');
-      }
-    });
+      await fetch('/api/test');
 
-    it('prevents double installation', () => {
-      initializeApiInterceptorV2();
-      const firstFetch = window.fetch;
-      
-      initializeApiInterceptorV2(); // Try to install again
-      
-      // Should be the same instance
-      expect(window.fetch).toBe(firstFetch);
-      
-      cleanupApiInterceptorV2();
-    });
-
-    it('handles cleanup when not installed', () => {
-      // Should not throw
-      expect(() => cleanupApiInterceptorV2()).not.toThrow();
+      expect(consoleSpy).toHaveBeenCalledWith('API Response:', {
+        url: '/api/test',
+        status: 200,
+        statusText: 'OK',
+        hasAuthHeader: true
+      });
     });
   });
 });
-
