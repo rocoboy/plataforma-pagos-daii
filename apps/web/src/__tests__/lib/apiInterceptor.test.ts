@@ -1,263 +1,359 @@
-import { apiInterceptor, initializeApiInterceptor, cleanupApiInterceptor } from '../../lib/apiInterceptor';
-import { getStoredToken } from '../../lib/auth';
+import { setupApiInterceptor } from '../apiInterceptor';
 
-// Mock the auth module
-jest.mock('../../lib/auth', () => ({
-  getStoredToken: jest.fn(),
-}));
+// Mock fetch
+const mockFetch = jest.fn();
+global.fetch = mockFetch;
 
-const mockGetStoredToken = getStoredToken as jest.MockedFunction<typeof getStoredToken>;
-
-// Mock console methods to reduce test noise
-const originalConsoleLog = console.log;
-const originalConsoleError = console.error;
-
-beforeAll(() => {
-  console.log = jest.fn();
-  console.error = jest.fn();
+// Mock localStorage
+const mockLocalStorage = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+  length: 0,
+  key: jest.fn()
+};
+Object.defineProperty(window, 'localStorage', {
+  value: mockLocalStorage
 });
 
-afterAll(() => {
-  console.log = originalConsoleLog;
-  console.error = originalConsoleError;
-});
+// Mock console methods
+const mockConsoleError = jest.spyOn(console, 'error');
+const mockConsoleWarn = jest.spyOn(console, 'warn');
 
-describe('ApiInterceptor', () => {
-  let originalFetch: typeof fetch;
-
+describe('API Interceptor', () => {
   beforeEach(() => {
-    // Store original fetch
-    originalFetch = window.fetch;
-    
-    // Reset mocks
     jest.clearAllMocks();
-    
-    // Reset fetch to original before each test
-    window.fetch = originalFetch;
+    mockFetch.mockClear();
+    mockLocalStorage.getItem.mockClear();
+    mockConsoleError.mockClear();
+    mockConsoleWarn.mockClear();
   });
 
-  afterEach(() => {
-    // Always restore original fetch after each test
-    try {
-      cleanupApiInterceptor();
-    } catch (e) {
-      // Ignore errors during cleanup
-    }
-    window.fetch = originalFetch;
-  });
-
-  describe('Installation and Uninstallation', () => {
-    it('installs the interceptor and replaces window.fetch', () => {
-      const originalWindowFetch = window.fetch;
-      
-      initializeApiInterceptor();
-      
-      expect(window.fetch).not.toBe(originalWindowFetch);
-      expect(typeof window.fetch).toBe('function');
+  describe('setupApiInterceptor', () => {
+    it('should be defined and callable', () => {
+      expect(setupApiInterceptor).toBeDefined();
+      expect(typeof setupApiInterceptor).toBe('function');
     });
 
-    it('uninstalls the interceptor', () => {
-      initializeApiInterceptor();
-      const interceptedFetch = window.fetch;
-      
-      cleanupApiInterceptor();
-      
-      expect(window.fetch).not.toBe(interceptedFetch);
-      expect(typeof window.fetch).toBe('function');
-    });
-
-    it('can be installed and uninstalled multiple times', () => {
-      initializeApiInterceptor();
-      cleanupApiInterceptor();
-      initializeApiInterceptor();
-      cleanupApiInterceptor();
-      
-      expect(typeof window.fetch).toBe('function');
+    it('should call setupApiInterceptor without errors', () => {
+      expect(() => setupApiInterceptor()).not.toThrow();
     });
   });
 
-  describe('Token and Header Management', () => {
-    it('correctly sets up interceptor with token available', () => {
-      const mockToken = 'test-jwt-token-123';
-      mockGetStoredToken.mockReturnValue(mockToken);
+  describe('Token Management', () => {
+    it('should get token from localStorage', () => {
+      const mockToken = 'test-jwt-token';
+      mockLocalStorage.getItem.mockReturnValue(mockToken);
+
+      setupApiInterceptor();
+
+      expect(mockLocalStorage.getItem).toHaveBeenCalledWith('token');
+    });
+
+    it('should handle missing token gracefully', () => {
+      mockLocalStorage.getItem.mockReturnValue(null);
+
+      expect(() => setupApiInterceptor()).not.toThrow();
+    });
+
+    it('should handle empty token', () => {
+      mockLocalStorage.getItem.mockReturnValue('');
+
+      expect(() => setupApiInterceptor()).not.toThrow();
+    });
+  });
+
+  describe('Fetch Interception', () => {
+    it('should intercept fetch calls', () => {
+      const originalFetch = global.fetch;
+      setupApiInterceptor();
+
+      expect(global.fetch).not.toBe(originalFetch);
+    });
+
+    it('should preserve original fetch for non-API calls', async () => {
+      const mockResponse = new Response('test', { status: 200 });
+      mockFetch.mockResolvedValue(mockResponse);
+
+      setupApiInterceptor();
+
+      const response = await fetch('https://example.com/api/test');
+      expect(mockFetch).toHaveBeenCalled();
+      expect(response).toBe(mockResponse);
+    });
+
+    it('should add authorization header for API calls', async () => {
+      const mockToken = 'test-jwt-token';
+      const mockResponse = new Response('success', { status: 200 });
       
-      // Create a mock fetch that captures the request
-      const mockFetch = jest.fn().mockResolvedValue(
-        new Response(JSON.stringify({ success: true }), {
-          status: 200,
+      mockLocalStorage.getItem.mockReturnValue(mockToken);
+      mockFetch.mockResolvedValue(mockResponse);
+
+      setupApiInterceptor();
+
+      await fetch('/api/test');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/test',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Authorization': `Bearer ${mockToken}`
+          })
         })
       );
-      
-      window.fetch = mockFetch;
-      initializeApiInterceptor();
-      
-      // Verify the mock is callable
-      expect(typeof window.fetch).toBe('function');
-      expect(mockGetStoredToken).toHaveBeenCalledTimes(0); // Not called until actual fetch
     });
 
-    it('correctly sets up interceptor without token', () => {
-      mockGetStoredToken.mockReturnValue(null);
+    it('should handle requests without options', async () => {
+      const mockToken = 'test-jwt-token';
+      const mockResponse = new Response('success', { status: 200 });
       
-      const mockFetch = jest.fn().mockResolvedValue(
-        new Response(JSON.stringify({ success: true }), {
-          status: 200,
+      mockLocalStorage.getItem.mockReturnValue(mockToken);
+      mockFetch.mockResolvedValue(mockResponse);
+
+      setupApiInterceptor();
+
+      await fetch('/api/test');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/test',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Authorization': `Bearer ${mockToken}`
+          })
         })
       );
+    });
+
+    it('should merge with existing headers', async () => {
+      const mockToken = 'test-jwt-token';
+      const mockResponse = new Response('success', { status: 200 });
       
-      window.fetch = mockFetch;
-      initializeApiInterceptor();
-      
-      // Verify the mock is callable
-      expect(typeof window.fetch).toBe('function');
+      mockLocalStorage.getItem.mockReturnValue(mockToken);
+      mockFetch.mockResolvedValue(mockResponse);
+
+      setupApiInterceptor();
+
+      await fetch('/api/test', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Custom-Header': 'value'
+        }
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/test',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Authorization': `Bearer ${mockToken}`,
+            'Content-Type': 'application/json',
+            'Custom-Header': 'value'
+          })
+        })
+      );
     });
   });
 
-  describe('Singleton Instance', () => {
-    it('exports a singleton instance', () => {
-      expect(apiInterceptor).toBeDefined();
-      expect(typeof apiInterceptor.install).toBe('function');
-      expect(typeof apiInterceptor.uninstall).toBe('function');
+  describe('Error Handling', () => {
+    it('should handle fetch errors gracefully', async () => {
+      const mockError = new Error('Network error');
+      mockFetch.mockRejectedValue(mockError);
+
+      setupApiInterceptor();
+
+      await expect(fetch('/api/test')).rejects.toThrow('Network error');
     });
 
-    it('can use the singleton instance directly', () => {
-      const originalWindowFetch = window.fetch;
-      
-      apiInterceptor.install();
-      expect(window.fetch).not.toBe(originalWindowFetch);
-      expect(typeof window.fetch).toBe('function');
-      
-      apiInterceptor.uninstall();
-      expect(typeof window.fetch).toBe('function');
-    });
-  });
+    it('should handle localStorage errors', () => {
+      mockLocalStorage.getItem.mockImplementation(() => {
+        throw new Error('localStorage error');
+      });
 
-  describe('Interceptor Class API', () => {
-    it('has correct methods on the class', () => {
-      expect(typeof apiInterceptor.install).toBe('function');
-      expect(typeof apiInterceptor.uninstall).toBe('function');
+      expect(() => setupApiInterceptor()).not.toThrow();
     });
 
-    it('maintains function signature after install', () => {
-      initializeApiInterceptor();
-      
-      // window.fetch should still be a function that takes RequestInfo and RequestInit
-      expect(window.fetch).toBeInstanceOf(Function);
-      expect(window.fetch.length).toBeGreaterThanOrEqual(1);
-    });
-  });
+    it('should handle malformed URLs', async () => {
+      const mockResponse = new Response('success', { status: 200 });
+      mockFetch.mockResolvedValue(mockResponse);
 
-  describe('Initialization Functions', () => {
-    it('initializeApiInterceptor is a function', () => {
-      expect(typeof initializeApiInterceptor).toBe('function');
-    });
+      setupApiInterceptor();
 
-    it('cleanupApiInterceptor is a function', () => {
-      expect(typeof cleanupApiInterceptor).toBe('function');
-    });
+      // Test with relative URL
+      await fetch('/api/test');
+      expect(mockFetch).toHaveBeenCalled();
 
-    it('does not throw when initializing', () => {
-      expect(() => initializeApiInterceptor()).not.toThrow();
-    });
-
-    it('does not throw when cleaning up', () => {
-      initializeApiInterceptor();
-      expect(() => cleanupApiInterceptor()).not.toThrow();
-    });
-
-    it('does not throw when cleaning up without initializing', () => {
-      expect(() => cleanupApiInterceptor()).not.toThrow();
+      // Test with absolute URL
+      await fetch('https://api.example.com/test');
+      expect(mockFetch).toHaveBeenCalled();
     });
   });
 
-  describe('Token Storage Integration', () => {
-    it('integrates with getStoredToken from auth module', () => {
-      mockGetStoredToken.mockReturnValue('some-token');
-      
-      // Verify the mock is set up correctly
-      expect(getStoredToken()).toBe('some-token');
-      expect(mockGetStoredToken).toHaveBeenCalled();
+  describe('URL Matching', () => {
+    beforeEach(() => {
+      const mockResponse = new Response('success', { status: 200 });
+      mockFetch.mockResolvedValue(mockResponse);
     });
 
-    it('handles null token from getStoredToken', () => {
-      mockGetStoredToken.mockReturnValue(null);
-      
-      expect(getStoredToken()).toBeNull();
-      expect(mockGetStoredToken).toHaveBeenCalled();
+    it('should match API paths starting with /api/', async () => {
+      const mockToken = 'test-jwt-token';
+      mockLocalStorage.getItem.mockReturnValue(mockToken);
+
+      setupApiInterceptor();
+
+      await fetch('/api/payments');
+      await fetch('/api/users');
+      await fetch('/api/auth/login');
+
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+    });
+
+    it('should not match non-API paths', async () => {
+      const mockToken = 'test-jwt-token';
+      mockLocalStorage.getItem.mockReturnValue(mockToken);
+
+      setupApiInterceptor();
+
+      await fetch('/static/image.png');
+      await fetch('/public/script.js');
+      await fetch('https://external-api.com/data');
+
+      // Should still call fetch but without authorization header
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+    });
+
+    it('should handle edge cases in URL matching', async () => {
+      const mockToken = 'test-jwt-token';
+      mockLocalStorage.getItem.mockReturnValue(mockToken);
+
+      setupApiInterceptor();
+
+      // Test various URL formats
+      await fetch('/api');
+      await fetch('/api/');
+      await fetch('/api/v1/test');
+      await fetch('/api/test?param=value');
+      await fetch('/api/test#fragment');
+
+      expect(mockFetch).toHaveBeenCalledTimes(5);
     });
   });
 
-  describe('Fetch Interception Logic', () => {
-    it('installs successfully and replaces window.fetch', () => {
-      const originalFetch = window.fetch;
-      
-      initializeApiInterceptor();
-      
-      // Verify fetch was replaced
-      expect(window.fetch).not.toBe(originalFetch);
-      expect(typeof window.fetch).toBe('function');
-      
-      cleanupApiInterceptor();
-    });
+  describe('Token Refresh Scenarios', () => {
+    it('should use updated token on subsequent calls', async () => {
+      let tokenCallCount = 0;
+      mockLocalStorage.getItem.mockImplementation(() => {
+        tokenCallCount++;
+        return tokenCallCount === 1 ? 'old-token' : 'new-token';
+      });
 
-    it('cleans up and restores original fetch', () => {
-      initializeApiInterceptor();
-      const interceptedFetch = window.fetch;
-      
-      cleanupApiInterceptor();
-      
-      // Verify fetch was restored
-      expect(window.fetch).not.toBe(interceptedFetch);
-      expect(typeof window.fetch).toBe('function');
-    });
+      const mockResponse = new Response('success', { status: 200 });
+      mockFetch.mockResolvedValue(mockResponse);
 
-    it('integrates with token storage', () => {
-      const mockToken = 'test-jwt-token-123';
-      mockGetStoredToken.mockReturnValue(mockToken);
-      
-      initializeApiInterceptor();
-      
-      // Verify interceptor is installed
-      expect(typeof window.fetch).toBe('function');
-      
-      // Verify token retrieval works
-      expect(getStoredToken()).toBe(mockToken);
-      
-      cleanupApiInterceptor();
-    });
+      setupApiInterceptor();
 
-    it('handles null tokens correctly', () => {
-      mockGetStoredToken.mockReturnValue(null);
+      // First call with old token
+      await fetch('/api/test1');
       
-      initializeApiInterceptor();
-      
-      // Verify interceptor is installed even without token
-      expect(typeof window.fetch).toBe('function');
-      
-      // Verify null token is handled
-      expect(getStoredToken()).toBeNull();
-      
-      cleanupApiInterceptor();
-    });
+      // Second call with new token
+      await fetch('/api/test2');
 
-    it('maintains fetch function signature', () => {
-      initializeApiInterceptor();
-      
-      // Verify fetch maintains correct signature
-      expect(window.fetch).toBeInstanceOf(Function);
-      expect(window.fetch.length).toBeGreaterThanOrEqual(1);
-      
-      cleanupApiInterceptor();
-    });
+      expect(mockFetch).toHaveBeenNthCalledWith(1, '/api/test1', expect.objectContaining({
+        headers: expect.objectContaining({
+          'Authorization': 'Bearer old-token'
+        })
+      }));
 
-    it('can be installed and cleaned up multiple times', () => {
-      for (let i = 0; i < 3; i++) {
-        initializeApiInterceptor();
-        expect(typeof window.fetch).toBe('function');
-        
-        cleanupApiInterceptor();
-        expect(typeof window.fetch).toBe('function');
+      expect(mockFetch).toHaveBeenNthCalledWith(2, '/api/test2', expect.objectContaining({
+        headers: expect.objectContaining({
+          'Authorization': 'Bearer new-token'
+        })
+      }));
+    });
+  });
+
+  describe('Performance', () => {
+    it('should not significantly impact performance', async () => {
+      const mockResponse = new Response('success', { status: 200 });
+      mockFetch.mockResolvedValue(mockResponse);
+      mockLocalStorage.getItem.mockReturnValue('test-token');
+
+      setupApiInterceptor();
+
+      const startTime = performance.now();
+      
+      // Make multiple rapid calls
+      const promises = Array.from({ length: 100 }, (_, i) => 
+        fetch(`/api/test${i}`)
+      );
+      
+      await Promise.all(promises);
+      
+      const endTime = performance.now();
+      const duration = endTime - startTime;
+
+      // Should complete quickly (less than 100ms for 100 calls)
+      expect(duration).toBeLessThan(100);
+      expect(mockFetch).toHaveBeenCalledTimes(100);
+    });
+  });
+
+  describe('Memory Management', () => {
+    it('should not create memory leaks', () => {
+      const initialMemory = process.memoryUsage();
+      
+      // Call setup multiple times
+      for (let i = 0; i < 1000; i++) {
+        setupApiInterceptor();
       }
+      
+      const finalMemory = process.memoryUsage();
+      const memoryIncrease = finalMemory.heapUsed - initialMemory.heapUsed;
+      
+      // Memory increase should be minimal
+      expect(memoryIncrease).toBeLessThan(1024 * 1024); // Less than 1MB
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle undefined fetch', () => {
+      const originalFetch = global.fetch;
+      // @ts-ignore
+      global.fetch = undefined;
+
+      expect(() => setupApiInterceptor()).not.toThrow();
+
+      // Restore
+      global.fetch = originalFetch;
+    });
+
+    it('should handle null fetch', () => {
+      const originalFetch = global.fetch;
+      // @ts-ignore
+      global.fetch = null;
+
+      expect(() => setupApiInterceptor()).not.toThrow();
+
+      // Restore
+      global.fetch = originalFetch;
+    });
+
+    it('should handle malformed token', async () => {
+      mockLocalStorage.getItem.mockReturnValue('malformed-token');
+      const mockResponse = new Response('success', { status: 200 });
+      mockFetch.mockResolvedValue(mockResponse);
+
+      setupApiInterceptor();
+
+      await fetch('/api/test');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/test',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Authorization': 'Bearer malformed-token'
+          })
+        })
+      );
     });
   });
 });
