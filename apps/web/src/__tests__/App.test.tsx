@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import App from '../App';
 import { initializeApiInterceptorV2 } from '../lib/apiInterceptorV2';
 
@@ -78,9 +78,9 @@ describe('App Component', () => {
   describe('Initialization', () => {
     it('should initialize API interceptor on mount', () => {
       render(
-        <BrowserRouter>
+        <MemoryRouter>
           <App />
-        </BrowserRouter>
+        </MemoryRouter>
       );
 
       expect(initializeApiInterceptorV2).toHaveBeenCalledTimes(1);
@@ -90,9 +90,9 @@ describe('App Component', () => {
       const consoleSpy = jest.spyOn(console, 'log');
       
       render(
-        <BrowserRouter>
+        <MemoryRouter>
           <App />
-        </BrowserRouter>
+        </MemoryRouter>
       );
 
       expect(consoleSpy).toHaveBeenCalledWith('🚀 Application started with API interceptor V2 enabled');
@@ -102,9 +102,9 @@ describe('App Component', () => {
   describe('Component Structure', () => {
     it('should render QueryClientProvider', () => {
       render(
-        <BrowserRouter>
+        <MemoryRouter>
           <App />
-        </BrowserRouter>
+        </MemoryRouter>
       );
 
       // QueryClientProvider doesn't have a testid, but we can check if AuthProvider is rendered
@@ -113,9 +113,9 @@ describe('App Component', () => {
 
     it('should render AuthProvider', () => {
       render(
-        <BrowserRouter>
+        <MemoryRouter>
           <App />
-        </BrowserRouter>
+        </MemoryRouter>
       );
 
       expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
@@ -123,9 +123,9 @@ describe('App Component', () => {
 
     it('should render main app content', () => {
       render(
-        <BrowserRouter>
+        <MemoryRouter>
           <App />
-        </BrowserRouter>
+        </MemoryRouter>
       );
 
       // Check for main content wrapper
@@ -140,9 +140,9 @@ describe('App Component', () => {
       process.env.NODE_ENV = 'development';
 
       render(
-        <BrowserRouter>
+        <MemoryRouter>
           <App />
-        </BrowserRouter>
+        </MemoryRouter>
       );
 
       expect(screen.getByTestId('react-query-devtools')).toBeInTheDocument();
@@ -155,9 +155,9 @@ describe('App Component', () => {
       process.env.NODE_ENV = 'production';
 
       render(
-        <BrowserRouter>
+        <MemoryRouter>
           <App />
-        </BrowserRouter>
+        </MemoryRouter>
       );
 
       expect(screen.queryByTestId('react-query-devtools')).not.toBeInTheDocument();
@@ -169,87 +169,57 @@ describe('App Component', () => {
   describe('Routing', () => {
     it('should render custom login page for /login route', () => {
       render(
-        <BrowserRouter>
+        <MemoryRouter initialEntries={["/login"]}>
           <App />
-        </BrowserRouter>
+        </MemoryRouter>
       );
-
-      // Navigate to login page
-      window.history.pushState({}, 'Test page', '/login');
-      window.dispatchEvent(new PopStateEvent('popstate'));
-
       expect(screen.getByTestId('custom-login-page')).toBeInTheDocument();
     });
 
     it('should render old login page for /login-old route', () => {
       render(
-        <BrowserRouter>
+        <MemoryRouter initialEntries={["/login-old"]}>
           <App />
-        </BrowserRouter>
+        </MemoryRouter>
       );
-
-      // Navigate to old login page
-      window.history.pushState({}, 'Test page', '/login-old');
-      window.dispatchEvent(new PopStateEvent('popstate'));
-
       expect(screen.getByTestId('login-page')).toBeInTheDocument();
     });
 
     it('should render access denied page for /access-denied route', () => {
       render(
-        <BrowserRouter>
+        <MemoryRouter initialEntries={["/access-denied"]}>
           <App />
-        </BrowserRouter>
+        </MemoryRouter>
       );
-
-      // Navigate to access denied page
-      window.history.pushState({}, 'Test page', '/access-denied');
-      window.dispatchEvent(new PopStateEvent('popstate'));
-
       expect(screen.getByTestId('access-denied-page')).toBeInTheDocument();
     });
 
     it('should render transactions page for /payments route with AuthGuard', () => {
       render(
-        <BrowserRouter>
+        <MemoryRouter initialEntries={["/payments"]}>
           <App />
-        </BrowserRouter>
+        </MemoryRouter>
       );
-
-      // Navigate to payments page
-      window.history.pushState({}, 'Test page', '/payments');
-      window.dispatchEvent(new PopStateEvent('popstate'));
-
       expect(screen.getByTestId('auth-guard')).toBeInTheDocument();
       expect(screen.getByTestId('transactions-page')).toBeInTheDocument();
     });
 
     it('should render transaction detail page for /payments/:id route with AuthGuard', () => {
       render(
-        <BrowserRouter>
+        <MemoryRouter initialEntries={["/payments/123"]}>
           <App />
-        </BrowserRouter>
+        </MemoryRouter>
       );
-
-      // Navigate to transaction detail page
-      window.history.pushState({}, 'Test page', '/payments/123');
-      window.dispatchEvent(new PopStateEvent('popstate'));
-
       expect(screen.getByTestId('auth-guard')).toBeInTheDocument();
       expect(screen.getByTestId('transaction-detail-page')).toBeInTheDocument();
     });
 
     it('should render dev payment creator for /dev/create-payment route with admin AuthGuard', () => {
       render(
-        <BrowserRouter>
+        <MemoryRouter initialEntries={["/dev/create-payment"]}>
           <App />
-        </BrowserRouter>
+        </MemoryRouter>
       );
-
-      // Navigate to dev payment creator page
-      window.history.pushState({}, 'Test page', '/dev/create-payment');
-      window.dispatchEvent(new PopStateEvent('popstate'));
-
       const authGuard = screen.getByTestId('auth-guard');
       expect(authGuard).toBeInTheDocument();
       expect(authGuard).toHaveAttribute('data-require-admin', 'true');
@@ -258,32 +228,24 @@ describe('App Component', () => {
 
     it('should redirect to /payments for unknown routes', () => {
       render(
-        <BrowserRouter>
+        <MemoryRouter initialEntries={["/unknown-route"]}>
           <App />
-        </BrowserRouter>
+        </MemoryRouter>
       );
-
-      // Navigate to unknown route
-      window.history.pushState({}, 'Test page', '/unknown-route');
-      window.dispatchEvent(new PopStateEvent('popstate'));
-
       // Should redirect to payments
       expect(screen.getByTestId('transactions-page')).toBeInTheDocument();
     });
 
     it('should not redirect login-related pages', () => {
-      render(
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      );
-
       const loginRoutes = ['/login', '/login-old', '/access-denied'];
-      
+
       loginRoutes.forEach(route => {
-        window.history.pushState({}, 'Test page', route);
-        window.dispatchEvent(new PopStateEvent('popstate'));
-        
+        render(
+          <MemoryRouter initialEntries={[route]}>
+            <App />
+          </MemoryRouter>
+        );
+
         // Should not redirect to payments
         expect(screen.queryByTestId('transactions-page')).not.toBeInTheDocument();
       });
@@ -293,9 +255,9 @@ describe('App Component', () => {
   describe('Layout Structure', () => {
     it('should have proper main content structure', () => {
       render(
-        <BrowserRouter>
+        <MemoryRouter>
           <App />
-        </BrowserRouter>
+        </MemoryRouter>
       );
 
       const main = screen.getByRole('main');
@@ -304,9 +266,9 @@ describe('App Component', () => {
 
     it('should have footer with copyright', () => {
       render(
-        <BrowserRouter>
+        <MemoryRouter>
           <App />
-        </BrowserRouter>
+        </MemoryRouter>
       );
 
       expect(screen.getByText('© 2025')).toBeInTheDocument();
@@ -314,9 +276,9 @@ describe('App Component', () => {
 
     it('should have proper CSS classes', () => {
       render(
-        <BrowserRouter>
+        <MemoryRouter>
           <App />
-        </BrowserRouter>
+        </MemoryRouter>
       );
 
       const container = screen.getByRole('main').parentElement;
@@ -329,9 +291,9 @@ describe('App Component', () => {
       // This test verifies that the QueryClient is configured correctly
       // The actual configuration is tested implicitly through the component rendering
       render(
-        <BrowserRouter>
+        <MemoryRouter>
           <App />
-        </BrowserRouter>
+        </MemoryRouter>
       );
 
       // If the component renders without errors, the QueryClient is properly configured
@@ -350,9 +312,9 @@ describe('App Component', () => {
       // In a real scenario, you'd have an error boundary
       expect(() => {
         render(
-          <BrowserRouter>
+          <MemoryRouter>
             <App />
-          </BrowserRouter>
+          </MemoryRouter>
         );
       }).not.toThrow();
     });
