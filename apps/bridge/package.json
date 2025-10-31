@@ -5,7 +5,8 @@
   "main": "src/index.ts",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
-    "start": "bun run src/index.ts",
+  "start": "bun run src/index.ts",
+  "serve:http": "bun run src/server-only.ts",
     "build": "bun build src/index.ts --outdir ./dist --target bun",
     "docker:build": "docker build -t kafka-bridge .",
     "docker:run": "docker run -p 8080:8080 --env-file .env kafka-bridge",
@@ -15,6 +16,7 @@
     "clean": "rm -rf dist node_modules bun.lockb"
   },
   "dependencies": {
+    "amqplib": "^0.10.9",
     "dotenv": "^16.6.1",
     "kafkajs": "^2.2.4"
   },
