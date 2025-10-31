@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Herramienta de Pruebas de Autenticación</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .admin { background: #28a745; }
+        .admin:hover { background: #1e7e34; }
+        .user { background: #6c757d; }
+        .user:hover { background: #545b62; }
+        .info {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #007bff;
+        }
+        .code {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            font-family: monospace;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Herramienta de Pruebas de Autenticación</h1>
+        <p>Esto simula la redirección de autenticación del Módulo de Usuarios del Grupo 5, dependiendo del Rol dado, se rechaza o concede el acceso.</p>
+
+        <h3>Prueba con Usuario Administrador</h3>
+        <button class="button admin" onclick="loginAsAdmin()">
+            Iniciar sesión como Administrador
+        </button>
+        
+        <h3>Prueba con Usuario Regular</h3>
+        <button class="button user" onclick="loginAsUser()">
+            Iniciar sesión como Usuario
+        </button>
+
+        <h3>URLs de Prueba Generadas:</h3>
+        <div>
+            <strong>URL de Administrador:</strong>
+            <div class="code" id="adminUrl"></div>
+        </div>
+        <div>
+            <strong>URL de Usuario:</strong>
+            <div class="code" id="userUrl"></div>
+        </div>
+    </div>
+
+    <script>
+        // JWT Secret (same as your API)
+        const JWT_SECRET = '45c3e205e1a3d92ad1b8622cfac971cd2f28250cfbd02b8f1d907fa716054cc0745332bd6773c282155c8b6dcf3538fce89d021fd48b35f2759428675064c216';
+
+        // Base64url encoding (different from base64)
+        function base64urlEncode(str) {
+            return btoa(str)
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=/g, '');
+        }
+
+        // Simple HMAC-SHA256 implementation for JWT signing
+        async function hmacSHA256(key, data) {
+            const encoder = new TextEncoder();
+            const keyData = encoder.encode(key);
+            const messageData = encoder.encode(data);
+            
+            const cryptoKey = await crypto.subtle.importKey(
+                'raw',
+                keyData,
+                { name: 'HMAC', hash: 'SHA-256' },
+                false,
+                ['sign']
+            );
+            
+            const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+            return new Uint8Array(signature);
+        }
+
+        // Convert ArrayBuffer to base64url
+        function arrayBufferToBase64url(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary)
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=/g, '');
+        }
+
+        // Generate a real JWT token
+        async function generateRealJWT(role, email, name, id) {
+            const header = {
+                alg: "HS256",
+                typ: "JWT"
+            };
+
+            const payload = {
+                sub: id,
+                email: email,
+                role: role,
+                name: name,
+                iat: Math.floor(Date.now() / 1000),
+                exp: Math.floor(Date.now() / 1000) + 3600 // 1 hour
+            };
+
+            const encodedHeader = base64urlEncode(JSON.stringify(header));
+            const encodedPayload = base64urlEncode(JSON.stringify(payload));
+            
+            const signingInput = `${encodedHeader}.${encodedPayload}`;
+            const signature = await hmacSHA256(JWT_SECRET, signingInput);
+            const encodedSignature = arrayBufferToBase64url(signature);
+
+            return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
+        }
+
+        function createRedirectUrl(token, user) {
+            const userEncoded = encodeURIComponent(JSON.stringify(user));
+            const currentOrigin = window.location.origin; // Gets current domain (localhost:3001 or preprod URL)
+            return `${currentOrigin}/payments#token=${token}&user=${userEncoded}`;
+        }
+
+        async function loginAsAdmin() {
+            const token = await generateRealJWT("Administrador", "admin@test.com", "Administrador de Prueba", "123");
+            const user = {
+                id: "123",
+                email: "admin@test.com", 
+                role: "Administrador",
+                name: "Administrador de Prueba"
+            };
+            console.log('Token de administrador generado:', token);
+            const url = createRedirectUrl(token, user);
+            window.location.href = url;
+        }
+
+        async function loginAsUser() {
+            const token = await generateRealJWT("Usuario", "usuario@test.com", "Usuario de Prueba", "456");
+            const user = {
+                id: "456",
+                email: "usuario@test.com",
+                role: "Usuario", 
+                name: "Usuario de Prueba"
+            };
+            console.log('Token de usuario generado:', token);
+            const url = createRedirectUrl(token, user);
+            window.location.href = url;
+        }
+
+        // Display the URLs on page load
+        window.onload = async function() {
+            const adminToken = await generateRealJWT("Administrador", "admin@test.com", "Administrador de Prueba", "123");
+            const adminUser = { id: "123", email: "admin@test.com", role: "Administrador", name: "Administrador de Prueba" };
+            document.getElementById('adminUrl').textContent = createRedirectUrl(adminToken, adminUser);
+
+            const userToken = await generateRealJWT("Usuario", "usuario@test.com", "Usuario de Prueba", "456");
+            const userUser = { id: "456", email: "usuario@test.com", role: "Usuario", name: "Usuario de Prueba" };
+            document.getElementById('userUrl').textContent = createRedirectUrl(userToken, userUser);
+        };
+    </script>
+</body>
+</html>
