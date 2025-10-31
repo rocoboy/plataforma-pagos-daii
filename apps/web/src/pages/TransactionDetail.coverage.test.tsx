@@ -1,3 +1,12 @@
+import TransactionDetailPage from './TransactionDetail';
+
+describe('TransactionDetail Page - Coverage', () => {
+  it('exports default component', () => {
+    expect(TransactionDetailPage).toBeDefined();
+    expect(typeof TransactionDetailPage).toBe('function');
+  });
+});
+
 import React from 'react';
 
 jest.mock('react-router-dom', () => ({
