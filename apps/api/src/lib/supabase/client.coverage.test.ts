@@ -1,17 +1,16 @@
+import * as clientModule from './client';
+
 describe('Supabase Client - Coverage', () => {
   it('client file exists', () => {
-    const client = require('./client');
-    expect(client).toBeDefined();
+    expect(clientModule).toBeDefined();
   });
 
   it('exports createClient', () => {
-    const client = require('./client');
-    expect(client.createClient).toBeDefined();
+    expect(clientModule.createClient).toBeDefined();
   });
 
   it('createClient is a function', () => {
-    const client = require('./client');
-    expect(typeof client.createClient).toBe('function');
+    expect(typeof clientModule.createClient).toBe('function');
   });
 });
 

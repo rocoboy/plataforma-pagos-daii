@@ -1,17 +1,16 @@
+import * as serverModule from './server';
+
 describe('Supabase Server - Coverage', () => {
   it('server file exists', () => {
-    const server = require('./server');
-    expect(server).toBeDefined();
+    expect(serverModule).toBeDefined();
   });
 
   it('exports createClient', () => {
-    const server = require('./server');
-    expect(server.createClient).toBeDefined();
+    expect(serverModule.createClient).toBeDefined();
   });
 
   it('createClient is a function', () => {
-    const server = require('./server');
-    expect(typeof server.createClient).toBe('function');
+    expect(typeof serverModule.createClient).toBe('function');
   });
 });
 

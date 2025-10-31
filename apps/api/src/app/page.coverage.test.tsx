@@ -1,17 +1,16 @@
+import * as pageModule from './page';
+
 describe('API Page - Coverage', () => {
   it('page file exists', () => {
-    const page = require('./page');
-    expect(page).toBeDefined();
+    expect(pageModule).toBeDefined();
   });
 
   it('exports default component', () => {
-    const page = require('./page');
-    expect(page.default).toBeDefined();
+    expect(pageModule.default).toBeDefined();
   });
 
   it('default export is a function', () => {
-    const page = require('./page');
-    expect(typeof page.default).toBe('function');
+    expect(typeof pageModule.default).toBe('function');
   });
 });
 

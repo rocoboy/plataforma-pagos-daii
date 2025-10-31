@@ -44,7 +44,7 @@ describe('CORS - Extra Coverage', () => {
 
     it('handles null data', () => {
       const request = new NextRequest('http://localhost/api/test');
-      const response = createCorsResponse(request, null as any, 200);
+      const response = createCorsResponse(request, null, 200);
       
       expect(response.status).toBe(200);
     });
