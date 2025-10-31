@@ -80,6 +80,7 @@ describe('Send Payment Status Updated Event', () => {
 
     console.log('📤 Sending payments.payment.status_updated event:', JSON.stringify(event, null, 2));
 
+    // Enviar el evento principal a payments.events
     const result = await producer.send({
       topic: 'payments.events', 
       messages: [
@@ -99,8 +100,38 @@ describe('Send Payment Status Updated Event', () => {
     expect(result).toBeDefined();
     expect(result[0].topicName).toBe('payments.events');
     expect(result[0].errorCode).toBe(0);
-    
-    console.log('✅ Message sent successfully:', result);
+
+    // Preparar y enviar un resumen para metrics.events
+    const metric = {
+      eventId: event.id,
+      metricType: 'payment_status_updated',
+      paymentId: event.data.paymentId,
+      status: event.data.status,
+      amount: event.data.amount,
+      currency: event.data.currency,
+      occurred_at: event.occurred_at,
+      source: event.source,
+    };
+
+    const metricsResult = await producer.send({
+      topic: 'metrics.events',
+      messages: [
+        {
+          key: event.data.paymentId,
+          value: JSON.stringify(metric),
+          headers: {
+            'originEventId': event.id,
+            'originEventType': event.name,
+            'timestamp': event.occurred_at
+          }
+        }
+      ]
+    });
+
+    expect(metricsResult).toBeDefined();
+    expect(metricsResult[0].topicName).toBe('metrics.events');
+    expect(metricsResult[0].errorCode).toBe(0);
+
+    console.log('✅ Messages sent successfully to payments.events and metrics.events:', { result, metricsResult });
   });
 });
-
