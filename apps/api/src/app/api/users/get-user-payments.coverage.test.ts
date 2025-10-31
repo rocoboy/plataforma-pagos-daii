@@ -1,8 +1,9 @@
+import * as getUserPaymentsModule from './get-user-payments';
+
 describe('Get User Payments - Coverage', () => {
   it('exports getUserPayments function', () => {
-    const module = require('./get-user-payments');
-    expect(module.getUserPayments).toBeDefined();
-    expect(typeof module.getUserPayments).toBe('function');
+    expect(getUserPaymentsModule.getUserPayments).toBeDefined();
+    expect(typeof getUserPaymentsModule.getUserPayments).toBe('function');
   });
 });
 

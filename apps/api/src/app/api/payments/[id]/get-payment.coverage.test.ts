@@ -1,8 +1,9 @@
+import * as getPaymentModule from './get-payment';
+
 describe('Get Payment - Coverage', () => {
   it('exports getPayment function', () => {
-    const module = require('./get-payment');
-    expect(module.getPayment).toBeDefined();
-    expect(typeof module.getPayment).toBe('function');
+    expect(getPaymentModule.getPayment).toBeDefined();
+    expect(typeof getPaymentModule.getPayment).toBe('function');
   });
 });
 

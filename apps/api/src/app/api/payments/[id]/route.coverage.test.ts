@@ -1,8 +1,9 @@
+import * as routeModule from './route';
+
 describe('Payment ID Route - Coverage', () => {
   it('exports GET handler', () => {
-    const route = require('./route');
-    expect(route.GET).toBeDefined();
-    expect(typeof route.GET).toBe('function');
+    expect(routeModule.GET).toBeDefined();
+    expect(typeof routeModule.GET).toBe('function');
   });
 });
 
