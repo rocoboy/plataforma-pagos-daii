@@ -15,8 +15,8 @@ export const paymentStatusUpdatedDataSchema = z.object({
 
 // Base schema for Kafka event envelopes
 export const kafkaEventEnvelopeSchema = z.object({
-  id: z.string(),
-  eventType: z.enum(["payment.payment.status_updated"]),
+  messageId: z.string(),
+  eventType: z.enum(["payments.payment.status_updated"]),
   occurredAt: z.iso.datetime(),
   correlationId: z.string(),
   idempotencyKey: z.string(),

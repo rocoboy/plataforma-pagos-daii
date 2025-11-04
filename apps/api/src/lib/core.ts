@@ -1,4 +1,4 @@
-import { Kafka, Producer, Partitioners } from "kafkajs";
+
 import {
   KafkaEventEnvelope,
   kafkaEventEnvelopeSchema,
@@ -6,35 +6,6 @@ import {
   paymentStatusUpdatedDataSchema,
 } from "@plataforma/types/kafka-events";
 
-// Kafka client singleton
-let kafkaInstance: Kafka | null = null;
-let producerInstance: Producer | null = null;
-
-async function getKafkaProducer(): Promise<Producer> {
-  if (!kafkaInstance) {
-    const broker = process.env.KAFKA_BROKER || "34.172.179.60:9094";
-
-    kafkaInstance = new Kafka({
-      clientId: "payments-api",
-      brokers: [broker],
-      connectionTimeout: 3000,
-      requestTimeout: 25000,
-      retry: {
-        initialRetryTime: 100,
-        retries: 8,
-      },
-    });
-  }
-
-  if (!producerInstance) {
-    producerInstance = kafkaInstance.producer({
-      createPartitioner: Partitioners.DefaultPartitioner,
-    });
-    await producerInstance.connect();
-  }
-
-  return producerInstance;
-}
 
 /**
  * Generic function to publish events to Kafka
@@ -47,26 +18,31 @@ export async function publishEvent<TEvent extends KafkaEventEnvelope>(
   topic: string = "core.ingress"
 ): Promise<void> {
   try {
-    const producer = await getKafkaProducer();
+    const url = "http://34.172.179.60/events";
 
-    await producer.send({
-      topic,
-      messages: [
-        {
-          key: event.id,
-          value: JSON.stringify(event.payload),
-          headers: {
-            messageId: event.id,
-            eventType: event.eventType,
-            schemaVersion: event.schemaVersion,
-            producer: event.producer,
-            correlationId: event.correlationId,
-            idempotencyKey: event.idempotencyKey,
-            occurredAt: event.occurredAt,
-          },
-        },
-      ],
+    const controller = new AbortController();
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "kafka-bridge/1.0",
+        "X-API-Key": "microservices-api-key-2024-secure",
+        "X-Message-ID": event.messageId,
+        "X-Event-Type": event.eventType,
+      },
+      body: JSON.stringify(event.payload),
+      signal: controller.signal,
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
+    console.log(
+      `✅ Webhook delivered successfully to ${url} (status: ${response.status})`
+    );
 
     console.log(`✅ Published event to topic ${topic}`);
   } catch (error) {
@@ -94,8 +70,8 @@ export async function publishPaymentStatusUpdated(
     .slice(2, 10)}`;
 
   const eventCandidate: KafkaEventEnvelope = {
-    id: eventId,
-    eventType: "payment.payment.status_updated",
+    messageId: eventId,
+    eventType: "payments.payment.status_updated",
     occurredAt: payload.updatedAt ?? now,
     correlationId: correlationId,
     idempotencyKey: idempotencyKey,
