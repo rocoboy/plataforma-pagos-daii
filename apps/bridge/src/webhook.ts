@@ -88,8 +88,8 @@ export class WebhookHandler {
   }
 
   private async send(payload: WebhookApiPayload): Promise<void> {
-    // ARREGLO: La URL es SIEMPRE la base. No se añade nada.
-    const url = appConfig.webhook.baseUrl; // Ej: http://34.172.179.60/events
+   const url = appConfig.webhook.baseUrl; // Ej: http://34.172.179.60/events
+    
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), appConfig.webhook.timeout);
