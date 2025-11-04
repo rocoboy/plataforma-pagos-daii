@@ -22,7 +22,7 @@ export const kafkaEventEnvelopeSchema = z.object({
   idempotencyKey: z.string(),
   producer: z.string(),
   schemaVersion: z.string(),
-  payload: paymentStatusUpdatedDataSchema,
+  payload: z.string().describe("The raw JSON payload of the event"),
 });
 
 export type KafkaEventEnvelope = z.infer<typeof kafkaEventEnvelopeSchema>;

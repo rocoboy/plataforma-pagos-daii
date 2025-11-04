@@ -18,7 +18,11 @@ export async function publishEvent<TEvent extends KafkaEventEnvelope>(
   topic: string = "core.ingress"
 ): Promise<void> {
   try {
-    const url = "http://34.172.179.60/events";
+    if (!process.env.KAFKA_BASE_URL || !process.env.KAFKA_API_KEY) {
+      throw new Error("KAFKA_BASE_URL and KAFKA_API_KEY must be set");
+    }
+
+    const url = new URL("/events", process.env.KAFKA_BASE_URL);
 
     const controller = new AbortController();
 
@@ -27,7 +31,7 @@ export async function publishEvent<TEvent extends KafkaEventEnvelope>(
       headers: {
         "Content-Type": "application/json",
         "User-Agent": "kafka-bridge/1.0",
-        "X-API-Key": "microservices-api-key-2024-secure",
+        "X-API-Key": process.env.KAFKA_API_KEY,
         "X-Message-ID": event.messageId,
         "X-Event-Type": event.eventType,
       },
@@ -59,25 +63,25 @@ export async function publishPaymentStatusUpdated(
   const payload = paymentStatusUpdatedDataSchema.parse(data);
   const now = new Date().toISOString();
 
-  const correlationId = `corr_${Date.now()}_${Math.random()
+  const correlationId = `corr-${Date.now()}_${Math.random()
     .toString(36)
     .slice(2, 10)}`;
-  const idempotencyKey = `idemp_${Date.now()}_${Math.random()
+  const idempotencyKey = `idemp-${Date.now()}_${Math.random()
     .toString(36)
     .slice(2, 10)}`;
-  const eventId = `msg_${Date.now()}_${Math.random()
+  const eventId = `msg-${Date.now()}_${Math.random()
     .toString(36)
     .slice(2, 10)}`;
 
   const eventCandidate: KafkaEventEnvelope = {
     messageId: eventId,
     eventType: "payments.payment.status_updated",
-    occurredAt: payload.updatedAt ?? now,
+    occurredAt: new Date(payload.updatedAt).toISOString(),
     correlationId: correlationId,
     idempotencyKey: idempotencyKey,
     producer: producer,
     schemaVersion: schemaVersion,
-    payload: payload,
+    payload: JSON.stringify(payload),
   };
 
   const event = kafkaEventEnvelopeSchema.parse(eventCandidate);
