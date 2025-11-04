@@ -1,12 +1,18 @@
-import { ID } from "./common";
-import { PaymentProvider } from "./providers";
+import type { ID } from "./common";
+import type { PaymentProvider } from "./providers";
+import * as z from "zod";
 
-export type PaymentStatus = "APPROVED" | "REJECTED" | "PENDING";
+export const PAYMENT_STATUS = ["PENDING", "SUCCESS", "FAILURE", "EXPIRED", "REFUND"] as const;
+
+// Payment status enum matching the schema
+export const PaymentStatusEnum = z.enum(PAYMENT_STATUS);
+
+export type PaymentStatus = z.infer<typeof PaymentStatusEnum>;
 
 export type Payment = {
   id: ID;
   payment_intent_id?: ID;
-  booking_id: ID;
+  res_id: ID;
   provider: PaymentProvider;
   status: PaymentStatus;
   amount: number;

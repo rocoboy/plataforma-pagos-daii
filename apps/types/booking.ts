@@ -1,4 +1,4 @@
-import { ID, WithTimestamps } from "./common";
+import type { ID, WithTimestamps } from "./common";
 
 export type BookingStatus =
   | "CREATED"          

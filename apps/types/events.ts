@@ -1,6 +1,6 @@
-import { ID, ISODateTime } from "./common";
-import { Booking } from "./booking";
-import { Payment, PaymentItem } from "./payments";
+import type { ID, ISODateTime } from "./common";
+import type { Booking } from "./booking";
+import type { Payment, PaymentItem } from "./payments";
 
 export type Envelope<TName extends EventName, TData> = {
   id: ID;
@@ -29,7 +29,7 @@ export type EPaymentCreated = Envelope<"payment.created", {
   payment: Pick<Payment,
     | "id"
     | "payment_intent_id"
-    | "booking_id"
+    | "res_id"
     | "provider"
     | "status"
     | "amount"
@@ -41,7 +41,7 @@ export type EPaymentUpdated = Envelope<"payment.updated", {
   payment: Pick<Payment,
     | "id"
     | "payment_intent_id"
-    | "booking_id"
+    | "res_id"
     | "provider"
     | "status"
     | "amount"

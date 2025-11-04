@@ -80,7 +80,7 @@ export class WebhookHandler {
         return;
       } catch (error) {
         lastError = error as Error;
-        console.error(`Webhook delivery failed (attempt ${attempt + 1}/${appConfig.webhook.maxTries + 1}):`, error);
+        console.error(`Webhook delivery failed (attempt ${attempt + 1}/${appConfig.webhook.maxRetries + 1}):`, error);
       }
     }
 

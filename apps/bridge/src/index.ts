@@ -1,17 +1,14 @@
 import { KafkaClient } from './kafka';
 import { WebhookHandler } from './webhook';
-import { createServer } from './server';
 import { appConfig } from './config';
 
 class BridgeService {
   private kafka: KafkaClient;
   private webhookHandler: WebhookHandler;
-  private server: ReturnType<typeof createServer>;
 
   constructor() {
     this.kafka = new KafkaClient();
     this.webhookHandler = new WebhookHandler();
-    this.server = createServer();
   }
 
   async start(): Promise<void> {
@@ -62,7 +59,6 @@ class BridgeService {
   async stop(): Promise<void> {
     console.log('Stopping bridge service...');
     await this.kafka.close();
-    this.server.stop();
     console.log('Bridge service stopped');
   }
 }

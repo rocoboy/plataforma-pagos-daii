@@ -1,5 +1,5 @@
-import { ID } from "./common";
-import { PaymentProvider } from "./providers";
+import type { ID } from "./common";
+import type { PaymentProvider } from "./providers";
 
 export type PSPApproveDecline = {
   payment_id: ID;             

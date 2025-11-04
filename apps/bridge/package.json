@@ -17,7 +17,6 @@
   },
   "dependencies": {
     "amqplib": "^0.10.9",
-    "dotenv": "^16.6.1",
     "kafkajs": "^2.2.4"
   },
   "devDependencies": {

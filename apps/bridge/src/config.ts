@@ -1,7 +1,4 @@
-import { config } from 'dotenv';
 import type { Config } from './types';
-
-config();
 
 export const appConfig: Config = {
   kafka: {
@@ -19,7 +16,7 @@ export const appConfig: Config = {
     consumerGroup: process.env.KAFKA_CONSUMER_GROUP || 'bridge-service-group',
   },
   webhook: {
-    baseUrl: process.env.WEBHOOK_BASE_URL || 'http://34.172.179.60/events', // Team's webhook endpoint
+    baseUrl: process.env.WEBHOOK_BASE_URL || 'http://localhost:3000/events', // Team's webhook endpoint
     timeout: parseInt(process.env.WEBHOOK_TIMEOUT || '30000'),
     maxRetries: parseInt(process.env.MAX_RETRIES || '3'),
     retryDelay: parseInt(process.env.RETRY_DELAY || '5000'),

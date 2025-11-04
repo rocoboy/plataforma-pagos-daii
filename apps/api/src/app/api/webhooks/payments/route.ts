@@ -1,23 +1,32 @@
 import { NextRequest } from "next/server";
-import { createPayment, createPaymentBodySchema } from "./create-payment";
+import { createPayment, createPaymentBodySchema, Currency } from "./create-payment";
 import { updatePayment, updatePaymentBodySchema } from "./update-payment";
 import { createCorsResponse, createCorsOptionsResponse } from "@/lib/cors";
+import { publishPaymentStatusUpdated } from "@/lib/core";
+import { PaymentStatus } from "../../../../../../types/payments";
+import { ISODateTime } from "../../../../../../types/common";
 
 //POST para crear payments
 export async function POST(request: NextRequest) {
+
+  
   try {
     //validar body
     const json = await request.json();
     const parsed = createPaymentBodySchema.safeParse(json);
-
+    
     if (!parsed.success) {
-      return createCorsResponse(request, {
-        success: false,
-        error: "Invalid request body",
-        issues: parsed.error.message,
-      }, 400);
+      return createCorsResponse(
+        request,
+        {
+          success: false,
+          error: "Invalid request body",
+          issues: parsed.error.message,
+        },
+        400
+      );
     }
-
+    
     const { res_id, user_id, meta, amount, currency } = parsed.data;
     const payment = await createPayment(
       request,
@@ -27,13 +36,36 @@ export async function POST(request: NextRequest) {
       user_id,
       meta
     );
+    
+    //publish event
+    try {
+      await publishPaymentStatusUpdated({
+        paymentId: payment.id,
+        reservationId: payment.res_id,
+        userId: user_id,
+        status: payment.status as PaymentStatus,
+        amount: payment.amount,
+        currency: payment.currency as Currency,
+        updatedAt: new Date().toISOString() as ISODateTime,
+      });
+    } catch (error) {
+      console.error(
+        `❌ Failed to publish payment status updated event:`,
+        error
+      );
+      throw error;
+    }
 
     return createCorsResponse(request, { success: true, payment });
   } catch (error) {
-    return createCorsResponse(request, {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    }, 500);
+    return createCorsResponse(
+      request,
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      500
+    );
   }
 }
 
@@ -44,22 +76,49 @@ export async function PUT(request: NextRequest) {
     const parsed = updatePaymentBodySchema.safeParse(json);
 
     if (!parsed.success) {
-      return createCorsResponse(request, {
-        success: false,
-        error: "Invalid request body",
-        issues: parsed.error.message,
-      }, 400);
+      return createCorsResponse(
+        request,
+        {
+          success: false,
+          error: "Invalid request body",
+          issues: parsed.error.message,
+        },
+        400
+      );
     }
 
     const { id, status } = parsed.data;
     const payment = await updatePayment(request, id, status);
 
+    //publish event
+    try {
+      await publishPaymentStatusUpdated({
+        paymentId: payment.id,
+        reservationId: payment.res_id,
+        userId: payment.user_id,
+        status: payment.status as PaymentStatus,
+        amount: payment.amount,
+        currency: payment.currency as Currency,
+        updatedAt: new Date().toISOString() as ISODateTime,
+      });
+    } catch (error) {
+      console.error(
+        `❌ Failed to publish payment status updated event:`,
+        error
+      );
+      throw error;
+    }
+
     return createCorsResponse(request, { success: true, payment });
   } catch (error) {
-    return createCorsResponse(request, {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    }, 500);
+    return createCorsResponse(
+      request,
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      500
+    );
   }
 }
 

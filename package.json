@@ -1,0 +1,17 @@
+{
+  "name": "plataforma-pagos-daii",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "bun run --filter api dev",
+    "build": "bun run --filter api build",
+    "test": "bun test --filter '*'"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+

@@ -9,3 +9,4 @@ export * from "./invoicing";
 export * from "./api";
 export * from "./psp";
 export * from "./webhook";
+export * from "./kafka-events";

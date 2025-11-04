@@ -2,14 +2,25 @@ import { createServerClient } from "@supabase/ssr";
 import { NextRequest } from "next/server";
 import { Database } from "./schema";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
 export const createClient = (request: NextRequest) => {
+  if (!supabaseUrl) {
+    throw new Error("Missing SUPABASE_URL environment variable");
+  }
+  if (!supabaseKey) {
+    throw new Error("Missing SUPABASE_ANON_KEY environment variable");
+  }
+
+  // Log URL for debugging (without exposing sensitive parts)
+  if (process.env.NODE_ENV === "development") {
+    console.log("Creating Supabase client with URL:", supabaseUrl);
+  }
 
   const cookies = request.cookies;
 
-  return createServerClient<Database>(supabaseUrl!, supabaseKey!, {
+  return createServerClient<Database>(supabaseUrl, supabaseKey, {
     cookies: {
       getAll() {
         return cookies.getAll();
