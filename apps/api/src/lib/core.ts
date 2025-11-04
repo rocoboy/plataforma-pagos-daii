@@ -31,7 +31,7 @@ export async function publishEvent<TEvent extends KafkaEventEnvelope>(
         "X-Message-ID": event.messageId,
         "X-Event-Type": event.eventType,
       },
-      body: JSON.stringify(event.payload),
+      body: JSON.stringify(event),
       signal: controller.signal,
     });
 
