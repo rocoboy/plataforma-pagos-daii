@@ -1,8 +1,12 @@
 FROM oven/bun:1 as base
 WORKDIR /app
 
-# Install dependencies
+# Copy types from workspace (needed for @plataforma/types)
+COPY ../types ../types
+
+# Install dependencies (preinstall script will copy types)
 COPY package.json bun.lockb ./
+COPY scripts ./scripts
 RUN bun install --frozen-lockfile
 
 # Copy source code
