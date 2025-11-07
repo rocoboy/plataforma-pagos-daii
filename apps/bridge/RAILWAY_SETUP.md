@@ -6,19 +6,29 @@ Este documento describe cómo configurar deployments automáticos para los entor
 
 - `railway.production.json` - Configuración específica para producción
 - `railway.preview.json` - Configuración específica para preview
-- `nixpacks.toml` - Configuración de Nixpacks para forzar el uso de Bun
+- `Dockerfile.railway` - Dockerfile optimizado para Railway con multi-stage build
 - `scripts/prepare-types.js` - Script para copiar `@plataforma/types` antes del build
 - `.railwayignore` - Archivos a excluir del deployment
 
 ## Dependencias Workspace
 
 El servicio usa `@plataforma/types` como dependencia compartida del monorepo. 
-Para que funcione en Railway (que solo clona `apps/bridge`):
+Para que funcione en Railway:
 
-1. El script `preinstall` en `package.json` ejecuta `scripts/prepare-types.js`
-2. Este script copia `../types` a `.types/` dentro de `apps/bridge`
-3. El `package.json` usa `"@plataforma/types": "file:.types"`
-4. Railway puede instalar la dependencia como un archivo local
+1. El `Dockerfile.railway` copia `../types` durante el build stage
+2. El script `preinstall` en `package.json` ejecuta automáticamente `scripts/prepare-types.js`
+3. Este script copia `../types` a `.types/` dentro de `apps/bridge`
+4. El `package.json` usa `"@plataforma/types": "file:.types"`
+5. Bun instala la dependencia como un archivo local
+
+## Estrategia de Deployment
+
+Railway usa **Docker multi-stage build** para optimizar el deployment:
+
+1. **Build Stage**: Instala dependencias, copia tipos, y compila el código
+2. **Production Stage**: Solo copia los artifacts necesarios (dist + node_modules)
+3. **Security**: Corre con usuario no-root (bridge:nodejs)
+4. **Health Checks**: Built-in health check cada 30s
 
 ## Opción 1: Dos Servicios Separados en Railway (Recomendado)
 
