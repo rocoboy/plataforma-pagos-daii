@@ -37,20 +37,20 @@ Railway usa **Docker multi-stage build** para optimizar el deployment:
 1. **Crear Servicio de Production:**
    - Nombre: `bridge-production`
    - Source: Tu repositorio de GitHub
-   - **⚠️ IMPORTANTE**: Settings > Root Directory: `apps/bridge`
+   - **⚠️ IMPORTANTE**: Settings > Root Directory: `.` (raíz del monorepo) o dejar vacío
    - Settings > Branch: `main`
    - Settings > Watch Paths: `apps/bridge/**`
-   - Settings > Railway Config File: `railway.production.json`
-   - **⚠️ CRÍTICO**: El Root Directory debe estar configurado para que Nixpacks encuentre el package.json
+   - Settings > Railway Config File: `apps/bridge/railway.production.json`
+   - **⚠️ CRÍTICO**: El Root Directory debe ser la raíz para que Docker BuildKit pueda acceder a apps/types y apps/bridge
 
 2. **Crear Servicio de Preview:**
    - Nombre: `bridge-preview`
    - Source: El mismo repositorio
-   - **⚠️ IMPORTANTE**: Settings > Root Directory: `apps/bridge`
+   - **⚠️ IMPORTANTE**: Settings > Root Directory: `.` (raíz del monorepo) o dejar vacío
    - Settings > Branch: `develop`
    - Settings > Watch Paths: `apps/bridge/**`
-   - Settings > Railway Config File: `railway.preview.json`
-   - **⚠️ CRÍTICO**: El Root Directory debe estar configurado para que Nixpacks encuentre el package.json
+   - Settings > Railway Config File: `apps/bridge/railway.preview.json`
+   - **⚠️ CRÍTICO**: El Root Directory debe ser la raíz para que Docker BuildKit pueda acceder a apps/types y apps/bridge
 
 ### Variables de Entorno
 
