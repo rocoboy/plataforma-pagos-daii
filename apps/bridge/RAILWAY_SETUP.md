@@ -4,9 +4,21 @@ Este documento describe cómo configurar deployments automáticos para los entor
 
 ## Estructura de Archivos
 
-- `railway.json` - Configuración base con definición de entornos
 - `railway.production.json` - Configuración específica para producción
 - `railway.preview.json` - Configuración específica para preview
+- `nixpacks.toml` - Configuración de Nixpacks para forzar el uso de Bun
+- `scripts/prepare-types.js` - Script para copiar `@plataforma/types` antes del build
+- `.railwayignore` - Archivos a excluir del deployment
+
+## Dependencias Workspace
+
+El servicio usa `@plataforma/types` como dependencia compartida del monorepo. 
+Para que funcione en Railway (que solo clona `apps/bridge`):
+
+1. El script `preinstall` en `package.json` ejecuta `scripts/prepare-types.js`
+2. Este script copia `../types` a `.types/` dentro de `apps/bridge`
+3. El `package.json` usa `"@plataforma/types": "file:.types"`
+4. Railway puede instalar la dependencia como un archivo local
 
 ## Opción 1: Dos Servicios Separados en Railway (Recomendado)
 
