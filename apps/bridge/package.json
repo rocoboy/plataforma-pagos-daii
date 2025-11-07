@@ -4,9 +4,10 @@
   "description": "Kafka to Webhook Bridge Service using Bun",
   "main": "src/index.ts",
   "scripts": {
+    "preinstall": "node ./scripts/prepare-types.js",
     "dev": "bun run --watch src/index.ts",
-  "start": "bun run src/index.ts",
-  "serve:http": "bun run src/server-only.ts",
+    "start": "bun run src/index.ts",
+    "serve:http": "bun run src/server-only.ts",
     "build": "bun build src/index.ts --outdir ./dist --target bun",
     "docker:build": "docker build -t kafka-bridge .",
     "docker:run": "docker run -p 8080:8080 --env-file .env kafka-bridge",
@@ -16,7 +17,7 @@
     "clean": "rm -rf dist node_modules bun.lockb"
   },
   "dependencies": {
-    "@plataforma/types": "workspace:*",
+    "@plataforma/types": "file:.types",
     "amqplib": "^0.10.9",
     "kafkajs": "^2.2.4",
     "zod": "^4.1.12"

@@ -18,12 +18,12 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@plataforma/types": ["../types/index.ts"]
+      "@plataforma/types": ["./.types/index.ts"]
     }
   },
   "include": [
     "src/**/*",
-    "../types/**/*"
+    ".types/**/*"
   ],
   "exclude": [
     "node_modules",
