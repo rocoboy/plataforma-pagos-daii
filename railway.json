@@ -1,0 +1,13 @@
+{
+  "$schema": "https://railway.com/schemas/railway.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "cd apps/bridge && bun install && bun run build"
+  },
+  "deploy": {
+    "startCommand": "cd apps/bridge && bun run dist/index.js",
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 30
+  }
+}
+
