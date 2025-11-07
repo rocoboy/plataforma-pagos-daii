@@ -1,0 +1,11 @@
+# Copia este archivo a terraform.tfvars y configura los valores apropiados
+# NUNCA subas terraform.tfvars al repositorio (está en .gitignore)
+
+# Vercel API Token - Obtenerlo de: https://vercel.com/account/tokens
+vercel_api_token = "your-vercel-api-token-here"
+
+api_node_env     = "production"
+api_environment  = "production"
+web_node_env     = "production"
+web_environment  = "production"
+

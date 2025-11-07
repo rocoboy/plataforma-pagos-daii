@@ -1,84 +1,43 @@
 import React from 'react';
-import { Box, Typography, Container, Button } from '@mui/material';
-import { Block as BlockIcon, Logout as LogoutIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import { Button } from './ui/button';
+import { ShieldX, LogOut } from 'lucide-react';
 
 const AccessDenied: React.FC = () => {
   const { logout } = useAuth();
 
-  // Handle logout functionality
   const handleLogout = () => {
     logout();
-    // Redirect to our custom login page
     window.location.href = '/login';
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '400px',
-          textAlign: 'center',
-          py: 6
-        }}
-      >
-        <BlockIcon 
-          sx={{ 
-            fontSize: 80, 
-            color: 'error.main',
-            mb: 3
-          }} 
-        />
-        
-        <Typography 
-          variant="h3" 
-          component="h1" 
-          color="error.main"
-          gutterBottom
-          sx={{ fontWeight: 'bold' }}
-        >
-          Acceso Denegado
-        </Typography>
-        
-        <Typography 
-          variant="h6" 
-          color="text.secondary"
-          sx={{ mb: 3, maxWidth: '400px' }}
-        >
-          No tenés permisos suficientes para acceder a esta funcionalidad.
-        </Typography>
-        
-        <Typography 
-          variant="body2" 
-          color="text.disabled"
-          sx={{ fontStyle: 'italic', mb: 4 }}
-        >
-          Contacta al administrador si crees que esto es un error.
-        </Typography>
+    <div className="flex flex-col items-center justify-center min-h-[400px] text-center py-12 px-4">
+      <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-6">
+        <ShieldX className="w-10 h-10 text-gray-900" />
+      </div>
+      
+      <h1 className="text-4xl font-bold text-gray-900 mb-4">
+        Acceso Denegado
+      </h1>
+      
+      <p className="text-lg text-muted-foreground mb-6 max-w-md">
+        No tenés permisos suficientes para acceder a esta funcionalidad.
+      </p>
+      
+      <p className="text-sm text-muted-foreground italic mb-8">
+        Contacta al administrador si crees que esto es un error.
+      </p>
 
-        <Button
-          variant="contained"
-          size="large"
-          startIcon={<LogoutIcon />}
-          onClick={handleLogout}
-          sx={{ 
-            textTransform: 'none',
-            fontWeight: 600,
-            minWidth: '200px',
-            backgroundColor: 'error.main',
-            '&:hover': {
-              backgroundColor: 'error.dark'
-            }
-          }}
-        >
-          Cerrar Sesión
-        </Button>
-      </Box>
-    </Container>
+      <Button
+        size="lg"
+        onClick={handleLogout}
+        className="min-w-[200px] bg-black hover:bg-gray-800"
+      >
+        <LogOut className="mr-2 h-4 w-4" />
+        Cerrar Sesión
+      </Button>
+    </div>
   );
 };
 

@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
-import { Box, Card, CardContent, Typography, Button, CircularProgress } from '@mui/material';
-import { Login as LoginIcon, Security as SecurityIcon } from '@mui/icons-material';
 import { createLoginRedirectUrl } from '../lib/auth';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Shield, Loader2 } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const handleLogin = () => {
@@ -11,7 +12,6 @@ const LoginPage: React.FC = () => {
 
   // Auto-redirect to login if this page is accessed directly
   useEffect(() => {
-    // Small delay to show the page briefly before redirecting
     const timer = setTimeout(() => {
       handleLogin();
     }, 2000);
@@ -20,53 +20,38 @@ const LoginPage: React.FC = () => {
   }, []);
 
   return (
-    <Box 
-      sx={{ 
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#f5f5f5',
-        px: 2
-      }}
-    >
-      <Card sx={{ maxWidth: 500, width: '100%' }}>
-        <CardContent sx={{ p: 4, textAlign: 'center' }}>
-          <SecurityIcon sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
-          
-          <Typography variant="h4" component="h1" gutterBottom>
-            Acceso a la Consola
-          </Typography>
-          
-          <Typography variant="body1" color="text.secondary" paragraph>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <Card className="max-w-md w-full">
+        <CardHeader className="text-center space-y-4">
+          <div className="mx-auto w-16 h-16 bg-black rounded-full flex items-center justify-center">
+            <Shield className="w-8 h-8 text-white" />
+          </div>
+          <CardTitle className="text-2xl">Acceso a la Consola</CardTitle>
+          <CardDescription>
             Para acceder a la consola de administración, necesitas autenticarte 
             a través del portal central de usuarios.
-          </Typography>
-          
-          <Box sx={{ my: 3 }}>
-            <CircularProgress size={24} sx={{ mr: 2 }} />
-            <Typography variant="body2" color="text.secondary">
-              Redirigiendo automáticamente...
-            </Typography>
-          </Box>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-center gap-2 text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <p className="text-sm">Redirigiendo automáticamente...</p>
+          </div>
           
           <Button
-            variant="contained"
-            size="large"
-            startIcon={<LoginIcon />}
             onClick={handleLogin}
-            fullWidth
-            sx={{ mt: 2 }}
+            className="w-full"
+            size="lg"
           >
             Ir al Portal de Login
           </Button>
           
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 3, display: 'block' }}>
-            Serás redirigido a: grupo5-usuarios.vercel.app
-          </Typography>
+          <p className="text-xs text-center text-muted-foreground">
+            Redirigiendo al servicio de autenticación...
+          </p>
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 
