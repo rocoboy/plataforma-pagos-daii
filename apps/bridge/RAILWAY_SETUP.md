@@ -27,18 +27,20 @@ Para que funcione en Railway (que solo clona `apps/bridge`):
 1. **Crear Servicio de Production:**
    - Nombre: `bridge-production`
    - Source: Tu repositorio de GitHub
-   - Settings > Root Directory: `apps/bridge`
+   - **⚠️ IMPORTANTE**: Settings > Root Directory: `apps/bridge`
    - Settings > Branch: `main`
    - Settings > Watch Paths: `apps/bridge/**`
-   - Settings > Railway Config File: `railway.production.json` (o `railway.json`)
+   - Settings > Railway Config File: `railway.production.json`
+   - **⚠️ CRÍTICO**: El Root Directory debe estar configurado para que Nixpacks encuentre el package.json
 
 2. **Crear Servicio de Preview:**
    - Nombre: `bridge-preview`
    - Source: El mismo repositorio
-   - Settings > Root Directory: `apps/bridge`
+   - **⚠️ IMPORTANTE**: Settings > Root Directory: `apps/bridge`
    - Settings > Branch: `develop`
    - Settings > Watch Paths: `apps/bridge/**`
    - Settings > Railway Config File: `railway.preview.json`
+   - **⚠️ CRÍTICO**: El Root Directory debe estar configurado para que Nixpacks encuentre el package.json
 
 ### Variables de Entorno
 
