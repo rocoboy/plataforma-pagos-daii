@@ -1,0 +1,45 @@
+# Railway ignore file
+# Optimizes deployment by excluding unnecessary files
+
+# Development files
+*.md
+README.md
+LICENSE
+
+# Docker files (no necesarios si usas NIXPACKS)
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Tests
+test-sender.js
+*.test.ts
+*.spec.ts
+__tests__/
+
+# Node modules (se instalan en el build)
+node_modules/
+
+# Environment files (usar Railway variables)
+.env
+.env.*
+env.example
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
