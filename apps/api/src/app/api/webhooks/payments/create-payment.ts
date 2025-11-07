@@ -4,14 +4,7 @@ import { Constants } from "@/lib/supabase/schema";
 import z from "zod";
 import { Payment } from "../../../../../../types/payments";
 import { ID, ISODateTime } from "../../../../../../types/common";
-
-export const createPaymentBodySchema = z.object({
-  res_id: z.string(),
-  user_id: z.string().optional(),
-  amount: z.number(),
-  currency: z.enum(Constants.public.Enums.currency).optional(),
-  meta: z.any().optional(),
-});
+import { createPaymentBodySchema } from "@plataforma/types";
 
 export type PaymentStatus =
   (typeof Constants.public.Enums.payment_status)[number];

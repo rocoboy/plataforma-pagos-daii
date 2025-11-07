@@ -3,11 +3,9 @@ import { PaymentStatus } from "./create-payment";
 import { createClient } from "@/lib/supabase/server";
 import { Constants } from "@/lib/supabase/schema";
 import z from "zod";
+import { updatePaymentBodySchema } from "@plataforma/types";
 
-export const updatePaymentBodySchema = z.object({
-  id: z.string(),
-  status: z.enum(Constants.public.Enums.payment_status),
-});
+type UpdatePaymentPayload = z.infer<typeof updatePaymentBodySchema>;
 
 export async function updatePayment(
   request: NextRequest,

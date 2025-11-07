@@ -30,26 +30,31 @@ class BridgeService {
           host: appConfig.server.host,
         },
       });
-      
+
       // Connect to Kafka
       await this.kafka.connect();
-      
+
       // Start consuming messages
       await this.kafka.consume(async (message) => {
         console.log(`Processing message: ${message.messageId} (topic: ${message.topic}, partition: ${message.partition})`);
-        
+
         try {
-          await this.webhookHandler.sendWebhook(message);
-          console.log(`Successfully processed message: ${message.messageId}`);
+          const response = await this.webhookHandler.sendWebhook(message);
+
+          if (response !== undefined) {
+            console.log(`Successfully processed message: ${message.messageId}`);
+          } else {
+            console.log(`Message processed but is not relevent topic: ${message.topic}`  );
+          }
         } catch (error) {
           console.error(`Failed to process message ${message.messageId}:`, error);
-          throw error; // This will cause the message to be retried
+          throw error;
         }
       });
 
       console.log('Bridge service started successfully');
       console.log(`Health check available at: http://${appConfig.server.host}:${appConfig.server.port}/health`);
-      
+
     } catch (error) {
       console.error('Failed to start bridge service:', error);
       process.exit(1);
