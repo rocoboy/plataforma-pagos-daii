@@ -3,8 +3,14 @@
 nixPkgs = ["nodejs_18", "bun"]
 
 [phases.install]
+# Debug: check current directory and files
 # preinstall script will run first to prepare types
-cmds = ["bun install --frozen-lockfile"]
+cmds = [
+  "pwd",
+  "ls -la",
+  "test -f package.json && echo 'package.json found' || echo 'package.json NOT found'",
+  "bun install --frozen-lockfile"
+]
 
 [phases.build]
 cmds = ["bun run build"]

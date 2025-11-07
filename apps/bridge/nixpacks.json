@@ -1,0 +1,21 @@
+{
+  "phases": {
+    "setup": {
+      "nixPkgs": ["nodejs_18", "bun"]
+    },
+    "install": {
+      "cmds": [
+        "ls -la",
+        "pwd",
+        "bun install --frozen-lockfile"
+      ]
+    },
+    "build": {
+      "cmds": ["bun run build"]
+    }
+  },
+  "start": {
+    "cmd": "bun run dist/index.js"
+  }
+}
+
