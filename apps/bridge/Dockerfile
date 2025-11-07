@@ -1,8 +1,18 @@
 FROM oven/bun:1 as base
 WORKDIR /app
 
-# Install dependencies
-COPY package.json bun.lockb ./
+# Copy types from workspace (needed for @plataforma/types)
+COPY apps/types ./apps/types
+
+# Copy bridge app files
+COPY apps/bridge/package.json apps/bridge/bun.lockb* ./
+COPY apps/bridge/scripts ./scripts
+
+# Manually run prepare-types script BEFORE bun install
+# This creates .types directory that package.json references
+RUN node scripts/prepare-types.js
+
+# Install dependencies (now .types exists)
 RUN bun install --frozen-lockfile
 
 # Copy source code
