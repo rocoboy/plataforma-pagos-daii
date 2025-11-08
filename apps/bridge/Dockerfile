@@ -16,8 +16,8 @@ RUN node scripts/prepare-types.js
 RUN bun install --frozen-lockfile
 
 # Copy source code
-COPY src ./src
-COPY tsconfig.json ./
+COPY apps/bridge/src ./src
+COPY apps/bridge/tsconfig.json ./
 
 # Build the application
 RUN bun run build
