@@ -1,10 +1,9 @@
 import { NextRequest } from 'next/server';
 import { createPayment } from './create-payment';
 import { createClient } from '@/lib/supabase/server';
-
 jest.mock('@/lib/supabase/server');
 
-const mockSupabase = {
+const mockSupabase: any = {
   from: jest.fn(() => mockSupabase),
   insert: jest.fn(() => mockSupabase),
   select: jest.fn(() => mockSupabase),
