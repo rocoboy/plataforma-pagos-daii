@@ -50,10 +50,23 @@ export class WebhookHandler {
       return;
     }
 
-    // 4. Pasar el objeto parseado (innerPayload) a las funciones
-    if (eventType === 'reservations.reservation.created') {
-      // Ahora se pasa el payload correcto
-      const response = await this.publishCreatePaymentWebhook(innerPayload);
+    if (eventType === 'reservations.reservation.created') { // prueba de si funciona la creacion de reservas 
+      
+      // 1. Transforma el payload al formato que la API espera
+      const apiPayload = {
+        res_id: innerPayload.reservationId, // <-- Mapea reservationId a res_id
+        user_id: innerPayload.userId,     // <-- Mapea userId a user_id
+        amount: innerPayload.amount,
+        currency: innerPayload.currency,
+        meta: { 
+          // Pon el resto de datos que quieras guardar aquí
+          flightId: innerPayload.flightId, 
+          reservedAt: innerPayload.reservedAt 
+        } 
+      };
+
+      // 2. Envía el payload transformado
+      const response = await this.publishCreatePaymentWebhook(apiPayload); 
       console.log('Create payment webhook response:', response);
       return response;
     }
