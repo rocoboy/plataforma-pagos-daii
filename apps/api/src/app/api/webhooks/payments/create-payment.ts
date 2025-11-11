@@ -1,15 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest } from "next/server";
-import { Constants } from "@/lib/supabase/schema";
 import z from "zod";
-import { Payment } from "../../../../../../types/payments";
-import { ID, ISODateTime } from "../../../../../../types/common";
+
+import { 
+  Payment, 
+  PaymentStatus, 
+  Currency 
+} from "../../../../../../types/payments"; 
+
+import { ID } from "../../../../../../types/common";
 import { createPaymentBodySchema } from "@plataforma/types";
-
-export type PaymentStatus =
-  (typeof Constants.public.Enums.payment_status)[number];
-
-export type Currency = (typeof Constants.public.Enums.currency)[number];
 
 export async function createPayment(
   request: NextRequest,
@@ -21,35 +21,73 @@ export async function createPayment(
 ): Promise<Payment> {
   const supabase = createClient(request);
 
+  // --- LÓGICA DE IDEMPOTENCIA ---
+  const { data: existingPayment, error: findError } = await supabase
+    .from("payments")
+    .select("*")
+    .eq("res_id", res_id)
+    .maybeSingle(); 
+
+  if (findError) {
+    console.error("Error finding existing payment:", findError.message);
+    throw new Error(findError.message);
+  }
+
+  if (existingPayment) {
+    console.warn(`Duplicate payment creation attempt for res_id: ${res_id}. Returning existing payment.`);
+    
+    // --- CORRECCIÓN 1 ---
+    return {
+      user_id: existingPayment.user_id as ID,
+      id: existingPayment.id as ID,
+      res_id: existingPayment.res_id as ID,
+      // Asigna 'payment_intent_id' solo si existe
+      payment_intent_id: (existingPayment as any).payment_intent_id ? (existingPayment as any).payment_intent_id as ID : undefined,
+      provider: 'Talo', 
+      status: existingPayment.status as PaymentStatus,
+      amount: existingPayment.amount,
+      currency: existingPayment.currency as Currency,
+      meta: (existingPayment.meta ?? meta) as unknown,
+      created_at: new Date(existingPayment.created_at),
+    };
+  }
+
+  // --- FIN LÓGICA DE IDEMPOTENCIA ---
+
   const defaultPaymentStatus: PaymentStatus = "PENDING";
   
   const payload: z.infer<typeof createPaymentBodySchema> & {
     status: PaymentStatus;
   } = { res_id, status: defaultPaymentStatus, amount };
   
-  if (!currency) payload.currency = "ARS";
-  
+  if (currency) payload.currency = currency;
   if (user_id) payload.user_id = user_id;
-  
   if (typeof meta !== "undefined") payload.meta = meta;
   
   const { data, error } = await supabase
-  .from("payments")
-  .insert(payload)
-  .select("*")
-  .single();
+    .from("payments")
+    .insert(payload)
+    .select("*")
+    .single();
   
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Error inserting new payment:", error.message);
+    throw new Error(error.message);
+  }
+
+  // --- CORRECCIÓN 2 ---
   return {
     user_id: data.user_id as ID,
     id: data.id as ID,
-    res_id: res_id as ID,
+    res_id: data.res_id as ID,
+    // Asigna 'payment_intent_id' solo si existe
+    payment_intent_id: (data as any).payment_intent_id ? (data as any).payment_intent_id as ID : undefined,
     provider: 'Talo',
-    status: defaultPaymentStatus,
-    amount: amount,
-    currency: currency ?? 'ARS',
+    status: data.status as PaymentStatus,
+    amount: data.amount,
+    currency: data.currency as Currency,
     meta: (data.meta ?? meta) as unknown,
-    created_at: new Date(),
+    created_at: new Date(data.created_at),
   };
 }
 

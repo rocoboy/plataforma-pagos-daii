@@ -1,13 +1,17 @@
-import type { ID } from "./common";
+import type { ID, ISODateTime } from "./common";
 import type { PaymentProvider } from "./providers";
 import * as z from "zod";
 
-export const PAYMENT_STATUS = ["PENDING", "SUCCESS", "FAILURE", "EXPIRED", "REFUND"] as const;
 
-// Payment status enum matching the schema
-export const PaymentStatusEnum = z.enum(PAYMENT_STATUS);
+// (Desde 'apps/types/' subimos a 'apps/', entramos a 'api/src/lib...')
+import { Constants } from "../api/src/lib/supabase/schema";
+// 2. Define el SCHEMA DE ZOD (esto lo usa el route.ts)
+export const PaymentStatusEnum = z.enum(Constants.public.Enums.payment_status);
 
+// 3. Define los TIPOS de TypeScript
 export type PaymentStatus = z.infer<typeof PaymentStatusEnum>;
+export type Currency = (typeof Constants.public.Enums.currency)[number];
+
 
 export type Payment = {
   user_id?: ID;
@@ -17,9 +21,9 @@ export type Payment = {
   provider: PaymentProvider;
   status: PaymentStatus;
   amount: number;
-  currency: "ARS" | "USD" | "EUR";
+  currency: Currency;
   meta?: unknown;
-  created_at: Date;
+  created_at: Date | ISODateTime;
 };
 
 export type PaymentItem = {

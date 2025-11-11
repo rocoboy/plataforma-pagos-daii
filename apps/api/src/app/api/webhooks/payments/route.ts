@@ -1,22 +1,33 @@
 import { NextRequest } from "next/server";
-import { createPayment, createPaymentBodySchema, Currency } from "./create-payment";
-import { updatePayment } from "./update-payment";
-import { updatePaymentBodySchema } from "@plataforma/types";
+import { createPayment, createPaymentBodySchema } from "./create-payment";
+// Importa la función de update correcta
+import { updatePaymentByReservationId } from "./update-payment";
+import { z } from "zod";
 import { createCorsResponse, createCorsOptionsResponse } from "@/lib/cors";
 import { publishPaymentStatusUpdated } from "@/lib/core";
-import { PaymentStatus } from "../../../../../../types/payments";
+// Importa los tipos correctos (incluyendo PaymentStatusEnum)
+import { PaymentStatus, Currency, PaymentStatusEnum } from "../../../../../../types/payments";
 import { ISODateTime } from "../../../../../../types/common";
 
-//POST para crear payments
-export async function POST(request: NextRequest) {
 
-  
+// Define un schema local para el PUT que espera res_id
+const updatePaymentSchema = z.object({
+  res_id: z.string().min(1),
+  status: PaymentStatusEnum, // Valida que el status sea uno de los conocidos
+});
+
+
+// ===================================
+// FUNCIÓN POST (CON CONSOLE.ERROR)
+// ===================================
+export async function POST(request: NextRequest) {
   try {
     //validar body
     const json = await request.json();
     const parsed = createPaymentBodySchema.safeParse(json);
     
     if (!parsed.success) {
+      console.error("❌ Zod validation failed (400):", parsed.error.message);
       return createCorsResponse(
         request,
         {
@@ -59,11 +70,8 @@ export async function POST(request: NextRequest) {
 
     return createCorsResponse(request, { success: true, payment });
   } catch (error) {
-    // --- LÍNEA AGREGADA ---
-    // Esto imprimirá el error en los logs de Vercel
+    // Imprime el error en los logs de Vercel
     console.error("❌ Error in POST /api/webhooks/payments:", error);
-    // --- FIN ---
-
     return createCorsResponse(
       request,
       {
@@ -75,13 +83,14 @@ export async function POST(request: NextRequest) {
   }
 }
 
-//PUT para actualizar payments
+
 export async function PUT(request: NextRequest) {
   try {
     const json = await request.json();
-    const parsed = updatePaymentBodySchema.safeParse(json);
+    const parsed = updatePaymentSchema.safeParse(json);
 
     if (!parsed.success) {
+      console.error("❌ Zod validation failed (400):", parsed.error.message);
       return createCorsResponse(
         request,
         {
@@ -93,10 +102,19 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { id, status } = parsed.data;
-    const payment = await updatePayment(request, id, status);
+    const { res_id, status } = parsed.data;
+    
+    const payment = await updatePaymentByReservationId(
+      request, 
+      res_id, 
+      status as PaymentStatus
+    );
 
-    //publish event
+    if (!payment) {
+      return createCorsResponse(request, { success: true, payment: null, message: "Payment not found, ignored." });
+    }
+
+
     try {
       await publishPaymentStatusUpdated({
         paymentId: payment.id,
@@ -117,11 +135,7 @@ export async function PUT(request: NextRequest) {
 
     return createCorsResponse(request, { success: true, payment });
   } catch (error) {
-    // --- LÍNEA AGREGADA ---
-    // Esto imprimirá el error en los logs de Vercel
     console.error("❌ Error in PUT /api/webhooks/payments:", error);
-    // --- FIN ---
-
     return createCorsResponse(
       request,
       {
@@ -132,7 +146,6 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
-
 // Handle preflight OPTIONS request
 export async function OPTIONS(request: NextRequest) {
   return createCorsOptionsResponse(request);
