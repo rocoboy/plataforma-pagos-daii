@@ -1,4 +1,4 @@
-
+import { Kafka, Producer } from 'kafkajs';
 import {
   KafkaEventEnvelope,
   kafkaEventEnvelopeSchema,
@@ -6,55 +6,106 @@ import {
   paymentStatusUpdatedDataSchema,
 } from "@plataforma/types/kafka-events";
 
+// --- Inicio: Configuración del Productor de Kafka (Singleton) ---
+
+let kafka: Kafka | null = null;
+let producer: Producer | null = null;
 
 /**
- * Generic function to publish events to Kafka
- * @param data - The event data to publish (plain object, no envelope)
- * @param topic - The Kafka topic to publish to (default: 'payments.events')
+ * Obtiene la instancia de Kafka (singleton)
+ */
+function getKafkaInstance(): Kafka {
+  if (!process.env.KAFKA_BROKER) {
+    throw new Error("KAFKA_BROKER environment variable is not set");
+  }
+
+  if (!kafka) {
+    console.log(`Initializing Kafka client for broker: ${process.env.KAFKA_BROKER}`);
+    kafka = new Kafka({
+      clientId: 'payments-api-producer', // ID único para este productor
+      brokers: [process.env.KAFKA_BROKER],
+    });
+  }
+  return kafka;
+}
+
+/**
+ * Obtiene el productor de Kafka (singleton) y se asegura de que esté conectado.
+ */
+async function getProducer(): Promise<Producer> {
+  if (!producer) {
+    console.log('Creating new Kafka producer...');
+    const kafkaInstance = getKafkaInstance();
+    producer = kafkaInstance.producer();
+    await producer.connect();
+    console.log('Kafka producer connected successfully.');
+
+    // Manejar desconexión (importante en un servidor real)
+    producer.on('producer.disconnect', () => {
+      console.warn('Kafka producer disconnected. Will attempt to reconnect on next publish.');
+      producer = null; // Forza a recrear en la próxima llamada
+    });
+  }
+  return producer;
+}
+
+// --- Fin: Configuración del Productor ---
+
+
+/**
+ * Generic function to publish events to Kafka (AHORA USA KAFKAJS)
+ * @param event - The event envelope to publish
+ * @param topic - The Kafka topic to publish to
  * @returns Promise<void>
  */
 export async function publishEvent<TEvent extends KafkaEventEnvelope>(
   event: TEvent,
-  topic: string = "core.ingress"
+  topic: string = "core.ingress" // Respetamos tu lógica de enrutamiento
 ): Promise<void> {
   try {
-    if (!process.env.KAFKA_BASE_URL || !process.env.KAFKA_API_KEY) {
-      throw new Error("KAFKA_BASE_URL and KAFKA_API_KEY must be set");
+    // 1. Verificar la variable de entorno correcta
+    if (!process.env.KAFKA_BROKER) {
+      throw new Error("KAFKA_BROKER must be set");
     }
 
-    const url = new URL("/events", process.env.KAFKA_BASE_URL);
+    // 2. Obtener el productor conectado
+    const kafkaProducer = await getProducer();
 
-    const controller = new AbortController();
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": "kafka-bridge/1.0",
-        "X-API-Key": process.env.KAFKA_API_KEY,
-        "X-Message-ID": event.messageId,
-        "X-Event-Type": event.eventType,
-      },
-      body: JSON.stringify(event),
-      signal: controller.signal,
+    // 3. Enviar el evento usando producer.send()
+    await kafkaProducer.send({
+      topic: topic,
+      messages: [
+        {
+          // Usamos el messageId como 'key' para particionamiento consistente
+          key: event.messageId,
+          // El 'value' es el evento completo stringificado
+          value: JSON.stringify(event),
+          headers: {
+            'eventType': event.eventType,
+            'producer': event.producer,
+          }
+        },
+      ],
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
-    }
-
     console.log(
-      `✅ Webhook delivered successfully to ${url} (status: ${response.status})`
+      `✅ Kafka event '${event.eventType}' published successfully to topic '${topic}'`
     );
-
-    console.log(`✅ Published event to topic ${topic}`);
   } catch (error) {
-    console.error(`❌ Failed to publish event:`, error);
+    console.error(`❌ Failed to publish Kafka event:`, error);
+    // Si falla, resetea el productor para forzar reconexión
+    if (producer) {
+      await producer.disconnect().catch(() => {});
+      producer = null;
+    }
     throw error;
   }
 }
 
+/**
+ * Esta función no necesita cambios.
+ * Construye el evento y llama a publishEvent (que ahora está corregido).
+ */
 export async function publishPaymentStatusUpdated(
   data: PaymentStatusUpdatedData,
   producer: string = "payments-api",

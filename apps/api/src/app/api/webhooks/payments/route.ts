@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createPayment, createPaymentBodySchema, Currency } from "./create-payment";
-import { updatePayment, updatePaymentBodySchema } from "./update-payment";
+import { updatePayment } from "./update-payment";
+import { updatePaymentBodySchema } from "@plataforma/types";
 import { createCorsResponse, createCorsOptionsResponse } from "@/lib/cors";
 import { publishPaymentStatusUpdated } from "@/lib/core";
 import { PaymentStatus } from "../../../../../../types/payments";
