@@ -16,7 +16,7 @@
     "test:bun:coverage": "bun test --coverage"
   },
   "dependencies": {
-    "@plataforma/types": "file:.generated/types",
+    "@plataforma/types": "workspace:*",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.57.4",
     "@types/jsonwebtoken": "^9.0.10",
