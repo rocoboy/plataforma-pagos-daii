@@ -24,3 +24,4 @@ export async function updatePayment(
   if (error) throw new Error(error.message);
   return data;
 }
+

@@ -41,12 +41,16 @@ export async function createPayment(
   
   if (error) throw new Error(error.message);
   return {
+    user_id: data.user_id as ID,
     id: data.id as ID,
     res_id: res_id as ID,
     provider: 'Talo',
     status: defaultPaymentStatus,
     amount: amount,
     currency: currency ?? 'ARS',
+    meta: (data.meta ?? meta) as unknown,
     created_at: new Date(),
   };
 }
+
+export { createPaymentBodySchema };

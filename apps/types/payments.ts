@@ -10,6 +10,7 @@ export const PaymentStatusEnum = z.enum(PAYMENT_STATUS);
 export type PaymentStatus = z.infer<typeof PaymentStatusEnum>;
 
 export type Payment = {
+  user_id?: ID;
   id: ID;
   payment_intent_id?: ID;
   res_id: ID;
@@ -17,6 +18,7 @@ export type Payment = {
   status: PaymentStatus;
   amount: number;
   currency: "ARS" | "USD" | "EUR";
+  meta?: unknown;
   created_at: Date;
 };
 
