@@ -17,7 +17,7 @@
     "clean": "rm -rf dist node_modules bun.lockb"
   },
   "dependencies": {
-    "@plataforma/types": "workspace:*",
+    "@plataforma/types": "file:.types",
     "amqplib": "^0.10.9",
     "kafkajs": "^2.2.4",
     "zod": "^4.1.12"
