@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd apps/api && bun run build",
+  "buildCommand": "bun run build",
   "devCommand": "bun run dev",
   "installCommand": "cd ../.. && bun install",
   "framework": "nextjs",
