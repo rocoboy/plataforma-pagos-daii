@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { Constants } from "@/lib/supabase/schema";
 import z from "zod";
 import { Payment } from "../../../../../../types/payments";
-import { ID, ISODateTime } from "../../../../../../types/common";
+import { ID } from "../../../../../../types/common";
 import { createPaymentBodySchema } from "@plataforma/types";
 
 export type PaymentStatus =

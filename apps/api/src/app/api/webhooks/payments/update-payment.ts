@@ -1,11 +1,6 @@
 import { NextRequest } from "next/server";
 import { PaymentStatus } from "./create-payment";
 import { createClient } from "@/lib/supabase/server";
-import { Constants } from "@/lib/supabase/schema";
-import z from "zod";
-import { updatePaymentBodySchema } from "@plataforma/types";
-
-type UpdatePaymentPayload = z.infer<typeof updatePaymentBodySchema>;
 
 export async function updatePayment(
   request: NextRequest,

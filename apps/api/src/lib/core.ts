@@ -112,7 +112,6 @@ export async function publishPaymentStatusUpdated(
   schemaVersion: string = "1.0"
 ): Promise<void> {
   const payload = paymentStatusUpdatedDataSchema.parse(data);
-  const now = new Date().toISOString();
 
   const correlationId = `corr-${Date.now()}_${Math.random()
     .toString(36)
