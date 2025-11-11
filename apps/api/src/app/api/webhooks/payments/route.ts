@@ -59,6 +59,11 @@ export async function POST(request: NextRequest) {
 
     return createCorsResponse(request, { success: true, payment });
   } catch (error) {
+    // --- LÍNEA AGREGADA ---
+    // Esto imprimirá el error en los logs de Vercel
+    console.error("❌ Error in POST /api/webhooks/payments:", error);
+    // --- FIN ---
+
     return createCorsResponse(
       request,
       {
@@ -112,6 +117,11 @@ export async function PUT(request: NextRequest) {
 
     return createCorsResponse(request, { success: true, payment });
   } catch (error) {
+    // --- LÍNEA AGREGADA ---
+    // Esto imprimirá el error en los logs de Vercel
+    console.error("❌ Error in PUT /api/webhooks/payments:", error);
+    // --- FIN ---
+
     return createCorsResponse(
       request,
       {
