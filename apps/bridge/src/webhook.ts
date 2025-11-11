@@ -77,7 +77,6 @@ export class WebhookHandler {
       console.log('Update payment webhook response:', response);
       return response;
     }
-    // --- FIN DE LA CORRECCIÓN ---
   }
 
   private async publishCreatePaymentWebhook(payload: CreatePaymentPayload) {
