@@ -41,6 +41,8 @@ export async function updatePaymentByReservationId(
     id: data.id as ID,
     res_id: data.res_id as ID,
     user_id: data.user_id as ID,
+    // MODIFICACIÓN: Se silenció el error de ESLint para 'as any'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     payment_intent_id: (data as any).payment_intent_id ? (data as any).payment_intent_id as ID : undefined,
     provider: "Talo", 
     status: data.status as PaymentStatus,
