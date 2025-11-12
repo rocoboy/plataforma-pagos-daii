@@ -31,16 +31,14 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies (web)
-        working-directory: apps/web
-        run: pnpm install
+        run: pnpm install --filter web
 
       - name: Test and coverage (web)
         working-directory: apps/web
         run: pnpm run test:ci
 
       - name: Install dependencies (api)
-        working-directory: apps/api
-        run: bun install
+        run: bun install --filter api...
 
       - name: Test and coverage (api)
         working-directory: apps/api
