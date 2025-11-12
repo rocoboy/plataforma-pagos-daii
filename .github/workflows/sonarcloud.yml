@@ -58,9 +58,29 @@ jobs:
 
       - name: Fix coverage file paths
         run: |
-          # Convert Windows paths to Unix paths in lcov.info
-          sed -i 's|\\|/|g' apps/web/coverage/lcov.info || true
-          sed -i 's|\\|/|g' apps/api/coverage/lcov.info || true
+          # Fix web coverage paths
+          if [ -f apps/web/coverage/lcov.info ]; then
+            sed -i 's|\\|/|g' apps/web/coverage/lcov.info
+            sed -i 's|^SF:src/|SF:apps/web/src/|g' apps/web/coverage/lcov.info
+            echo "✅ Fixed web coverage paths"
+          else
+            echo "⚠️ No web coverage file found"
+          fi
+          
+          # Fix api coverage paths
+          if [ -f apps/api/coverage/lcov.info ]; then
+            sed -i 's|\\|/|g' apps/api/coverage/lcov.info
+            sed -i 's|^SF:src/|SF:apps/api/src/|g' apps/api/coverage/lcov.info
+            echo "✅ Fixed api coverage paths"
+          else
+            echo "⚠️ No api coverage file found"
+          fi
+          
+          # Show first 20 lines of each file for debugging
+          echo "=== Web coverage sample ==="
+          head -n 20 apps/web/coverage/lcov.info || true
+          echo "=== API coverage sample ==="
+          head -n 20 apps/api/coverage/lcov.info || true
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v5
