@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { NextRequest } from "next/server";
 import z from "zod";
 
@@ -19,7 +19,9 @@ export async function createPayment(
   user_id?: string,
   meta?: unknown
 ): Promise<Payment> {
-  const supabase = createClient(request);
+  // Use admin client (service role key) for server-side webhook inserts so RLS
+  // doesn't block the operation. Ensure SUPABASE_SERVICE_ROLE_KEY is set in env.
+  const supabase = createAdminClient();
 
   // --- LÓGICA DE IDEMPOTENCIA ---
   const { data: existingPayment, error: findError } = await supabase
