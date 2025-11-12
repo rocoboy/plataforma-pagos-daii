@@ -30,6 +30,12 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Clean lockfiles and node_modules
+        run: |
+          rm -f pnpm-lock.yaml
+          rm -rf node_modules
+          rm -rf apps/*/node_modules
+
       - name: Install dependencies (types)
         working-directory: apps/types
         run: bun install --no-frozen-lockfile
