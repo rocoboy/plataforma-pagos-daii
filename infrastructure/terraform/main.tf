@@ -18,8 +18,8 @@ resource "vercel_project" "api" {
 
   framework        = "nextjs"
   root_directory   = "apps/api"
-  build_command    = "cd apps/api && bun run build"
-  output_directory = "apps/api/.next"
+  build_command    = "bun run build"
+  output_directory = ".next"
 
   git_repository = {
     type = "github"
