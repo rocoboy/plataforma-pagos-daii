@@ -4,7 +4,15 @@ import { createClient } from '@/lib/supabase/server';
 
 jest.mock('@/lib/supabase/server');
 
-const mockSupabase = {
+interface MockSupabase {
+  from: jest.Mock<MockSupabase, []>;
+  update: jest.Mock<MockSupabase, [Record<string, unknown>]>;
+  eq: jest.Mock<MockSupabase, [string, string]>;
+  select: jest.Mock<MockSupabase, [string]>;
+  single: jest.Mock<Promise<{ data: Record<string, unknown> | null; error: Error | null }>, []>;
+}
+
+const mockSupabase: MockSupabase = {
   from: jest.fn(() => mockSupabase),
   update: jest.fn(() => mockSupabase),
   eq: jest.fn(() => mockSupabase),

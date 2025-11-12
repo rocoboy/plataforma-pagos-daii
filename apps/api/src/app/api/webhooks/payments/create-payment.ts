@@ -1,10 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest } from "next/server";
-import { Constants } from "@/lib/supabase/schema";
+import { Constants, Database } from "@/lib/supabase/schema";
 import z from "zod";
 import { Payment } from "../../../../../../types/payments";
 import { ID } from "../../../../../../types/common";
 import { createPaymentBodySchema } from "@plataforma/types";
+
+type PaymentRow = Database["public"]["Tables"]["payments"]["Row"];
 
 export type PaymentStatus =
   (typeof Constants.public.Enums.payment_status)[number];
@@ -40,15 +42,20 @@ export async function createPayment(
   .single();
   
   if (error) throw new Error(error.message);
+  
+  if (!data) throw new Error("No data returned from insert");
+  
+  const paymentData = data as PaymentRow;
+  
   return {
-    user_id: data.user_id as ID,
-    id: data.id as ID,
+    user_id: (paymentData.user_id ?? undefined) as ID | undefined,
+    id: paymentData.id as ID,
     res_id: res_id as ID,
     provider: 'Talo',
     status: defaultPaymentStatus,
     amount: amount,
     currency: currency ?? 'ARS',
-    meta: (data.meta ?? meta) as unknown,
+    meta: (paymentData.meta ?? meta) as unknown,
     created_at: new Date(),
   };
 }

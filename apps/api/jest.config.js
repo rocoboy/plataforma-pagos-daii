@@ -14,7 +14,6 @@ const config = {
     '!src/**/__tests__/**',
     '!src/**/*.test.ts',
     '!src/**/*.spec.ts',
-    '!src/lib/core.ts',
     '!src/lib/supabase/schema.ts',
     '!src/lib/supabase/middleware.ts',
     '!src/app/page.tsx',
