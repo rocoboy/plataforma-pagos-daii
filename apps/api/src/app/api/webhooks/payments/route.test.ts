@@ -59,8 +59,8 @@ describe('webhooks/payments route', () => {
   it('PUT updates payment with valid body', async () => {
     const req = new NextRequest('http://localhost/api/webhooks/payments', {
       method: 'PUT',
-      // MODIFICACIÓN: Enviamos 'res_id' como espera la 'route.ts'
-      body: JSON.stringify({ res_id: '1', status: 'success' })
+      // MODIFICACIÓN: Enviamos 'res_id' y status en MAYÚSCULAS como espera PaymentStatusEnum
+      body: JSON.stringify({ res_id: '1', status: 'SUCCESS' })
     });
     const res = await PUT(req);
     expect(res.status).toBe(200);

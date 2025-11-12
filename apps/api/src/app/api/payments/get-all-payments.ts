@@ -1,7 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import { NextRequest } from "next/server";
 
-export async function getAllPayments(request: NextRequest) {
+export async function getAllPayments() {
   // Use service role key for admin read of payments to bypass RLS when appropriate
   const supabase = createAdminClient();
 

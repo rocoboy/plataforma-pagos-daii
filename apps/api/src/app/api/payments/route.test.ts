@@ -7,7 +7,7 @@ const mockSupabase = {
 };
 
 jest.mock('@/lib/supabase/server', () => ({
-  createClient: jest.fn(() => mockSupabase),
+  createAdminClient: jest.fn(() => mockSupabase),
 }));
 
 jest.mock('@/lib/cors', () => ({
