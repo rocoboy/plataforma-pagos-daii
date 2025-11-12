@@ -1,14 +1,12 @@
 import type { ID, ISODateTime } from "./common";
 import type { PaymentProvider } from "./providers";
 import * as z from "zod";
+import { Constants } from "./schema-constants";
 
-
-// (Desde 'apps/types/' subimos a 'apps/', entramos a 'api/src/lib...')
-import { Constants } from "../api/src/lib/supabase/schema";
-// 2. Define el SCHEMA DE ZOD (esto lo usa el route.ts)
+// Define el SCHEMA DE ZOD (esto lo usa el route.ts)
 export const PaymentStatusEnum = z.enum(Constants.public.Enums.payment_status);
 
-// 3. Define los TIPOS de TypeScript
+// Define los TIPOS de TypeScript
 export type PaymentStatus = z.infer<typeof PaymentStatusEnum>;
 export type Currency = (typeof Constants.public.Enums.currency)[number];
 
