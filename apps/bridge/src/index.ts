@@ -5,6 +5,8 @@ import { appConfig } from './config';
 class BridgeService {
   private kafka: KafkaClient;
   private webhookHandler: WebhookHandler;
+  private server: any;
+  private isHealthy: boolean = false;
 
   constructor() {
     this.kafka = new KafkaClient();
@@ -31,6 +33,30 @@ class BridgeService {
         },
       });
 
+      // Start HTTP server for health checks
+      this.server = Bun.serve({
+        port: appConfig.server.port,
+        hostname: appConfig.server.host,
+        fetch(req) {
+          const url = new URL(req.url);
+          
+          if (url.pathname === '/health') {
+            return new Response(JSON.stringify({ 
+              status: 'healthy',
+              timestamp: new Date().toISOString()
+            }), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' }
+            });
+          }
+          
+          return new Response('Not Found', { status: 404 });
+        },
+      });
+
+      console.log(`HTTP server started on ${appConfig.server.host}:${appConfig.server.port}`);
+      console.log(`Health check available at: http://${appConfig.server.host}:${appConfig.server.port}/health`);
+
       // Connect to Kafka
       await this.kafka.connect();
 
@@ -52,8 +78,8 @@ class BridgeService {
         }
       });
 
+      this.isHealthy = true;
       console.log('Bridge service started successfully');
-      console.log(`Health check available at: http://${appConfig.server.host}:${appConfig.server.port}/health`);
 
     } catch (error) {
       console.error('Failed to start bridge service:', error);
@@ -63,6 +89,12 @@ class BridgeService {
 
   async stop(): Promise<void> {
     console.log('Stopping bridge service...');
+    this.isHealthy = false;
+    
+    if (this.server) {
+      this.server.stop();
+    }
+    
     await this.kafka.close();
     console.log('Bridge service stopped');
   }

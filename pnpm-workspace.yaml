@@ -1,5 +1,5 @@
 packages:
-  - 'apps/*'
-  - 'bridge'
-  - 'web'
-  - 'types'
+  - 'apps/api'
+  - 'apps/web'
+  - 'apps/types'
+  - '!apps/bridge'
