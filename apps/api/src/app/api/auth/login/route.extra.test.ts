@@ -85,5 +85,79 @@ describe('Login Route - Extra Coverage', () => {
     const response = await POST(request);
     expect(response).toBeDefined();
   });
+
+  it('handles response with user object (raw data)', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ 
+        success: true, 
+        token: 'token123',
+        user: {
+          user_id: 'u1',
+          email: 'test@example.com',
+          name: 'Test User',
+          role: 'Admin'
+        }
+      }),
+    });
+
+    const request = new NextRequest('http://localhost/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: 'test@example.com', password: 'password123' }),
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(200);
+  });
+
+  it('handles JWT token without user object', async () => {
+    // JWT válido con payload mínimo
+    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64');
+    const payload = Buffer.from(JSON.stringify({ 
+      id: 'u1', 
+      email: 'jwt@example.com',
+      name: 'JWT User',
+      role: 'User'
+    })).toString('base64');
+    const signature = 'signature';
+    const jwtToken = `${header}.${payload}.${signature}`;
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ 
+        success: true, 
+        token: jwtToken
+      }),
+    });
+
+    const request = new NextRequest('http://localhost/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: 'test@example.com', password: 'password123' }),
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(200);
+  });
+
+  it('handles invalid JWT token', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ 
+        success: true, 
+        token: 'invalid-token-format'
+      }),
+    });
+
+    const request = new NextRequest('http://localhost/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: 'test@example.com', password: 'password123' }),
+    });
+
+    const response = await POST(request);
+    expect(response).toBeDefined();
+  });
 });
 

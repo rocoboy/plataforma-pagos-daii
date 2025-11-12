@@ -1,4 +1,4 @@
-import { AmountCents, Currency, ID, ISODateTime, URLString, WithTimestamps } from "./common";
+import  type { AmountCents, Currency, ID, URLString, WithTimestamps } from "./common";
 
 export type InvoiceStatus = "ISSUED";
 export type CreditNoteStatus = "ISSUED";

@@ -1,105 +1,156 @@
 import { appConfig } from './config';
-import type { RabbitMQMessage, WebhookPayload, WebhookResponse } from './types';
+import type { KafkaMessage } from './types';
+// Quitamos 'updatePaymentBodySchema' que estaba obsoleto
+import { RELEVANT_EVENTS, type RelevantEvents, createPaymentBodySchema } from '@plataforma/types';
+import { z } from 'zod';
+
+// Define el tipo para el payload que espera el webhook (basado en el cURL)
+interface WebhookApiPayload {
+  messageId: string;
+  eventType: string;
+  schemaVersion: string;
+  occurredAt: string;
+  producer: string;
+  correlationId?: string;
+  idempotencyKey?: string;
+  payload: string; // El payload es un JSON stringificado
+}
+
+type CreatePaymentPayload = z.infer<typeof createPaymentBodySchema>;
+
+// Definimos el tipo 'Update' manualmente para que espere 'res_id'
+// Esto coincide con lo que tu API (Vercel) ahora espera.
+type UpdatePaymentPayload = {
+  res_id: string;
+  status: string;
+};
 
 export class WebhookHandler {
-  private getEndpoint(eventType: string): string {
-    // Map RabbitMQ routing keys to webhook endpoints
-    const endpointMap: Record<string, string> = {
-      'payment.completed': 'payments',
-      'payment.failed': 'payments',
-      'payment.refunded': 'payments',
-      'payment.pending': 'payments',
-      'user.created': 'users',
-      'user.updated': 'users',
-      'user.deleted': 'users',
-      'subscription.created': 'subscriptions',
-      'subscription.updated': 'subscriptions',
-      'subscription.cancelled': 'subscriptions',
-      'subscription.renewed': 'subscriptions',
-      'invoice.created': 'invoices',
-      'invoice.paid': 'invoices',
-      'invoice.overdue': 'invoices',
-    };
 
-    return endpointMap[eventType] || 'events';
-  }
+  async sendWebhook(message: KafkaMessage): Promise<void> {
+    // 1. Extraer el tipo de evento
+    const eventType = this.extractEventType(message);
 
-  async sendWebhook(message: RabbitMQMessage): Promise<void> {
-    const payload: WebhookPayload = {
-      event: message.routingKey,
-      data: message.content,
-      timestamp: message.timestamp,
-      messageId: message.messageId,
-      source: 'rabbitmq',
-      headers: message.headers,
-    };
-
-    await this.sendWithRetry(payload);
-  }
-
-  private async sendWithRetry(payload: WebhookPayload): Promise<void> {
-    let lastError: Error | null = null;
-
-    for (let attempt = 0; attempt <= appConfig.webhook.maxRetries; attempt++) {
-      if (attempt > 0) {
-        console.warn(`Retrying webhook delivery (attempt ${attempt + 1}/${appConfig.webhook.maxRetries + 1})`);
-        await this.sleep(appConfig.webhook.retryDelay);
-      }
-
-      try {
-        await this.send(payload);
-        if (attempt > 0) {
-          console.log(`Webhook delivered successfully after ${attempt} retries`);
-        }
-        return;
-      } catch (error) {
-        lastError = error as Error;
-        console.error(`Webhook delivery failed (attempt ${attempt + 1}/${appConfig.webhook.maxRetries + 1}):`, error);
-      }
+    if (!eventType) {
+      console.warn(`❌ Event type not found in message:`, message);
+      return;
     }
 
-    throw new Error(`Webhook delivery failed after ${appConfig.webhook.maxRetries + 1} attempts: ${lastError?.message}`);
-  }
+    // 2. Extraer el payload interno (que es un string)
+    const innerPayloadString = message.content.payload;
+    if (!innerPayloadString) {
+      console.error('❌ Inner payload string is missing from message content', message);
+      return;
+    }
 
-  private async send(payload: WebhookPayload): Promise<void> {
-    const endpoint = this.getEndpoint(payload.event);
-    const url = `${appConfig.webhook.baseUrl}/${endpoint}`;
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), appConfig.webhook.timeout);
-
+    let innerPayload: any;
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'rabbitmq-bridge/1.0',
-          'X-Message-ID': payload.messageId,
-          'X-Event-Type': payload.event,
-          'X-Source': payload.source,
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-
-      console.log(`Webhook delivered successfully to ${url} (status: ${response.status})`);
+      // 3. Parsear el string para obtener el objeto JSON
+      innerPayload = JSON.parse(innerPayloadString);
     } catch (error) {
-      clearTimeout(timeoutId);
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error(`Webhook request timed out after ${appConfig.webhook.timeout}ms`);
+      console.error('❌ Failed to parse inner payload JSON:', innerPayloadString, error);
+      return;
+    }
+
+    // --- Lógica de Mapeo y Traducción ---
+
+    if (eventType === 'reservations.reservation.created') {
+      
+      // Transforma el payload al formato que la API de Pagos espera
+      const apiPayload: CreatePaymentPayload = {
+        res_id: innerPayload.reservationId, // Mapea reservationId a res_id
+        user_id: innerPayload.userId,     // Mapea userId a user_id
+        amount: innerPayload.amount,
+        currency: innerPayload.currency,
+        meta: { 
+          // Guarda el resto de datos en meta
+          flightId: innerPayload.flightId, 
+          reservedAt: innerPayload.reservedAt 
+        } 
+      };
+
+      const response = await this.publishCreatePaymentWebhook(apiPayload); 
+      console.log('Create payment webhook response:', response);
+      return response;
+    }
+
+    if (eventType === 'reservations.reservation.updated') {
+      
+      // 1. TRADUCE el estado del dominio de "Reservas" al de "Pagos"
+      let apiStatus;
+      switch (innerPayload.newStatus) {
+        case "PENDING_REFUND":
+          apiStatus = "REFUND"; 
+          break;
+        case "PAID":
+          apiStatus = "SUCCESS"; 
+          break;
+        case "CANCELLED":
+           apiStatus = "FAILURE"; 
+           break;
+        default:
+          apiStatus = innerPayload.newStatus;
       }
-      throw error;
+
+      // 2. Transforma el payload para que envíe 'res_id'
+      const apiPayload: UpdatePaymentPayload = {
+        res_id: innerPayload.reservationId, // <-- Envía res_id
+        status: apiStatus,                  // Usa el estado traducido
+      };
+
+      // 3. Envía el payload transformado
+      const response = await this.publishUpdatePaymentWebhook(apiPayload); 
+      console.log('Update payment webhook response:', response);
+      return response;
     }
   }
 
-  private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  private async publishCreatePaymentWebhook(payload: CreatePaymentPayload) {
+    const response = await fetch(`${appConfig.webhook.baseUrl}/api/webhooks/payments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to publish create payment webhook: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('Create payment webhook response:', data);
+
+    return data;
+  }
+
+  // Esta función ahora acepta nuestro tipo 'UpdatePaymentPayload' (con res_id)
+  private async publishUpdatePaymentWebhook(payload: UpdatePaymentPayload) {
+    const response = await fetch(`${appConfig.webhook.baseUrl}/api/webhooks/payments`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to publish update payment webhook: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('Update payment webhook response:', data);
+
+    return data;
+  }
+
+  private extractEventType(message: KafkaMessage): RelevantEvents | undefined {
+    if (message.content && message.content.eventType && RELEVANT_EVENTS.includes(message.content.eventType as RelevantEvents)) {
+      if (message.content.eventType === 'payments.payment.status_updated') {
+        return undefined;
+      }
+      return message.content.eventType as RelevantEvents;
+    }
+    return undefined;
   }
 }

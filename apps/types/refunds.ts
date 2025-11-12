@@ -1,5 +1,5 @@
-import { AmountCents, ID, ISODateTime, WithTimestamps } from "./common";
-import { Provider } from "./providers";
+import type { AmountCents, ID, ISODateTime, WithTimestamps } from "./common";
+import type { Provider } from "./providers";
 
 export type RefundStatus = "REQUESTED" | "PROCESSED" | "FAILED";
 

@@ -1,13 +1,19 @@
 FROM oven/bun:1 as base
 WORKDIR /app
 
-# Install dependencies
-COPY package.json bun.lockb ./
+# Copy types directly to where package.json expects them (.types)
+COPY apps/types ./.types
+
+# Copy bridge app files
+COPY apps/bridge/package.json apps/bridge/bun.lockb* ./
+COPY apps/bridge/scripts ./scripts
+
+# Install dependencies (types are already in place as .types)
 RUN bun install --frozen-lockfile
 
 # Copy source code
-COPY src ./src
-COPY tsconfig.json ./
+COPY apps/bridge/src ./src
+COPY apps/bridge/tsconfig.json ./
 
 # Build the application
 RUN bun run build

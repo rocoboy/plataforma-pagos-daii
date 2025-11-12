@@ -1,27 +1,26 @@
-import { RabbitMQClient } from './rabbitmq';
+import { KafkaClient } from './kafka';
 import { WebhookHandler } from './webhook';
-import { createServer } from './server';
 import { appConfig } from './config';
 
 class BridgeService {
-  private rabbitmq: RabbitMQClient;
+  private kafka: KafkaClient;
   private webhookHandler: WebhookHandler;
-  private server: ReturnType<typeof createServer>;
+  private server: any;
+  private isHealthy: boolean = false;
 
   constructor() {
-    this.rabbitmq = new RabbitMQClient();
+    this.kafka = new KafkaClient();
     this.webhookHandler = new WebhookHandler();
-    this.server = createServer();
   }
 
   async start(): Promise<void> {
     try {
-      console.log('Starting RabbitMQ to Webhook Bridge Service...');
+      console.log('Starting Kafka to Webhook Bridge Service...');
       console.log('Configuration:', {
-        rabbitmq: {
-          url: appConfig.rabbitmq.url.replace(/\/\/.*@/, '//***:***@'), // Hide credentials
-          queue: appConfig.rabbitmq.queue,
-          exchange: appConfig.rabbitmq.exchange,
+        kafka: {
+          broker: appConfig.kafka.broker,
+          topics: appConfig.kafka.topics,
+          consumerGroup: appConfig.kafka.consumerGroup,
         },
         webhook: {
           baseUrl: appConfig.webhook.baseUrl,
@@ -33,26 +32,55 @@ class BridgeService {
           host: appConfig.server.host,
         },
       });
-      
-      // Connect to RabbitMQ
-      await this.rabbitmq.connect();
-      
+
+      // Start HTTP server for health checks
+      this.server = Bun.serve({
+        port: appConfig.server.port,
+        hostname: appConfig.server.host,
+        fetch(req) {
+          const url = new URL(req.url);
+          
+          if (url.pathname === '/health') {
+            return new Response(JSON.stringify({ 
+              status: 'healthy',
+              timestamp: new Date().toISOString()
+            }), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' }
+            });
+          }
+          
+          return new Response('Not Found', { status: 404 });
+        },
+      });
+
+      console.log(`HTTP server started on ${appConfig.server.host}:${appConfig.server.port}`);
+      console.log(`Health check available at: http://${appConfig.server.host}:${appConfig.server.port}/health`);
+
+      // Connect to Kafka
+      await this.kafka.connect();
+
       // Start consuming messages
-      await this.rabbitmq.consume(async (message) => {
-        console.log(`Processing message: ${message.messageId} (routing key: ${message.routingKey})`);
-        
+      await this.kafka.consume(async (message) => {
+        console.log(`Processing message: ${message.messageId} (topic: ${message.topic}, partition: ${message.partition})`);
+
         try {
-          await this.webhookHandler.sendWebhook(message);
-          console.log(`Successfully processed message: ${message.messageId}`);
+          const response = await this.webhookHandler.sendWebhook(message);
+
+          if (response !== undefined) {
+            console.log(`Successfully processed message: ${message.messageId}`);
+          } else {
+            console.log(`Message processed but is not relevent topic: ${message.topic}`  );
+          }
         } catch (error) {
           console.error(`Failed to process message ${message.messageId}:`, error);
-          throw error; // This will cause the message to be nacked and requeued
+          throw error;
         }
       });
 
+      this.isHealthy = true;
       console.log('Bridge service started successfully');
-      console.log(`Health check available at: http://${appConfig.server.host}:${appConfig.server.port}/health`);
-      
+
     } catch (error) {
       console.error('Failed to start bridge service:', error);
       process.exit(1);
@@ -61,8 +89,13 @@ class BridgeService {
 
   async stop(): Promise<void> {
     console.log('Stopping bridge service...');
-    await this.rabbitmq.close();
-    this.server.stop();
+    this.isHealthy = false;
+    
+    if (this.server) {
+      this.server.stop();
+    }
+    
+    await this.kafka.close();
     console.log('Bridge service stopped');
   }
 }

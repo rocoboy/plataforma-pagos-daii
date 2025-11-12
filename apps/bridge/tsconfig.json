@@ -17,11 +17,13 @@
     "types": ["bun-types"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@plataforma/types": ["./.types/index.ts"]
     }
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    ".types/**/*"
   ],
   "exclude": [
     "node_modules",
