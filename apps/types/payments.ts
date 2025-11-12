@@ -1,4 +1,6 @@
-import type { ID, ISODateTime } from "./common";
+import type { ID, ISODateTime, Currency } from "./common";
+// Re-export Currency so other modules can import it from `types/payments`
+export type { Currency } from "./common";
 import type { PaymentProvider } from "./providers";
 import * as z from "zod";
 
@@ -10,8 +12,6 @@ export const PaymentStatusEnum = z.enum(Constants.public.Enums.payment_status);
 
 // 3. Define los TIPOS de TypeScript
 export type PaymentStatus = z.infer<typeof PaymentStatusEnum>;
-export type Currency = (typeof Constants.public.Enums.currency)[number];
-
 
 export type Payment = {
   user_id?: ID;
