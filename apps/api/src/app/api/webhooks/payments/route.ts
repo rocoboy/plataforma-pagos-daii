@@ -16,10 +16,6 @@ const updatePaymentSchema = z.object({
   status: PaymentStatusEnum, // Valida que el status sea uno de los conocidos
 });
 
-
-// ===================================
-// FUNCIÓN POST (CON CONSOLE.ERROR)
-// ===================================
 export async function POST(request: NextRequest) {
   try {
     //validar body

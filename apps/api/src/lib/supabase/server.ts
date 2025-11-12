@@ -39,3 +39,26 @@ export const createClient = (request: NextRequest) => {
     },
   });
 };
+
+// Admin/client with service role key - use only on server-side for admin endpoints
+export const createAdminClient = () => {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) {
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY environment variable");
+  }
+  if (!supabaseUrl) {
+    throw new Error("Missing SUPABASE_URL environment variable");
+  }
+
+  // provide a minimal cookies implementation required by createServerClient
+  return createServerClient<Database>(supabaseUrl, serviceKey, {
+    cookies: {
+      getAll() {
+        return [];
+      },
+      setAll() {
+        // no-op for admin server client
+      },
+    },
+  });
+};
