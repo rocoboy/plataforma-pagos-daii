@@ -1,8 +1,29 @@
 import { NextRequest } from 'next/server';
 import { POST, PUT, OPTIONS } from './route';
 
+jest.mock('@/lib/core', () => ({
+  publishPaymentStatusUpdated: jest.fn(async () => Promise.resolve())
+}));
+
+jest.mock('@plataforma/types', () => ({
+  updatePaymentBodySchema: {
+    safeParse: jest.fn((data) => {
+      if (data.id && data.status) {
+        return { success: true, data };
+      }
+      return { success: false, error: { message: 'Invalid' } };
+    })
+  }
+}));
+
 jest.mock('./create-payment', () => ({
-  createPayment: jest.fn(async () => ({ id: '1', amount: 10 })),
+  createPayment: jest.fn(async () => ({ 
+    id: '1', 
+    res_id: 'R1', 
+    amount: 10, 
+    currency: 'ARS',
+    status: 'PENDING'
+  })),
   createPaymentBodySchema: {
     safeParse: jest.fn((data) => {
       if (data.res_id && data.user_id && data.amount && data.currency) {
@@ -14,15 +35,7 @@ jest.mock('./create-payment', () => ({
 }));
 
 jest.mock('./update-payment', () => ({
-  updatePayment: jest.fn(async () => ({ id: '1', status: 'success' })),
-  updatePaymentBodySchema: {
-    safeParse: jest.fn((data) => {
-      if (data.id && data.status) {
-        return { success: true, data };
-      }
-      return { success: false, error: { message: 'Invalid' } };
-    })
-  }
+  updatePayment: jest.fn(async () => ({ id: '1', status: 'success', res_id: 'R1', user_id: 'U1', amount: 100, currency: 'ARS' }))
 }));
 
 jest.mock('@/lib/cors', () => ({

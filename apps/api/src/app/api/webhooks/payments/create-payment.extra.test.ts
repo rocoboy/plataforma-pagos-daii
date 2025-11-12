@@ -3,7 +3,14 @@ import { createPayment } from './create-payment';
 import { createClient } from '@/lib/supabase/server';
 jest.mock('@/lib/supabase/server');
 
-const mockSupabase: any = {
+interface MockSupabase {
+  from: jest.Mock;
+  insert: jest.Mock;
+  select: jest.Mock;
+  single: jest.Mock;
+}
+
+const mockSupabase: MockSupabase = {
   from: jest.fn(() => mockSupabase),
   insert: jest.fn(() => mockSupabase),
   select: jest.fn(() => mockSupabase),

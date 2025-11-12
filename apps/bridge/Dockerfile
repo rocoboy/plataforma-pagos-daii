@@ -1,14 +1,14 @@
 FROM oven/bun:1 as base
 WORKDIR /app
 
-# Copy types from workspace (needed for @plataforma/types)
-COPY apps/types ./apps/types
+# Copy types directly to where package.json expects them (.types)
+COPY apps/types ./.types
 
 # Copy bridge app files
 COPY apps/bridge/package.json apps/bridge/bun.lockb* ./
 COPY apps/bridge/scripts ./scripts
 
-# Install dependencies (preinstall script will copy types)
+# Install dependencies (types are already in place as .types)
 RUN bun install --frozen-lockfile
 
 # Copy source code
