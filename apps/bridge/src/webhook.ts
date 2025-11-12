@@ -1,8 +1,7 @@
 import { appConfig } from './config';
-// Asegúrate de que 'KafkaMessage' esté bien definido.
-// Asumo que es algo como: type KafkaMessage = { content: WebhookApiPayload };
 import type { KafkaMessage } from './types';
-import { RELEVANT_EVENTS, type RelevantEvents, createPaymentBodySchema, updatePaymentBodySchema } from '@plataforma/types';
+// Quitamos 'updatePaymentBodySchema' que estaba obsoleto
+import { RELEVANT_EVENTS, type RelevantEvents, createPaymentBodySchema } from '@plataforma/types';
 import { z } from 'zod';
 
 // Define el tipo para el payload que espera el webhook (basado en el cURL)
@@ -19,7 +18,12 @@ interface WebhookApiPayload {
 
 type CreatePaymentPayload = z.infer<typeof createPaymentBodySchema>;
 
-type UpdatePaymentPayload = z.infer<typeof updatePaymentBodySchema>;
+// Definimos el tipo 'Update' manualmente para que espere 'res_id'
+// Esto coincide con lo que tu API (Vercel) ahora espera.
+type UpdatePaymentPayload = {
+  res_id: string;
+  status: string;
+};
 
 export class WebhookHandler {
 
@@ -31,8 +35,6 @@ export class WebhookHandler {
       console.warn(`❌ Event type not found in message:`, message);
       return;
     }
-
-    // --- INICIO DE LA CORRECCIÓN ---
 
     // 2. Extraer el payload interno (que es un string)
     const innerPayloadString = message.content.payload;
@@ -50,37 +52,60 @@ export class WebhookHandler {
       return;
     }
 
-    if (eventType === 'reservations.reservation.created') { // prueba de si funciona la creacion de reservas 
+    // --- Lógica de Mapeo y Traducción ---
+
+    if (eventType === 'reservations.reservation.created') {
       
-      // 1. Transforma el payload al formato que la API espera
-      const apiPayload = {
-        res_id: innerPayload.reservationId, // <-- Mapea reservationId a res_id
-        user_id: innerPayload.userId,     // <-- Mapea userId a user_id
+      // Transforma el payload al formato que la API de Pagos espera
+      const apiPayload: CreatePaymentPayload = {
+        res_id: innerPayload.reservationId, // Mapea reservationId a res_id
+        user_id: innerPayload.userId,     // Mapea userId a user_id
         amount: innerPayload.amount,
         currency: innerPayload.currency,
         meta: { 
-          // Pon el resto de datos que quieras guardar aquí
+          // Guarda el resto de datos en meta
           flightId: innerPayload.flightId, 
           reservedAt: innerPayload.reservedAt 
         } 
       };
 
-      // 2. Envía el payload transformado
       const response = await this.publishCreatePaymentWebhook(apiPayload); 
       console.log('Create payment webhook response:', response);
       return response;
     }
 
     if (eventType === 'reservations.reservation.updated') {
-      // Ahora se pasa el payload correcto
-      const response = await this.publishUpdatePaymentWebhook(innerPayload);
+      
+      // 1. TRADUCE el estado del dominio de "Reservas" al de "Pagos"
+      let apiStatus;
+      switch (innerPayload.newStatus) {
+        case "PENDING_REFUND":
+          apiStatus = "REFUND"; 
+          break;
+        case "PAID":
+          apiStatus = "SUCCESS"; 
+          break;
+        case "CANCELLED":
+           apiStatus = "FAILURE"; 
+           break;
+        default:
+          apiStatus = innerPayload.newStatus;
+      }
+
+      // 2. Transforma el payload para que envíe 'res_id'
+      const apiPayload: UpdatePaymentPayload = {
+        res_id: innerPayload.reservationId, // <-- Envía res_id
+        status: apiStatus,                  // Usa el estado traducido
+      };
+
+      // 3. Envía el payload transformado
+      const response = await this.publishUpdatePaymentWebhook(apiPayload); 
       console.log('Update payment webhook response:', response);
       return response;
     }
   }
 
   private async publishCreatePaymentWebhook(payload: CreatePaymentPayload) {
-    // Este método estaba bien
     const response = await fetch(`${appConfig.webhook.baseUrl}/api/webhooks/payments`, {
       method: 'POST',
       headers: {
@@ -99,8 +124,8 @@ export class WebhookHandler {
     return data;
   }
 
+  // Esta función ahora acepta nuestro tipo 'UpdatePaymentPayload' (con res_id)
   private async publishUpdatePaymentWebhook(payload: UpdatePaymentPayload) {
-    // Este método estaba bien
     const response = await fetch(`${appConfig.webhook.baseUrl}/api/webhooks/payments`, {
       method: 'PUT',
       headers: {
@@ -114,14 +139,12 @@ export class WebhookHandler {
     }
 
     const data = await response.json();
-
     console.log('Update payment webhook response:', data);
 
     return data;
   }
 
   private extractEventType(message: KafkaMessage): RelevantEvents | undefined {
-    // Este método estaba bien
     if (message.content && message.content.eventType && RELEVANT_EVENTS.includes(message.content.eventType as RelevantEvents)) {
       if (message.content.eventType === 'payments.payment.status_updated') {
         return undefined;

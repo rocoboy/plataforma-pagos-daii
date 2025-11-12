@@ -1,15 +1,25 @@
 import { NextRequest } from 'next/server';
-import { updatePayment } from './update-payment';
+import { updatePaymentByReservationId } from './update-payment';
 import { createClient } from '@/lib/supabase/server';
 
 jest.mock('@/lib/supabase/server');
 
-const mockSupabase = {
+type MockSupabase = { 
+  from: jest.Mock<MockSupabase, any[]>;
+  update: jest.Mock<MockSupabase, any[]>;
+  eq: jest.Mock<MockSupabase, any[]>;
+  select: jest.Mock<MockSupabase, any[]>;
+  single: jest.Mock<any, any[]>;
+  maybeSingle: jest.Mock<any, any[]>;
+};
+
+const mockSupabase: MockSupabase = {
   from: jest.fn(() => mockSupabase),
   update: jest.fn(() => mockSupabase),
   eq: jest.fn(() => mockSupabase),
   select: jest.fn(() => mockSupabase),
   single: jest.fn(),
+  maybeSingle: jest.fn(),
 };
 
 (createClient as jest.Mock).mockReturnValue(mockSupabase);
@@ -23,63 +33,69 @@ describe('Update Payment - Extra Coverage', () => {
   });
 
   it('updates to SUCCESS status', async () => {
-    mockSupabase.single.mockResolvedValue({ 
+    mockSupabase.maybeSingle.mockResolvedValue({ 
       data: { id: 'p1', status: 'SUCCESS' }, 
       error: null 
     });
 
-    const result = await updatePayment(mockRequest, 'p1', 'SUCCESS');
-    expect(result.status).toBe('SUCCESS');
+    const result = await updatePaymentByReservationId(mockRequest, 'p1', 'SUCCESS');
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe('SUCCESS');
   });
 
   it('updates to FAILED status', async () => {
-    mockSupabase.single.mockResolvedValue({ 
-      data: { id: 'p2', status: 'FAILED' }, 
+    mockSupabase.maybeSingle.mockResolvedValue({ 
+      data: { id: 'p2', status: 'FAILURE' }, 
       error: null 
     });
 
-    const result = await updatePayment(mockRequest, 'p2', 'FAILED');
-    expect(result.status).toBe('FAILED');
+    const result = await updatePaymentByReservationId(mockRequest, 'p2', 'FAILURE');
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe('FAILURE');
   });
 
   it('updates to PENDING status', async () => {
-    mockSupabase.single.mockResolvedValue({ 
+    mockSupabase.maybeSingle.mockResolvedValue({ 
       data: { id: 'p3', status: 'PENDING' }, 
       error: null 
     });
 
-    const result = await updatePayment(mockRequest, 'p3', 'PENDING');
-    expect(result.status).toBe('PENDING');
+    const result = await updatePaymentByReservationId(mockRequest, 'p3', 'PENDING');
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe('PENDING');
   });
 
   it('updates to PROCESSING status', async () => {
-    mockSupabase.single.mockResolvedValue({ 
-      data: { id: 'p4', status: 'PROCESSING' }, 
+    mockSupabase.maybeSingle.mockResolvedValue({ 
+      data: { id: 'p4', status: 'UNDERPAID' }, 
       error: null 
     });
 
-    const result = await updatePayment(mockRequest, 'p4', 'PROCESSING');
-    expect(result.status).toBe('PROCESSING');
+  const result = await updatePaymentByReservationId(mockRequest, 'p4', 'UNDERPAID');
+  expect(result).not.toBeNull();
+  expect(result!.status).toBe('UNDERPAID');
   });
 
   it('updates to CANCELLED status', async () => {
-    mockSupabase.single.mockResolvedValue({ 
-      data: { id: 'p5', status: 'CANCELLED' }, 
+    mockSupabase.maybeSingle.mockResolvedValue({ 
+      data: { id: 'p5', status: 'REFUND' }, 
       error: null 
     });
 
-    const result = await updatePayment(mockRequest, 'p5', 'CANCELLED');
-    expect(result.status).toBe('CANCELLED');
+  const result = await updatePaymentByReservationId(mockRequest, 'p5', 'REFUND');
+  expect(result).not.toBeNull();
+  expect(result!.status).toBe('REFUND');
   });
 
   it('handles different payment ids', async () => {
-    mockSupabase.single.mockResolvedValue({ 
+    mockSupabase.maybeSingle.mockResolvedValue({ 
       data: { id: 'custom-id-123', status: 'SUCCESS' }, 
       error: null 
     });
 
-    const result = await updatePayment(mockRequest, 'custom-id-123', 'SUCCESS');
-    expect(result.id).toBe('custom-id-123');
+    const result = await updatePaymentByReservationId(mockRequest, 'custom-id-123', 'SUCCESS');
+    expect(result).not.toBeNull();
+    expect(result!.id).toBe('custom-id-123');
   });
 });
 

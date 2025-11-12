@@ -16,7 +16,6 @@ export function getCorsHeaders(request: NextRequest) {
     'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    // Common extras
     'Access-Control-Allow-Credentials': 'true',
     'Vary': 'Origin',
   };
