@@ -4,6 +4,8 @@ import { GET, OPTIONS } from './route';
 const mockSupabase = {
   from: jest.fn(() => mockSupabase),
   select: jest.fn(() => mockSupabase),
+  eq: jest.fn(() => mockSupabase),
+  single: jest.fn(),
 };
 
 jest.mock('@/lib/supabase/server', () => ({
@@ -19,41 +21,34 @@ jest.mock('@/lib/cors', () => ({
   ),
 }));
 
-jest.mock('../middleware/adminAuth', () => ({
-  adminAuthMiddleware: jest.fn(() => null),
-}));
-
-describe('payments route (get-all)', () => {
+describe('payments/[id] route', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('GET returns all payments', async () => {
-    mockSupabase.select.mockResolvedValue({
-      data: [
-        { id: '1', amount: 100 },
-        { id: '2', amount: 200 },
-      ],
+  it('GET returns payment by id', async () => {
+    mockSupabase.single.mockResolvedValue({
+      data: { id: '123', amount: 100, status: 'PENDING' },
       error: null,
     });
 
-    const req = new NextRequest('http://localhost/api/payments');
-    const res = await GET(req);
+    const req = new NextRequest('http://localhost/api/payments/123');
+    const res = await GET(req, { params: Promise.resolve({ id: '123' }) });
     
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.success).toBe(true);
-    expect(json.payments).toBeDefined();
+    expect(json.payment).toBeDefined();
   });
 
   it('GET returns 500 on database error', async () => {
-    mockSupabase.select.mockResolvedValue({
+    mockSupabase.single.mockResolvedValue({
       data: null,
       error: { message: 'Database error' },
     });
 
-    const req = new NextRequest('http://localhost/api/payments');
-    const res = await GET(req);
+    const req = new NextRequest('http://localhost/api/payments/123');
+    const res = await GET(req, { params: Promise.resolve({ id: '123' }) });
     
     expect(res.status).toBe(500);
     const json = await res.json();
@@ -61,7 +56,7 @@ describe('payments route (get-all)', () => {
   });
 
   it('OPTIONS returns 204', async () => {
-    const req = new NextRequest('http://localhost/api/payments', { 
+    const req = new NextRequest('http://localhost/api/payments/123', { 
       method: 'OPTIONS' 
     });
     const res = await OPTIONS(req);
@@ -69,3 +64,4 @@ describe('payments route (get-all)', () => {
     expect(res.status).toBe(204);
   });
 });
+
