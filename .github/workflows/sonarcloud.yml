@@ -30,20 +30,21 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Clean old lockfiles
-        run: |
-          rm -f pnpm-lock.yaml
-          rm -f bun.lock
+      - name: Install dependencies (types)
+        working-directory: apps/types
+        run: bun install --no-frozen-lockfile
 
       - name: Install dependencies (web)
-        run: pnpm install --filter web
+        working-directory: apps/web
+        run: pnpm install --no-frozen-lockfile
 
       - name: Test and coverage (web)
         working-directory: apps/web
         run: pnpm run test:ci
 
       - name: Install dependencies (api)
-        run: bun install --filter api...
+        working-directory: apps/api
+        run: bun install --no-frozen-lockfile
 
       - name: Test and coverage (api)
         working-directory: apps/api
