@@ -5,9 +5,7 @@ import {
   paymentStatusUpdatedDataSchema,
 } from "@plataforma/types/kafka-events";
 
-// --- INICIO DE LA MODIFICACIÓN ---
 
-// Función helper para esperar
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
