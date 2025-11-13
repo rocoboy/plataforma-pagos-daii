@@ -386,7 +386,7 @@ components:
 
     UpdatePaymentResponse:
       allOf:
-        - $ref: '#/components/Gschemas/ApiBase'
+        - $ref: '#/components/schemas/ApiBase'
         - type: object
           properties:
             payment:
