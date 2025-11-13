@@ -68,5 +68,3 @@ export const createAdminClient = () => {
     auth: { persistSession: false },
   });
 };
-
-// --- FIN DE LA CORRECCIÓN ---
