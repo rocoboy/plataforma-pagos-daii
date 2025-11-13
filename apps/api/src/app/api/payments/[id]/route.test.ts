@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { GET, OPTIONS } from './route';
 
-const mockSupabase = {
+const mockSupabase: any = {
   from: jest.fn(() => mockSupabase),
   select: jest.fn(() => mockSupabase),
   eq: jest.fn(() => mockSupabase),
@@ -10,6 +10,7 @@ const mockSupabase = {
 
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(() => mockSupabase),
+  createAdminClient: jest.fn(() => mockSupabase),
 }));
 
 jest.mock('@/lib/cors', () => ({

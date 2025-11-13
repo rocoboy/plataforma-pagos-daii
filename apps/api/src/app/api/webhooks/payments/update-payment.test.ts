@@ -1,22 +1,20 @@
 import { NextRequest } from 'next/server';
 import { updatePaymentByReservationId } from './update-payment';
 
-jest.mock('@/lib/supabase/server', () => ({
-  createClient: jest.fn(() => ({
-    from: jest.fn(() => ({
-      update: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          select: jest.fn(() => ({
-            single: jest.fn(() => ({
-              data: { id: '1', status: 'SUCCESS' },
-              error: null
-            }))
-          }))
-        }))
-      }))
-    }))
-  }))
-}));
+jest.mock('@/lib/supabase/server', () => {
+  const mockClient: any = {};
+  mockClient.from = jest.fn(() => mockClient);
+  mockClient.select = jest.fn(() => mockClient);
+  mockClient.update = jest.fn(() => mockClient);
+  mockClient.eq = jest.fn(() => mockClient);
+  mockClient.single = jest.fn(() => ({ data: { id: '1', status: 'SUCCESS' }, error: null }));
+  mockClient.maybeSingle = jest.fn(() => ({ data: { id: '1', status: 'SUCCESS' }, error: null }));
+
+  return {
+    createClient: jest.fn(() => mockClient),
+    createAdminClient: jest.fn(() => mockClient),
+  };
+});
 
 describe('updatePayment', () => {
   it('updates payment status', async () => {

@@ -1,9 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from 'next/server';
 import { updatePaymentByReservationId } from './update-payment';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 
-jest.mock('@/lib/supabase/server');
+jest.mock('@/lib/supabase/server', () => ({
+  createClient: jest.fn(),
+  createAdminClient: jest.fn(),
+}));
 
 type MockSupabase = { 
   from: jest.Mock<MockSupabase, any[]>;
@@ -24,6 +27,7 @@ const mockSupabase: MockSupabase = {
 };
 
 (createClient as jest.Mock).mockReturnValue(mockSupabase);
+(createAdminClient as jest.Mock).mockReturnValue(mockSupabase);
 
 describe('Update Payment - Extra Coverage', () => {
   let mockRequest: NextRequest;

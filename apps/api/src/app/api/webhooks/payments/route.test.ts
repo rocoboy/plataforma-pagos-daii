@@ -36,7 +36,7 @@ jest.mock('./create-payment', () => ({
 
 // MODIFICACIÓN: Mockeamos la función correcta 'updatePaymentByReservationId'
 jest.mock('./update-payment', () => ({
-  updatePaymentByReservationId: jest.fn(async () => ({ id: '1', status: 'success' })),
+  updatePaymentByReservationId: jest.fn(async () => ({ id: '1', status: 'SUCCESS' })),
 }));
 
 jest.mock('@/lib/cors', () => ({
@@ -59,8 +59,8 @@ describe('webhooks/payments route', () => {
   it('PUT updates payment with valid body', async () => {
     const req = new NextRequest('http://localhost/api/webhooks/payments', {
       method: 'PUT',
-      // MODIFICACIÓN: Enviamos 'res_id' como espera la 'route.ts'
-      body: JSON.stringify({ res_id: '1', status: 'success' })
+      // MODIFICACIÓN: Enviamos 'res_id' como espera la 'route.ts' y un status válido
+        body: JSON.stringify({ res_id: '1', status: 'SUCCESS' })
     });
     const res = await PUT(req);
     expect(res.status).toBe(200);

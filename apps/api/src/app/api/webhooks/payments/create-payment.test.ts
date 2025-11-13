@@ -1,20 +1,21 @@
 import { NextRequest } from 'next/server';
 import { createPayment } from './create-payment';
 
-jest.mock('@/lib/supabase/server', () => ({
-  createClient: jest.fn(() => ({
-    from: jest.fn(() => ({
-      insert: jest.fn(() => ({
-        select: jest.fn(() => ({
-          single: jest.fn(() => ({
-            data: { id: '1', res_id: 'res1', amount: 100, status: 'PENDING', currency: 'ARS' },
-            error: null
-          }))
-        }))
-      }))
-    }))
-  }))
-}));
+jest.mock('@/lib/supabase/server', () => {
+  const mockClient: any = {};
+  mockClient.from = jest.fn(() => mockClient);
+  mockClient.select = jest.fn(() => mockClient);
+  mockClient.insert = jest.fn(() => mockClient);
+  mockClient.update = jest.fn(() => mockClient);
+  mockClient.eq = jest.fn(() => mockClient);
+  mockClient.single = jest.fn(() => ({ data: { id: '1', res_id: 'res1', amount: 100, status: 'PENDING', currency: 'ARS' }, error: null }));
+  mockClient.maybeSingle = jest.fn(() => ({ data: null, error: null }));
+
+  return {
+    createClient: jest.fn(() => mockClient),
+    createAdminClient: jest.fn(() => mockClient),
+  };
+});
 
 describe('createPayment', () => {
   it('creates payment with default values', async () => {

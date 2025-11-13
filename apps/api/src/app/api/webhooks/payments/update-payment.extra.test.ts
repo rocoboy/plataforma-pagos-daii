@@ -1,17 +1,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from 'next/server';
 import { createPayment } from './create-payment';
-import { createClient } from '@/lib/supabase/server';
-jest.mock('@/lib/supabase/server');
+import { createClient, createAdminClient } from '@/lib/supabase/server';
+jest.mock('@/lib/supabase/server', () => ({
+  createClient: jest.fn(),
+  createAdminClient: jest.fn(),
+}));
 
 const mockSupabase: any = {
   from: jest.fn(() => mockSupabase),
   insert: jest.fn(() => mockSupabase),
   select: jest.fn(() => mockSupabase),
+  eq: jest.fn(() => mockSupabase),
+  maybeSingle: jest.fn(() => mockSupabase),
   single: jest.fn(),
 };
 
 (createClient as jest.Mock).mockReturnValue(mockSupabase);
+(createAdminClient as jest.Mock).mockReturnValue(mockSupabase);
 
 describe('Create Payment - Extra Coverage', () => {
   let mockRequest: NextRequest;
