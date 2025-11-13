@@ -1,16 +1,10 @@
-import * as serverModule from './server';
+import { NextRequest } from 'next/server';
+import { createClient, createAdminClient } from './server';
 
 describe('Supabase Server - Coverage', () => {
-  it('server file exists', () => {
-    expect(serverModule).toBeDefined();
-  });
-
-  it('exports createClient', () => {
-    expect(serverModule.createClient).toBeDefined();
-  });
-
-  it('createClient is a function', () => {
-    expect(typeof serverModule.createClient).toBe('function');
+  it('exports createClient and createAdminClient functions', () => {
+    expect(typeof createClient).toBe('function');
+    expect(typeof createAdminClient).toBe('function');
   });
 });
 
