@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const payments = await getAllPayments(request);
+    const payments = await getAllPayments();
     return createCorsResponse(request, { success: true, payments });
   } catch (error) {
     return createCorsResponse(request, {

@@ -34,70 +34,48 @@ describe('Update Payment - Extra Coverage', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    lastUpdateStatus = 'SUCCESS';
+    lastPaymentId = 'p1';
     mockRequest = new NextRequest('http://localhost/api/webhooks/payments', { method: 'PUT' });
   });
 
   it('updates to SUCCESS status', async () => {
-    mockSupabase.maybeSingle.mockResolvedValue({ 
-      data: { id: 'p1', status: 'SUCCESS' }, 
-      error: null 
-    });
-
+    lastPaymentId = 'p1';
     const result = await updatePaymentByReservationId(mockRequest, 'p1', 'SUCCESS');
     expect(result).not.toBeNull();
     expect(result!.status).toBe('SUCCESS');
   });
 
   it('updates to FAILED status', async () => {
-    mockSupabase.maybeSingle.mockResolvedValue({ 
-      data: { id: 'p2', status: 'FAILURE' }, 
-      error: null 
-    });
-
+    lastPaymentId = 'p2';
     const result = await updatePaymentByReservationId(mockRequest, 'p2', 'FAILURE');
     expect(result).not.toBeNull();
     expect(result!.status).toBe('FAILURE');
   });
 
   it('updates to PENDING status', async () => {
-    mockSupabase.maybeSingle.mockResolvedValue({ 
-      data: { id: 'p3', status: 'PENDING' }, 
-      error: null 
-    });
-
+    lastPaymentId = 'p3';
     const result = await updatePaymentByReservationId(mockRequest, 'p3', 'PENDING');
     expect(result).not.toBeNull();
     expect(result!.status).toBe('PENDING');
   });
 
   it('updates to PROCESSING status', async () => {
-    mockSupabase.maybeSingle.mockResolvedValue({ 
-      data: { id: 'p4', status: 'UNDERPAID' }, 
-      error: null 
-    });
-
-  const result = await updatePaymentByReservationId(mockRequest, 'p4', 'UNDERPAID');
-  expect(result).not.toBeNull();
-  expect(result!.status).toBe('UNDERPAID');
+    lastPaymentId = 'p4';
+    const result = await updatePaymentByReservationId(mockRequest, 'p4', 'UNDERPAID');
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe('UNDERPAID');
   });
 
   it('updates to CANCELLED status', async () => {
-    mockSupabase.maybeSingle.mockResolvedValue({ 
-      data: { id: 'p5', status: 'REFUND' }, 
-      error: null 
-    });
-
-  const result = await updatePaymentByReservationId(mockRequest, 'p5', 'REFUND');
-  expect(result).not.toBeNull();
-  expect(result!.status).toBe('REFUND');
+    lastPaymentId = 'p5';
+    const result = await updatePaymentByReservationId(mockRequest, 'p5', 'REFUND');
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe('REFUND');
   });
 
   it('handles different payment ids', async () => {
-    mockSupabase.maybeSingle.mockResolvedValue({ 
-      data: { id: 'custom-id-123', status: 'SUCCESS' }, 
-      error: null 
-    });
-
+    lastPaymentId = 'custom-id-123';
     const result = await updatePaymentByReservationId(mockRequest, 'custom-id-123', 'SUCCESS');
     expect(result).not.toBeNull();
     expect(result!.id).toBe('custom-id-123');

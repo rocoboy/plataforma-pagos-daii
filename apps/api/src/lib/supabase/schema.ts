@@ -194,19 +194,5 @@ export type CompositeTypes<
   ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
   : never;
 
-export const Constants = {
-  public: {
-    Enums: {
-      currency: ["ARS", "USD", "EUR"],
-      payment_status: [
-        "PENDING",
-        "SUCCESS",
-        "FAILURE",
-        "UNDERPAID",
-        "OVERPAID",
-        "EXPIRED",
-        "REFUND",
-      ],
-    },
-  },
-} as const;
+// Re-export Constants from types package for backward compatibility
+export { Constants } from "@plataforma/types";
