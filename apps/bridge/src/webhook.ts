@@ -88,6 +88,9 @@ export class WebhookHandler {
         case "CANCELLED":
            apiStatus = "FAILURE"; 
            break;
+        case "FAILED":
+           apiStatus = "FAILURE"; 
+           break;
         default:
           apiStatus = innerPayload.newStatus;
       }

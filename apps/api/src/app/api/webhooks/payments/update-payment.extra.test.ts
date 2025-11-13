@@ -1,29 +1,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from 'next/server';
 import { createPayment } from './create-payment';
-
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 jest.mock('@/lib/supabase/server', () => ({
-  createAdminClient: jest.fn(() => ({
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          maybeSingle: jest.fn(() => ({
-            data: null, // No existe payment previo
-            error: null
-          }))
-        }))
-      })),
-      insert: jest.fn(() => ({
-        select: jest.fn(() => ({
-          single: jest.fn(() => ({
-            data: { id: 'p1', res_id: 'r1', amount: 100, status: 'PENDING', currency: 'ARS', created_at: new Date().toISOString() },
-            error: null
-          }))
-        }))
-      }))
-    }))
-  }))
+  createClient: jest.fn(),
+  createAdminClient: jest.fn(),
 }));
+
+const mockSupabase: any = {
+  from: jest.fn(() => mockSupabase),
+  insert: jest.fn(() => mockSupabase),
+  select: jest.fn(() => mockSupabase),
+  eq: jest.fn(() => mockSupabase),
+  maybeSingle: jest.fn(() => mockSupabase),
+  single: jest.fn(),
+};
+
+(createClient as jest.Mock).mockReturnValue(mockSupabase);
+(createAdminClient as jest.Mock).mockReturnValue(mockSupabase);
 
 describe('Create Payment - Extra Coverage', () => {
   let mockRequest: NextRequest;

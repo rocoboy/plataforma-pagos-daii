@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { Payment, PaymentStatus, Currency } from "../../../../../../types/payments";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { ID } from "../../../../../../types/common";
 
 export async function updatePaymentByReservationId(
@@ -8,9 +8,7 @@ export async function updatePaymentByReservationId(
   res_id: string,
   status: PaymentStatus
 ): Promise<Payment | null> { 
-  // Use admin client so server-side webhook updates bypass RLS and reliably
-  // find and update payments. Ensure SUPABASE_SERVICE_ROLE_KEY is set.
-  const supabase = createAdminClient();
+  const supabase = createClient(request);
 
 
   const { error: updateError } = await supabase

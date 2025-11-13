@@ -1,39 +1,33 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from 'next/server';
 import { updatePaymentByReservationId } from './update-payment';
-
-let lastUpdateStatus = 'SUCCESS';
-let lastPaymentId = 'p1';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 
 jest.mock('@/lib/supabase/server', () => ({
-  createAdminClient: jest.fn(() => ({
-    from: jest.fn(() => ({
-      update: jest.fn((updateData: { status?: string }) => {
-        if (updateData.status) lastUpdateStatus = updateData.status;
-        return {
-          eq: jest.fn(() => ({
-            error: null
-          }))
-        };
-      }),
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          maybeSingle: jest.fn(() => ({
-            data: { 
-              id: lastPaymentId, 
-              res_id: 'res1', 
-              amount: 100, 
-              status: lastUpdateStatus,
-              currency: 'ARS', 
-              created_at: new Date().toISOString() 
-            },
-            error: null
-          }))
-        }))
-      }))
-    }))
-  }))
+  createClient: jest.fn(),
+  createAdminClient: jest.fn(),
 }));
+
+type MockSupabase = { 
+  from: jest.Mock<MockSupabase, any[]>;
+  update: jest.Mock<MockSupabase, any[]>;
+  eq: jest.Mock<MockSupabase, any[]>;
+  select: jest.Mock<MockSupabase, any[]>;
+  single: jest.Mock<any, any[]>;
+  maybeSingle: jest.Mock<any, any[]>;
+};
+
+const mockSupabase: MockSupabase = {
+  from: jest.fn(() => mockSupabase),
+  update: jest.fn(() => mockSupabase),
+  eq: jest.fn(() => mockSupabase),
+  select: jest.fn(() => mockSupabase),
+  single: jest.fn(),
+  maybeSingle: jest.fn(),
+};
+
+(createClient as jest.Mock).mockReturnValue(mockSupabase);
+(createAdminClient as jest.Mock).mockReturnValue(mockSupabase);
 
 describe('Update Payment - Extra Coverage', () => {
   let mockRequest: NextRequest;
