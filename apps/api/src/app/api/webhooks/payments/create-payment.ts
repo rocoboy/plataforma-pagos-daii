@@ -38,13 +38,11 @@ export async function createPayment(
   if (existingPayment) {
     console.warn(`Duplicate payment creation attempt for res_id: ${res_id}. Returning existing payment.`);
     
-    // --- CORRECCIÓN 1 ---
     return {
       user_id: existingPayment.user_id as ID,
       id: existingPayment.id as ID,
       res_id: existingPayment.res_id as ID,
-      // MODIFICACIÓN: Se silenció el error de ESLint para 'as any'
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
       payment_intent_id: (existingPayment as any).payment_intent_id ? (existingPayment as any).payment_intent_id as ID : undefined,
       provider: 'Talo', 
       status: existingPayment.status as PaymentStatus,
@@ -78,13 +76,11 @@ export async function createPayment(
     throw new Error(error.message);
   }
 
-  // --- CORRECCIÓN 2 ---
   return {
     user_id: data.user_id as ID,
     id: data.id as ID,
     res_id: data.res_id as ID,
-    // MODIFICACIÓN: Se silenció el error de ESLint para 'as any'
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    
     payment_intent_id: (data as any).payment_intent_id ? (data as any).payment_intent_id as ID : undefined,
     provider: 'Talo',
     status: data.status as PaymentStatus,
