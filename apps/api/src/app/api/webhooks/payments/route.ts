@@ -16,6 +16,10 @@ const updatePaymentSchema = z.object({
   status: PaymentStatusEnum, // Valida que el status sea uno de los conocidos
 });
 
+
+// ===================================
+// FUNCIÓN POST (CORREGIDA)
+// ===================================
 export async function POST(request: NextRequest) {
   try {
     //validar body
@@ -36,8 +40,11 @@ export async function POST(request: NextRequest) {
     }
     
     const { res_id, user_id, meta, amount, currency } = parsed.data;
-    const payment = await createPayment(
-      request,
+    
+    // --- INICIO DE LA CORRECCIÓN ---
+
+    // 1. LLAMA SIN 'request' Y CAPTURA '{ payment, isNew }'
+    const { payment, isNew } = await createPayment(
       res_id,
       amount,
       currency,
@@ -45,26 +52,31 @@ export async function POST(request: NextRequest) {
       meta
     );
     
-    //publish event
-    try {
-      await publishPaymentStatusUpdated({
-        paymentId: payment.id,
-        reservationId: payment.res_id,
-        userId: user_id,
-        status: payment.status as PaymentStatus,
-        amount: payment.amount,
-        currency: payment.currency as Currency,
-        updatedAt: new Date().toISOString() as ISODateTime,
-      });
-    } catch (error) {
-      console.error(
-        `❌ Failed to publish payment status updated event:`,
-        error
-      );
-      throw error;
+    // 2. SÓLO PUBLICA EL EVENTO SI EL PAGO ES NUEVO
+    if (isNew) {
+      try {
+        await publishPaymentStatusUpdated({
+          paymentId: payment.id,
+          reservationId: payment.res_id,
+          userId: user_id,
+          status: payment.status as PaymentStatus,
+          amount: payment.amount,
+          currency: payment.currency as Currency,
+          updatedAt: new Date().toISOString() as ISODateTime,
+        });
+      } catch (error) {
+        console.error(
+          `❌ Failed to publish payment status updated event:`,
+          error
+        );
+        throw error;
+      }
     }
+    // --- FIN DE LA CORRECCIÓN ---
 
-    return createCorsResponse(request, { success: true, payment });
+    // 3. Devuelve el 'payment' (no el objeto wrapper)
+    return createCorsResponse(request, { success: true, payment: payment });
+
   } catch (error) {
     // Imprime el error en los logs de Vercel
     console.error("❌ Error in POST /api/webhooks/payments:", error);
@@ -80,6 +92,9 @@ export async function POST(request: NextRequest) {
 }
 
 
+// ===================================
+// FUNCIÓN PUT (CORREGIDA)
+// ===================================
 export async function PUT(request: NextRequest) {
   try {
     const json = await request.json();
@@ -100,17 +115,20 @@ export async function PUT(request: NextRequest) {
 
     const { res_id, status } = parsed.data;
     
+    // --- INICIO DE LA CORRECCIÓN ---
+    // 1. LLAMA SIN 'request'
     const payment = await updatePaymentByReservationId(
-      request, 
       res_id, 
       status as PaymentStatus
     );
+    // --- FIN DE LA CORRECCIÓN ---
 
     if (!payment) {
+      // (Esta parte ya estaba bien)
       return createCorsResponse(request, { success: true, payment: null, message: "Payment not found, ignored." });
     }
 
-
+    // Publica el evento (esto SÍ debe publicarse siempre)
     try {
       await publishPaymentStatusUpdated({
         paymentId: payment.id,
@@ -142,6 +160,7 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
+
 // Handle preflight OPTIONS request
 export async function OPTIONS(request: NextRequest) {
   return createCorsOptionsResponse(request);

@@ -95,7 +95,6 @@ export class WebhookHandler {
           apiStatus = innerPayload.newStatus;
       }
 
-      // 2. Transforma el payload para que envíe 'res_id'
       const apiPayload: UpdatePaymentPayload = {
         res_id: innerPayload.reservationId, // <-- Envía res_id
         status: apiStatus,                  // Usa el estado traducido

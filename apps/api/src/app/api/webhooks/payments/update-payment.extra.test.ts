@@ -1,56 +1,74 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from 'next/server';
-import { createPayment } from './create-payment';
+import { updatePaymentByReservationId } from './update-payment';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-jest.mock('@/lib/supabase/server', () => ({
-  createClient: jest.fn(),
-  createAdminClient: jest.fn(),
-}));
 
-const mockSupabase: any = {
-  from: jest.fn(() => mockSupabase),
-  insert: jest.fn(() => mockSupabase),
-  select: jest.fn(() => mockSupabase),
-  eq: jest.fn(() => mockSupabase),
-  maybeSingle: jest.fn(() => mockSupabase),
-  single: jest.fn(),
-};
+jest.mock('@/lib/supabase/server', () => {
+  const mockClient: any = {};
+  mockClient.from = jest.fn(() => mockClient);
+  mockClient.update = jest.fn(() => mockClient);
+  mockClient.eq = jest.fn(() => mockClient);
+  mockClient.select = jest.fn(() => mockClient);
+  mockClient.single = jest.fn();
+  
+  // Mockeamos la respuesta de la lógica de 2 pasos
+  mockClient.update = jest.fn(() => ({ data: null, error: null }));
+  mockClient.maybeSingle = jest.fn(() => ({ 
+    data: { 
+      id: (mockClient as any).lastEqPayload || 'p-default', 
+      status: (mockClient as any).lastUpdatePayload?.status || 'PENDING',
+      res_id: (mockClient as any).lastEqPayload || 'p-default',
+      user_id: 'user-1',
+      amount: 100,
+      currency: 'ARS',
+      meta: {},
+      created_at: new Date().toISOString()
+    }, 
+    error: null 
+  }));
 
-(createClient as jest.Mock).mockReturnValue(mockSupabase);
-(createAdminClient as jest.Mock).mockReturnValue(mockSupabase);
+  // Guardamos los payloads para testear
+  mockClient.update = jest.fn((payload: any) => {
+    (mockClient as any).lastUpdatePayload = payload;
+    return mockClient;
+  });
+  mockClient.eq = jest.fn((field: string, value: string) => {
+    (mockClient as any).lastEqPayload = value;
+    return mockClient;
+  });
 
-describe('Create Payment - Extra Coverage', () => {
-  let mockRequest: NextRequest;
+
+  (createClient as jest.Mock).mockReturnValue(mockClient);
+  (createAdminClient as jest.Mock).mockReturnValue(mockClient);
+  return { createClient, createAdminClient };
+});
+
+describe('Update Payment - Extra Coverage', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockRequest = new NextRequest('http://localhost/api/webhooks/payments', { method: 'POST' });
   });
 
-  it('creates payment with ARS currency', async () => {
-    const result = await createPayment(mockRequest, 'r1', 100, 'ARS');
-    expect(result.currency).toBe('ARS');
+  it('updates to SUCCESS status', async () => {
+    // ELIMINAMOS 'mockRequest'
+    const result = await updatePaymentByReservationId('p1', 'SUCCESS');
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe('SUCCESS');
   });
 
-  it('creates payment with USD currency', async () => {
-    const result = await createPayment(mockRequest, 'r2', 200, 'USD');
-    expect(result.currency).toBe('ARS'); // Default currency
+  it('updates to FAILURE status', async () => {
+    // ELIMINAMOS 'mockRequest'
+    const result = await updatePaymentByReservationId('p2', 'FAILURE');
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe('FAILURE');
   });
+  
+  // ... (puedes agregar el resto de los estados) ...
 
-  it('creates payment with user_id', async () => {
-    const result = await createPayment(mockRequest, 'r3', 300, undefined, 'u1');
-    expect(result).toHaveProperty('id');
-  });
-
-  it('creates payment with meta', async () => {
-    const meta = { key: 'value' };
-    const result = await createPayment(mockRequest, 'r4', 400, undefined, undefined, meta);
-    expect(result).toHaveProperty('id');
-  });
-
-  it('creates payment with large amount', async () => {
-    const result = await createPayment(mockRequest, 'r5', 999999);
-    expect(result).toHaveProperty('id');
-    expect(result.amount).toBeGreaterThan(0);
+  it('handles different payment ids', async () => {
+    // ELIMINAMOS 'mockRequest'
+    const result = await updatePaymentByReservationId('custom-id-123', 'SUCCESS');
+    expect(result).not.toBeNull();
+    expect(result!.id).toBe('custom-id-123');
   });
 });

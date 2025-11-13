@@ -96,5 +96,5 @@ export async function publishPaymentStatusUpdated(
 
   const event = kafkaEventEnvelopeSchema.parse(eventCandidate);
   
-  await publishEvent(event, "core.ingress");
+  await publishEvent(event, "payment.events");
 }
