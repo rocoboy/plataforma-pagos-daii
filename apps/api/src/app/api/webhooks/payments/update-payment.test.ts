@@ -18,16 +18,11 @@ jest.mock('@/lib/supabase/server', () => {
 });
 
 describe('updatePayment', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    capturedStatus = 'SUCCESS';
-  });
-
   it('updates payment status', async () => {
     const req = new NextRequest('http://localhost/api/webhooks/payments');
-    const payment = await updatePaymentByReservationId(req, '1', 'SUCCESS');
-    expect(payment).not.toBeNull();
-    expect(payment!.status).toBe('SUCCESS');
+  const payment = await updatePaymentByReservationId(req, '1', 'SUCCESS');
+  expect(payment).not.toBeNull();
+  expect(payment!.status).toBe('SUCCESS');
   });
 
   it('updates payment to FAILURE', async () => {
