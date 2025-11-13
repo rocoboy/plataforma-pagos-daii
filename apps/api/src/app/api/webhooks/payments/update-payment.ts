@@ -1,20 +1,22 @@
-import { NextRequest } from "next/server";
+// 1. Borramos NextRequest
 import { Payment, PaymentStatus, Currency } from "../../../../../../types/payments";
-import { createClient } from "@/lib/supabase/server";
+// 2. Importamos el cliente ADMIN
+import { createAdminClient } from "@/lib/supabase/server";
 import { ID } from "../../../../../../types/common";
 
 export async function updatePaymentByReservationId(
-  request: NextRequest,
+  // 3. 'request' ELIMINADO de los parámetros
   res_id: string,
   status: PaymentStatus
 ): Promise<Payment | null> { 
-  const supabase = createClient(request);
+  // 4. Usamos el cliente ADMIN
+  const supabase = createAdminClient();
 
-
+  // (El resto de la lógica ya estaba bien)
   const { error: updateError } = await supabase
     .from("payments")
     .update({ status })
-    .eq("res_id", res_id); // <-- Busca por res_id
+    .eq("res_id", res_id);
 
   if (updateError) {
     console.error("Error during payment update:", updateError.message);
@@ -41,8 +43,6 @@ export async function updatePaymentByReservationId(
     id: data.id as ID,
     res_id: data.res_id as ID,
     user_id: data.user_id as ID,
-    // MODIFICACIÓN: Se silenció el error de ESLint para 'as any'
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     payment_intent_id: (data as any).payment_intent_id ? (data as any).payment_intent_id as ID : undefined,
     provider: "Talo", 
     status: data.status as PaymentStatus,

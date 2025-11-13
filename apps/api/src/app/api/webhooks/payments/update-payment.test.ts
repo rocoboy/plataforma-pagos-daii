@@ -8,8 +8,30 @@ jest.mock('@/lib/supabase/server', () => {
   mockClient.select = jest.fn(() => mockClient);
   mockClient.update = jest.fn(() => mockClient);
   mockClient.eq = jest.fn(() => mockClient);
-  mockClient.single = jest.fn(() => ({ data: { id: '1', status: 'SUCCESS' }, error: null }));
-  mockClient.maybeSingle = jest.fn(() => ({ data: { id: '1', status: 'SUCCESS' }, error: null }));
+  
+  // Mockeamos la respuesta de la lógica de 2 pasos (update + select)
+  // El .update() no devuelve nada
+  mockClient.update = jest.fn(() => ({ data: null, error: null })); 
+  // El .maybeSingle() (el select) devuelve el pago
+  mockClient.maybeSingle = jest.fn(() => ({ 
+    data: { 
+      id: '1', 
+      status: (mockClient as any).lastUpdatePayload?.status || 'PENDING', // Devuelve el status que se actualizó
+      res_id: 'res-1',
+      user_id: 'user-1',
+      amount: 100,
+      currency: 'ARS',
+      meta: {},
+      created_at: new Date().toISOString()
+    }, 
+    error: null 
+  }));
+  // Guardamos el payload del update para testear
+  mockClient.update = jest.fn((payload: any) => {
+    (mockClient as any).lastUpdatePayload = payload;
+    return mockClient;
+  });
+
 
   return {
     createClient: jest.fn(() => mockClient),
@@ -19,17 +41,17 @@ jest.mock('@/lib/supabase/server', () => {
 
 describe('updatePayment', () => {
   it('updates payment status', async () => {
-    const req = new NextRequest('http://localhost/api/webhooks/payments');
-  const payment = await updatePaymentByReservationId(req, '1', 'SUCCESS');
-  expect(payment).not.toBeNull();
-  expect(payment!.status).toBe('SUCCESS');
+    // ELIMINAMOS 'req'
+    const payment = await updatePaymentByReservationId('1', 'SUCCESS');
+    expect(payment).not.toBeNull();
+    expect(payment!.status).toBe('SUCCESS');
   });
 
   it('updates payment to FAILURE', async () => {
-    const req = new NextRequest('http://localhost/api/webhooks/payments');
-  const payment = await updatePaymentByReservationId(req, '1', 'FAILURE');
-  expect(payment).not.toBeNull();
-  expect(payment).toHaveProperty('id');
+    // ELIMINAMOS 'req'
+    const payment = await updatePaymentByReservationId('1', 'FAILURE');
+    expect(payment).not.toBeNull();
+    expect(payment).toHaveProperty('id');
+    expect(payment!.status).toBe('FAILURE');
   });
 });
-
