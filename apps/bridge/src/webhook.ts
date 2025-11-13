@@ -18,8 +18,6 @@ interface WebhookApiPayload {
 
 type CreatePaymentPayload = z.infer<typeof createPaymentBodySchema>;
 
-// Definimos el tipo 'Update' manualmente para que espere 'res_id'
-// Esto coincide con lo que tu API (Vercel) ahora espera.
 type UpdatePaymentPayload = {
   res_id: string;
   status: string;
@@ -34,7 +32,7 @@ export class WebhookHandler {
     if (!eventType) {
       console.warn(`❌ Event type not found in message:`, message);
       return;
-    }
+    } 
 
     // 2. Extraer el payload interno (que es un string)
     const innerPayloadString = message.content.payload;
@@ -80,13 +78,13 @@ export class WebhookHandler {
       let apiStatus;
       switch (innerPayload.newStatus) {
         case "PENDING_REFUND":
-          apiStatus = "REFUND"; 
+          apiStatus = "PENDING"; 
           break;
         case "PAID":
           apiStatus = "SUCCESS"; 
           break;
         case "CANCELLED":
-           apiStatus = "FAILURE"; 
+           apiStatus = "REFUND"; 
            break;
         case "FAILED":
            apiStatus = "FAILURE"; 
