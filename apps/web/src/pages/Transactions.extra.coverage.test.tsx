@@ -18,12 +18,18 @@ jest.mock('../contexts/AuthContext', () => ({
 const mockFetchPayments = fetchPayments as jest.MockedFunction<typeof fetchPayments>;
 
 // Mock jsPDF BEFORE any imports
-const mockPDFInstance = {
-  setFontSize: jest.fn(function(this: typeof mockPDFInstance) { return this; }),
-  setFont: jest.fn(function(this: typeof mockPDFInstance) { return this; }),
-  text: jest.fn(function(this: typeof mockPDFInstance) { return this; }),
-  save: jest.fn(function(this: typeof mockPDFInstance) { return this; })
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const createMockPDFInstance = (): any => {
+  const instance = {
+    setFontSize: jest.fn(function() { return this; }),
+    setFont: jest.fn(function() { return this; }),
+    text: jest.fn(function() { return this; }),
+    save: jest.fn(function() { return this; })
+  };
+  return instance;
 };
+
+const mockPDFInstance = createMockPDFInstance();
 
 jest.mock('jspdf', () => ({
   __esModule: true,
