@@ -30,19 +30,19 @@ const mockPushState = jest.fn();
 window.history.pushState = mockPushState;
 
 // Mock window.addEventListener and removeEventListener
-const eventListeners: { [key: string]: EventListener[] } = {};
-window.addEventListener = jest.fn((event: string, listener: EventListener) => {
+const eventListeners: { [key: string]: EventListenerOrEventListenerObject[] } = {};
+window.addEventListener = jest.fn((event: string, listener: EventListenerOrEventListenerObject) => {
   if (!eventListeners[event]) {
     eventListeners[event] = [];
   }
   eventListeners[event].push(listener);
-});
+}) as typeof window.addEventListener;
 
-window.removeEventListener = jest.fn((event: string, listener: EventListener) => {
+window.removeEventListener = jest.fn((event: string, listener: EventListenerOrEventListenerObject) => {
   if (eventListeners[event]) {
     eventListeners[event] = eventListeners[event].filter(l => l !== listener);
   }
-});
+}) as typeof window.removeEventListener;
 
 describe('CustomLogin - Coverage', () => {
   beforeEach(() => {
