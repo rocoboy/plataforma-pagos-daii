@@ -7,23 +7,22 @@ info:
     - Persiste y gestiona pagos en la tabla `payments`.
     - Expone endpoints para crear, actualizar, listar, obtener por ID y listar por usuario.
     - Incluye **esquemas de eventos** que el módulo publica/recibe.
-    - Actualizado: se permite **cancelar** (`CANCELLED`), **reembolsar** (`REFUNDED`) y **rechazar** (`DECLINED`) pagos.
 servers:
-  - url: https://plataforma-pagos-daii.vercel.app/
+  - url: https://plataforma-pagos-daii.vercel.app
     description: Servidor de producción (Vercel)
-  - url: https://plataforma-pagos-daii-gim326dta-uades-projects.vercel.app/
+  - url: https://plataforma-pagos-daii-preprod.vercel.app
     description: Preproducción / deployment de proyecto
 
 tags:
   - name: Payments
-    description: Operaciones sobre pagos
+    description: Operaciones sobre pagos (Admin/Internos)
+  - name: Webhooks
+    description: Webhooks para integración con sistemas externos (Kafka Bridge, Pasarelas)
   - name: Payment Events
     description: Esquemas de eventos publicados/consumidos por el módulo
-  - name: Webhooks
-    description: Webhooks para integración con pasarelas externas
 
 paths:
-  /payments:
+  /api/payments:
     post:
       tags: [Payments]
       summary: Crear un pago
@@ -64,8 +63,8 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
     put:
       tags: [Payments]
-      summary: Actualizar estado de un pago
-      description: Actualiza el `status` de un pago existente y retorna el registro actualizado.
+      summary: Actualizar estado de un pago (por ID)
+      description: Actualiza el `status` de un pago existente (buscando por 'id') y retorna el registro actualizado.
       requestBody:
         required: true
         content:
@@ -75,20 +74,8 @@ paths:
             examples:
               aprobarPago:
                 value:
-                  id: "32"
+                  id: "32a-uuid-..."
                   status: SUCCESS
-              rechazarPago:
-                value:
-                  id: "33"
-                  status: DECLINED
-              cancelarPago:
-                value:
-                  id: "34"
-                  status: CANCELLED
-              reembolsarPago:
-                value:
-                  id: "35"
-                  status: REFUNDED
       responses:
         "200":
           description: Actualizado
@@ -125,7 +112,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /payments/{id}:
+  /api/payments/{id}:
     get:
       tags: [Payments]
       summary: Obtener un pago por ID
@@ -135,6 +122,7 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
       responses:
         "200":
           description: OK
@@ -144,43 +132,19 @@ paths:
                 $ref: '#/components/schemas/GetPaymentResponse'
         "400":
           description: Parámetro inválido (zod validation error)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ValidationErrorResponse'
         "500":
           description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
 
-  /payments/by-user:
+  /api/payments/by-user:
     get:
       tags: [Payments]
       summary: Listar pagos por usuario
-      description: |
-        Devuelve los pagos filtrados por `user_id`.
-        **Nota:** El handler actual de Next.js puede leer el `user_id` desde el **cuerpo** de la petición `GET` (no estándar).
-        - OpenAPI 3.1 permite `requestBody` en GET, por compatibilidad se documentan **ambas** opciones:
-          1) `user_id` como **query param** (recomendado)
-          2) `user_id` en **requestBody** (compatibilidad con el código actual)
       parameters:
         - name: user_id
           in: query
-          required: false
+          required: true
           schema:
             type: string
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GetUserPaymentsRequest'
-            examples:
-              bodyGET:
-                value:
-                  user_id: "5"
       responses:
         "200":
           description: OK
@@ -190,59 +154,37 @@ paths:
                 $ref: '#/components/schemas/GetUserPaymentsResponse'
         "400":
           description: Body/params inválidos (zod validation error)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ValidationErrorResponse'
         "500":
           description: Error interno
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
 
-  /webhooks/payments:
+  /api/webhooks/payments:
     post:
       tags: [Webhooks]
-      summary: Webhook de creación de pago
+      summary: Webhook de creación de pago (Kafka Bridge)
       description: |
-        Recibe el evento `payment.created` desde una pasarela y crea un pago.
-        El payload viene en formato **envelope + data** (data = CreatePaymentRequest).
+        Recibe el evento `reservations.reservation.created` desde el bridge de Kafka.
+        El payload es el body de la API de creación de pago (ya espera res_id).
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/WebhookPaymentCreated'
-            examples:
-              ejemplo:
-                value:
-                  id: "evt_01JABCXYZ"
-                  type: "payment.created"
-                  ts: "2025-09-18T15:03:33Z"
-                  signature: "sha256=6b9a..."
-                  data:
-                    res_id: "15"
-                    user_id: "5"
-                    amount: 20000
-                    currency: ARS
-                    meta:
-                      origen: "web"
+              $ref: '#/components/schemas/CreatePaymentRequest'
       responses:
-        "202":
-          description: Evento aceptado para procesamiento
+        "200":
+          description: Pago creado o duplicado detectado (Idempotencia)
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiBase'
+                $ref: '#/components/schemas/CreatePaymentResponse'
         "400":
-          description: Body inválido (validación)
+          description: Body inválido (Zod)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationErrorResponse'
         "500":
-          description: Error interno
+          description: Error interno (RLS, Supabase, etc.)
           content:
             application/json:
               schema:
@@ -250,71 +192,40 @@ paths:
 
     put:
       tags: [Webhooks]
-      summary: Webhook de actualización de pago
+      summary: Webhook de actualización de pago (Kafka Bridge)
       description: |
-        Recibe el evento `payment.updated` para actualizar el estado de un pago.
-        Soporta **SUCCESS**, **DECLINED**, **CANCELLED** y **REFUNDED**.
-        El payload viene en formato **envelope + data** (data = UpdatePaymentRequest).
+        Recibe el evento `reservations.reservation.updated` desde el bridge de Kafka.
+        Usa res_id para encontrar y actualizar el pago.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/WebhookPaymentUpdated'
+              $ref: '#/components/schemas/WebhookUpdatePaymentRequest'
             examples:
               aprobado:
                 value:
-                  id: "evt_01JABCUVW"
-                  type: "payment.updated"
-                  ts: "2025-09-18T15:05:00Z"
-                  signature: "sha256=92ac..."
-                  data:
-                    id: "32"
-                    status: SUCCESS
-              rechazado:
-                value:
-                  id: "evt_01JABCUVW"
-                  type: "payment.updated"
-                  ts: "2025-09-18T15:05:30Z"
-                  signature: "sha256=c0de..."
-                  data:
-                    id: "33"
-                    status: DECLINED
-              cancelado:
-                value:
-                  id: "evt_01JABCUVW"
-                  type: "payment.updated"
-                  ts: "2025-09-18T15:06:00Z"
-                  signature: "sha256=3fd1..."
-                  data:
-                    id: "34"
-                    status: CANCELLED
+                  res_id: "210"
+                  status: SUCCESS
               reembolsado:
                 value:
-                  id: "evt_01JABCUVW"
-                  type: "payment.updated"
-                  ts: "2025-09-18T15:07:00Z"
-                  signature: "sha256=af71..."
-                  data:
-                    id: "35"
-                    status: REFUNDED
+                  res_id: "211"
+                  status: REFUND
       responses:
-        "202":
-          description: Evento aceptado para procesamiento
+        "200":
+          description: Actualizado (o ignorado si no se encontró)
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiBase'
+                $ref: '#/components/schemas/UpdatePaymentResponse'
         "400":
-          description: Body inválido (validación)
+          description: Body inválido (Zod)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationErrorResponse'
-        "422":
-          description: Estado no permitido por el enum
         "500":
-          description: Error interno
+          description: Error interno (RLS, Supabase, etc.)
           content:
             application/json:
               schema:
@@ -373,21 +284,15 @@ components:
     PaymentStatus:
       type: string
       description: |
-        Enum **Supabase** `payment_status`.
-        Valores soportados:
-        - `PENDING`: pago iniciado, en proceso.
-        - `SUCCESS`: pago confirmado/aprobado.
-        - `DECLINED`: pago rechazado.
-        - `CANCELLED`: pago cancelado por el usuario o por el sistema.
-        - `REFUNDED`: pago reembolsado (monto devuelto).
-        - `REFUND`: **alias histórico** (compatibilidad). Se recomienda `REFUNDED`.
-      enum: [PENDING, SUCCESS, REFUND, DECLINED, CANCELLED, REFUNDED]
+        Enum **Supabase** `payment_status`. Sincronizado con la base de datos.
+      # ESTA es la lista correcta
+      enum: [PENDING, SUCCESS, FAILURE, UNDERPAID, OVERPAID, EXPIRED, REFUND]
       example: PENDING
 
     Currency:
       type: string
       description: Enum Supabase `currency`.
-      enum: [ARS, USD]
+      enum: [ARS, USD, EUR] # (Agregué EUR que vi en tus logs)
       example: ARS
 
     CreatePaymentRequest:
@@ -416,12 +321,25 @@ components:
 
     UpdatePaymentRequest:
       type: object
+      description: (ADMIN) Actualiza un pago usando su ID primario (UUID)
       properties:
         id:
           type: string
+          format: uuid
         status:
           $ref: '#/components/schemas/PaymentStatus'
       required: [id, status]
+
+    WebhookUpdatePaymentRequest:
+      type: object
+      description: (WEBHOOK) Actualiza un pago usando el ID de reserva (res_id)
+      properties:
+        res_id:
+          type: string
+          description: El ID de la reserva (reservationId)
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+      required: [res_id, status]
 
     GetUserPaymentsRequest:
       type: object
@@ -472,7 +390,9 @@ components:
         - type: object
           properties:
             payment:
-              $ref: '#/components/schemas/Payment'
+              oneOf:
+                - $ref: '#/components/schemas/Payment'
+                - type: 'null'
 
     GetPaymentResponse:
       allOf:
@@ -501,104 +421,5 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/Payment'
-
-    PaymentEvent:
-      type: object
-      properties:
-        paymentEventId:
-          type: integer
-        paymentStatus:
-          $ref: '#/components/schemas/PaymentStatus'
-        amount:
-          type: number
-          format: double
-        reservationId:
-          type: integer
-        userID:
-          type: integer
-      required: [paymentEventId, paymentStatus, reservationId, userID]
-      example:
-        paymentEventId: 123
-        paymentStatus: PENDING
-        amount: 100.0
-        reservationId: 11
-        userID: 1
-
-    ConfirmedPaymentMessage:
-      type: object
-      properties:
-        paymentStatus:
-          $ref: '#/components/schemas/PaymentStatus'
-        reservationId:
-          type: integer
-        userID:
-          type: integer
-        paymentEventId:
-          type: integer
-      required: [paymentStatus, reservationId, userID, paymentEventId]
-      example:
-        paymentStatus: SUCCESS
-        reservationId: 15
-        userID: 5
-        paymentEventId: 12
-
-    RefundMessage:
-      type: object
-      properties:
-        paymentEventId:
-          type: integer
-        paymentStatus:
-          $ref: '#/components/schemas/PaymentStatus'
-        reservationId:
-          type: integer
-        userID:
-          type: integer
-      required: [paymentEventId, paymentStatus, reservationId, userID]
-      example:
-        paymentEventId: 56
-        paymentStatus: REFUNDED
-        reservationId: 11
-        userID: 1
-
-    WebhookEnvelopeBase:
-      type: object
-      description: Envelope del webhook (estilo CloudEvents simplificado)
-      properties:
-        id:
-          type: string
-          description: ID del evento
-        type:
-          type: string
-          description: Tipo de evento (p.ej. payment.created, payment.updated)
-        ts:
-          type: string
-          format: date-time
-          description: Fecha/hora del evento
-        signature:
-          type: string
-          description: Firma HMAC (sha256=...) para verificar integridad
-      required: [id, type, ts]
-
-    WebhookPaymentCreated:
-      allOf:
-        - $ref: '#/components/schemas/WebhookEnvelopeBase'
-        - type: object
-          properties:
-            type:
-              type: string
-              enum: [payment.created]
-            data:
-              $ref: '#/components/schemas/CreatePaymentRequest'
-          required: [data]
-
-    WebhookPaymentUpdated:
-      allOf:
-        - $ref: '#/components/schemas/WebhookEnvelopeBase'
-        - type: object
-          properties:
-            type:
-              type: string
-              enum: [payment.updated]
-            data:
-              $ref: '#/components/schemas/UpdatePaymentRequest'
-          required: [data]
+    
+ 

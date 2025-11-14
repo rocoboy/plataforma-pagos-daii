@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from 'next/server';
 import { GET, OPTIONS } from './route';
 
-const mockSupabase = {
+const mockSupabase: any = {
   from: jest.fn(() => mockSupabase),
   select: jest.fn(() => mockSupabase),
   eq: jest.fn(() => mockSupabase),
@@ -10,6 +11,7 @@ const mockSupabase = {
 
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(() => mockSupabase),
+  createAdminClient: jest.fn(() => mockSupabase),
 }));
 
 jest.mock('@/lib/cors', () => ({
@@ -46,6 +48,41 @@ describe('payments/[id] route', () => {
       data: null,
       error: { message: 'Database error' },
     });
+
+    const req = new NextRequest('http://localhost/api/payments/123');
+    const res = await GET(req, { params: Promise.resolve({ id: '123' }) });
+    
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.success).toBe(false);
+  });
+
+  it('GET returns 400 on invalid id format', async () => {
+    // Mock getPaymentSchema to fail validation by mocking safeParse
+    const getPaymentModule = require('./get-payment');
+    const originalSchema = getPaymentModule.getPaymentSchema;
+    getPaymentModule.getPaymentSchema = {
+      ...originalSchema,
+      safeParse: jest.fn(() => ({
+        success: false,
+        error: { message: 'Invalid id' }
+      }))
+    };
+
+    const req = new NextRequest('http://localhost/api/payments/');
+    const res = await GET(req, { params: Promise.resolve({ id: 'invalid' }) });
+    
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.success).toBe(false);
+    expect(json.error).toBe('Invalid request body');
+    
+    // Restore original schema
+    getPaymentModule.getPaymentSchema = originalSchema;
+  });
+
+  it('GET handles general errors', async () => {
+    mockSupabase.single.mockRejectedValueOnce(new Error('Unexpected error'));
 
     const req = new NextRequest('http://localhost/api/payments/123');
     const res = await GET(req, { params: Promise.resolve({ id: '123' }) });

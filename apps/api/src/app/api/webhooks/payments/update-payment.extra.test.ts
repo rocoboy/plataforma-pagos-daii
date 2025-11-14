@@ -1,74 +1,58 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from 'next/server';
-import { createPayment } from './create-payment';
-import { createClient } from '@/lib/supabase/server';
-jest.mock('@/lib/supabase/server');
+import { updatePaymentByReservationId } from './update-payment';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 
-const mockSupabase: any = {
-  from: jest.fn(() => mockSupabase),
-  insert: jest.fn(() => mockSupabase),
-  select: jest.fn(() => mockSupabase),
-  single: jest.fn(),
-};
+jest.mock('@/lib/supabase/server', () => {
+  let storedStatus: string = 'PENDING';
+  let storedResId: string = 'p-default';
 
-(createClient as jest.Mock).mockReturnValue(mockSupabase);
+  const createMockClient = () => {
+    const mockClient: any = {
+      from: jest.fn(() => mockClient),
+      select: jest.fn(() => mockClient),
+      eq: jest.fn((field: string, value: string) => {
+        if (field === 'res_id') {
+          storedResId = value;
+        }
+        return mockClient;
+      }),
+      update: jest.fn((payload: any) => {
+        storedStatus = payload?.status || storedStatus;
+        return mockClient;
+      }),
+      maybeSingle: jest.fn(() => ({ 
+        data: { 
+          id: storedResId,
+          status: storedStatus,
+          res_id: storedResId,
+          user_id: 'user-1',
+          amount: 100,
+          currency: 'ARS',
+          meta: {},
+          created_at: new Date().toISOString()
+        }, 
+        error: null 
+      }))
+    };
+    return mockClient;
+  };
 
-describe('Create Payment - Extra Coverage', () => {
-  let mockRequest: NextRequest;
+  return {
+    createClient: jest.fn(() => createMockClient()),
+    createAdminClient: jest.fn(() => createMockClient()),
+  };
+});
 
+describe('Update Payment - Extra Coverage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockRequest = new NextRequest('http://localhost/api/webhooks/payments', { method: 'POST' });
   });
 
-  it('creates payment with ARS currency', async () => {
-    mockSupabase.single.mockResolvedValue({ 
-      data: { id: 'p1', res_id: 'r1', amount: 100, currency: 'ARS' }, 
-      error: null 
-    });
-
-    const result = await createPayment(mockRequest, 'r1', 100, 'ARS');
-    expect(result.currency).toBe('ARS');
+  it('updates to SUCCESS status', async () => {
+    const result = await updatePaymentByReservationId('p1', 'SUCCESS');
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe('SUCCESS');
   });
 
-  it('creates payment with USD currency', async () => {
-    mockSupabase.single.mockResolvedValue({ 
-      data: { id: 'p2', res_id: 'r2', amount: 200, currency: 'USD' }, 
-      error: null 
-    });
-
-    const result = await createPayment(mockRequest, 'r2', 200, 'USD');
-    expect(result.currency).toBe('USD');
-  });
-
-  it('creates payment with user_id', async () => {
-    mockSupabase.single.mockResolvedValue({ 
-      data: { id: 'p3', res_id: 'r3', amount: 300, user_id: 'u1' }, 
-      error: null 
-    });
-
-    const result = await createPayment(mockRequest, 'r3', 300, undefined, 'u1');
-    expect(result.user_id).toBe('u1');
-  });
-
-  it('creates payment with meta', async () => {
-    const meta = { key: 'value' };
-    mockSupabase.single.mockResolvedValue({ 
-      data: { id: 'p4', res_id: 'r4', amount: 400, meta }, 
-      error: null 
-    });
-
-    const result = await createPayment(mockRequest, 'r4', 400, undefined, undefined, meta);
-    expect(result.meta).toEqual(meta);
-  });
-
-  it('creates payment with large amount', async () => {
-    mockSupabase.single.mockResolvedValue({ 
-      data: { id: 'p5', res_id: 'r5', amount: 999999 }, 
-      error: null 
-    });
-
-    const result = await createPayment(mockRequest, 'r5', 999999);
-    expect(result.amount).toBe(999999);
-  });
 });

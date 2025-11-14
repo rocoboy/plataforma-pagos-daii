@@ -1,29 +1,27 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import { NextRequest } from "next/server";
+// Borramos NextRequest
 import z from "zod";
-
 import { 
   Payment, 
   PaymentStatus, 
   Currency 
 } from "../../../../../../types/payments"; 
-
 import { ID } from "../../../../../../types/common";
 import { createPaymentBodySchema } from "@plataforma/types";
 
+// 1. CAMBIAMOS EL TIPO DE RETORNO
 export async function createPayment(
-  request: NextRequest,
+  // 2. 'request' ELIMINADO de los parámetros
   res_id: string,
   amount: number,
   currency?: Currency,
   user_id?: string,
   meta?: unknown
-): Promise<Payment> {
-  // Use admin client (service role key) for server-side webhook inserts so RLS
-  // doesn't block the operation. Ensure SUPABASE_SERVICE_ROLE_KEY is set in env.
-  const supabase = createAdminClient();
+): Promise<{ payment: Payment, isNew: boolean }> { // <-- TIPO DE RETORNO CAMBIADO
+  
+  const supabase = createAdminClient(); 
 
-  // --- LÓGICA DE IDEMPOTENCIA ---
+  // --- Lógica de Idempotencia ---
   const { data: existingPayment, error: findError } = await supabase
     .from("payments")
     .select("*")
@@ -38,27 +36,26 @@ export async function createPayment(
   if (existingPayment) {
     console.warn(`Duplicate payment creation attempt for res_id: ${res_id}. Returning existing payment.`);
     
-    // --- CORRECCIÓN 1 ---
+    // 3. Devolvemos el pago Y EL FLAG 'isNew: false'
     return {
-      user_id: existingPayment.user_id as ID,
-      id: existingPayment.id as ID,
-      res_id: existingPayment.res_id as ID,
-      // MODIFICACIÓN: Se silenció el error de ESLint para 'as any'
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      payment_intent_id: (existingPayment as any).payment_intent_id ? (existingPayment as any).payment_intent_id as ID : undefined,
-      provider: 'Talo', 
-      status: existingPayment.status as PaymentStatus,
-      amount: existingPayment.amount,
-      currency: existingPayment.currency as Currency,
-      meta: (existingPayment.meta ?? meta) as unknown,
-      created_at: new Date(existingPayment.created_at),
+      payment: {
+        user_id: existingPayment.user_id as ID,
+        id: existingPayment.id as ID,
+        res_id: existingPayment.res_id as ID,
+        payment_intent_id: (existingPayment as any).payment_intent_id ? (existingPayment as any).payment_intent_id as ID : undefined,
+        provider: 'Talo', 
+        status: existingPayment.status as PaymentStatus,
+        amount: existingPayment.amount,
+        currency: existingPayment.currency as Currency,
+        meta: (existingPayment.meta ?? meta) as unknown,
+        created_at: new Date(existingPayment.created_at),
+      },
+      isNew: false // <-- AVISAMOS QUE ES UN DUPLICADO
     };
   }
 
-  // --- FIN LÓGICA DE IDEMPOTENCIA ---
-
+  // --- Creación de Pago ---
   const defaultPaymentStatus: PaymentStatus = "PENDING";
-  
   const payload: z.infer<typeof createPaymentBodySchema> & {
     status: PaymentStatus;
   } = { res_id, status: defaultPaymentStatus, amount };
@@ -75,23 +72,24 @@ export async function createPayment(
   
   if (error) {
     console.error("Error inserting new payment:", error.message);
-    throw new Error(error.message);
+    throw new Error(error.message); 
   }
 
-  // --- CORRECCIÓN 2 ---
+  // 4. Devolvemos el pago Y EL FLAG 'isNew: true'
   return {
-    user_id: data.user_id as ID,
-    id: data.id as ID,
-    res_id: data.res_id as ID,
-    // MODIFICACIÓN: Se silenció el error de ESLint para 'as any'
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    payment_intent_id: (data as any).payment_intent_id ? (data as any).payment_intent_id as ID : undefined,
-    provider: 'Talo',
-    status: data.status as PaymentStatus,
-    amount: data.amount,
-    currency: data.currency as Currency,
-    meta: (data.meta ?? meta) as unknown,
-    created_at: new Date(data.created_at),
+    payment: {
+      user_id: data.user_id as ID,
+      id: data.id as ID,
+      res_id: data.res_id as ID,
+      payment_intent_id: (data as any).payment_intent_id ? (data as any).payment_intent_id as ID : undefined,
+      provider: 'Talo',
+      status: data.status as PaymentStatus,
+      amount: data.amount,
+      currency: data.currency as Currency,
+      meta: (data.meta ?? meta) as unknown,
+      created_at: new Date(data.created_at),
+    },
+    isNew: true // <-- AVISAMOS QUE ES NUEVO
   };
 }
 

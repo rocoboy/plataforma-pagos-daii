@@ -48,12 +48,7 @@ export const createClient = (request: NextRequest) => {
 };
 
 
-// --- INICIO DE LA CORRECCIÓN ---
 
-/**
- * Cliente ADMIN (Service Role)
- * Este cliente IGNORA RLS. Es para operaciones de backend (como webhooks).
- */
 export const createAdminClient = () => {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceKey) {
@@ -68,5 +63,3 @@ export const createAdminClient = () => {
     auth: { persistSession: false },
   });
 };
-
-// --- FIN DE LA CORRECCIÓN ---

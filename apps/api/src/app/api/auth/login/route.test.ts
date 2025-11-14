@@ -69,6 +69,24 @@ describe('/api/auth/login', () => {
       const response = await POST(req);
       expect(response.status).toBe(500);
     });
+
+    it('handles JSON parse errors', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => {
+          throw new Error('Invalid JSON');
+        }
+      });
+
+      const req = new NextRequest('http://localhost/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email: 'test@test.com', password: 'pass123' })
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(200);
+    });
   });
 
   describe('OPTIONS', () => {
