@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import TransactionsPage from './Transactions';
-import { fetchPayments } from '../lib/apiClient';
+import { fetchPayments, type PaymentsResponse } from '../lib/apiClient';
 
 jest.mock('../lib/apiClient', () => ({
   fetchPayments: jest.fn()
@@ -29,14 +29,17 @@ jest.mock('jspdf', () => ({
   default: jest.fn().mockImplementation(() => mockPDF),
 }));
 
-const mockPayments = [
+const mockPayments: PaymentsResponse = [
   {
     id: '1',
     res_id: 'RES001',
     user_id: 'user1',
     amount: 100.50,
     status: 'success',
-    created_at: '2025-01-15T10:30:00Z'
+    created_at: '2025-01-15T10:30:00Z',
+    currency: 'ARS',
+    meta: null,
+    modified_at: null,
   },
   {
     id: '2',
@@ -44,7 +47,10 @@ const mockPayments = [
     user_id: 'user2',
     amount: 250.75,
     status: 'pending',
-    created_at: '2025-01-16T11:00:00Z'
+    created_at: '2025-01-16T11:00:00Z',
+    currency: 'USD',
+    meta: null,
+    modified_at: null,
   },
   {
     id: '3',
@@ -52,7 +58,10 @@ const mockPayments = [
     user_id: 'user3',
     amount: 75.25,
     status: 'failure',
-    created_at: '2025-01-17T12:00:00Z'
+    created_at: '2025-01-17T12:00:00Z',
+    currency: 'ARS',
+    meta: null,
+    modified_at: null,
   },
   {
     id: '4',
@@ -60,7 +69,10 @@ const mockPayments = [
     user_id: 'user4',
     amount: 300.00,
     status: 'underpaid',
-    created_at: '2025-01-18T13:00:00Z'
+    created_at: '2025-01-18T13:00:00Z',
+    currency: 'EUR',
+    meta: null,
+    modified_at: null,
   }
 ];
 
