@@ -41,8 +41,6 @@ jest.mock('@/lib/supabase/server', () => {
 });
 
 describe('updatePayment', () => {
-  let mockClient: any;
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -54,6 +52,7 @@ describe('updatePayment', () => {
   });
 
   it('throws error when update fails', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { createAdminClient } = require('@/lib/supabase/server');
     const updateChain = {
       eq: jest.fn(() => Promise.resolve({ error: { message: 'Update error' } }))
@@ -67,12 +66,14 @@ describe('updatePayment', () => {
       select: jest.fn(() => selectChain),
       update: jest.fn(() => updateChain),
     };
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     jest.spyOn(require('@/lib/supabase/server'), 'createAdminClient').mockReturnValueOnce(mockErrorClient);
 
     await expect(updatePaymentByReservationId('1', 'SUCCESS')).rejects.toThrow('Update error');
   });
 
   it('throws error when select fails', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { createAdminClient } = require('@/lib/supabase/server');
     const updateChain = {
       eq: jest.fn(() => Promise.resolve({ error: null }))
@@ -89,12 +90,14 @@ describe('updatePayment', () => {
       select: jest.fn(() => selectChain),
       update: jest.fn(() => updateChain),
     };
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     jest.spyOn(require('@/lib/supabase/server'), 'createAdminClient').mockReturnValueOnce(mockErrorClient);
 
     await expect(updatePaymentByReservationId('1', 'SUCCESS')).rejects.toThrow('Select error');
   });
 
   it('returns null when payment not found', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { createAdminClient } = require('@/lib/supabase/server');
     const updateChain = {
       eq: jest.fn(() => Promise.resolve({ error: null }))
@@ -111,6 +114,7 @@ describe('updatePayment', () => {
       select: jest.fn(() => selectChain),
       update: jest.fn(() => updateChain),
     };
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     jest.spyOn(require('@/lib/supabase/server'), 'createAdminClient').mockReturnValueOnce(mockNullClient);
 
     const result = await updatePaymentByReservationId('1', 'SUCCESS');

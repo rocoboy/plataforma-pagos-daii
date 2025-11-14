@@ -19,10 +19,10 @@ const mockFetchPayments = fetchPayments as jest.MockedFunction<typeof fetchPayme
 
 // Mock jsPDF BEFORE any imports
 const mockPDFInstance = {
-  setFontSize: jest.fn(function() { return this; }),
-  setFont: jest.fn(function() { return this; }),
-  text: jest.fn(function() { return this; }),
-  save: jest.fn(function() { return this; })
+  setFontSize: jest.fn(function(this: typeof mockPDFInstance) { return this; }),
+  setFont: jest.fn(function(this: typeof mockPDFInstance) { return this; }),
+  text: jest.fn(function(this: typeof mockPDFInstance) { return this; }),
+  save: jest.fn(function(this: typeof mockPDFInstance) { return this; })
 };
 
 jest.mock('jspdf', () => ({

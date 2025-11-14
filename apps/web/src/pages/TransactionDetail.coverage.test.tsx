@@ -1,13 +1,13 @@
 // Mock jsPDF BEFORE any imports
 const mockPDFInstance = {
-  setFont: jest.fn(function() { return this; }),
-  setFontSize: jest.fn(function() { return this; }),
-  setTextColor: jest.fn(function() { return this; }),
-  setDrawColor: jest.fn(function() { return this; }),
-  setLineWidth: jest.fn(function() { return this; }),
-  text: jest.fn(function() { return this; }),
-  rect: jest.fn(function() { return this; }),
-  save: jest.fn(function() { return this; })
+  setFont: jest.fn(function(this: typeof mockPDFInstance) { return this; }),
+  setFontSize: jest.fn(function(this: typeof mockPDFInstance) { return this; }),
+  setTextColor: jest.fn(function(this: typeof mockPDFInstance) { return this; }),
+  setDrawColor: jest.fn(function(this: typeof mockPDFInstance) { return this; }),
+  setLineWidth: jest.fn(function(this: typeof mockPDFInstance) { return this; }),
+  text: jest.fn(function(this: typeof mockPDFInstance) { return this; }),
+  rect: jest.fn(function(this: typeof mockPDFInstance) { return this; }),
+  save: jest.fn(function(this: typeof mockPDFInstance) { return this; })
 };
 
 jest.mock('jspdf', () => {

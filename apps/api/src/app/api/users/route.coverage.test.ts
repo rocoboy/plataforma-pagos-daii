@@ -25,14 +25,15 @@ let mockGetUserPayments: jest.Mock;
 
 jest.mock('./get-user-payments', () => {
   const mockGetUserPaymentsFn = jest.fn(async () => [{ id: '1', amount: 100 }]);
-  const mockSafeParseFn = jest.fn((data: any) => {
-    if (data && data.user_id) {
+  const mockSafeParseFn = jest.fn((data: unknown) => {
+    if (data && typeof data === 'object' && 'user_id' in data) {
       return { success: true, data };
     }
     return { success: false, error: { message: 'Invalid user_id' } };
   });
   
   // Store reference for use in tests
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (global as any).__mockGetUserPaymentsForRoute = mockGetUserPaymentsFn;
   
   return {
@@ -45,6 +46,7 @@ jest.mock('./get-user-payments', () => {
 
 // Get reference after mock is set up
 beforeAll(() => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mockGetUserPayments = (global as any).__mockGetUserPaymentsForRoute;
 });
 

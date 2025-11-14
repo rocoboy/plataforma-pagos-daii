@@ -18,9 +18,9 @@ describe('Supabase Server - Coverage', () => {
       try {
         const client = createClient(req);
         expect(client).toBeDefined();
-      } catch (error: any) {
+      } catch (error: unknown) {
         // If env vars are missing, expect specific error messages
-        expect(error.message).toMatch(/Missing SUPABASE/);
+        expect(error instanceof Error ? error.message : String(error)).toMatch(/Missing SUPABASE/);
       }
     });
   });
@@ -35,9 +35,9 @@ describe('Supabase Server - Coverage', () => {
       try {
         const client = createAdminClient();
         expect(client).toBeDefined();
-      } catch (error: any) {
+      } catch (error: unknown) {
         // If env vars are missing, expect specific error messages
-        expect(error.message).toMatch(/Missing SUPABASE/);
+        expect(error instanceof Error ? error.message : String(error)).toMatch(/Missing SUPABASE/);
       }
     });
   });

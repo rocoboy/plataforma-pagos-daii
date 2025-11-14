@@ -23,9 +23,28 @@ jest.mock('@/lib/cors', () => ({
   ),
 }));
 
+const mockGetPaymentSchema = {
+  safeParse: jest.fn((data: { id: string }) => ({
+    success: data?.id ? true : false,
+    data: data?.id ? data : undefined,
+    error: data?.id ? undefined : { message: 'Invalid id' }
+  }))
+};
+
+jest.mock('./get-payment', () => ({
+  getPayment: jest.fn(),
+  getPaymentSchema: mockGetPaymentSchema
+}));
+
 describe('payments/[id] route', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset mock to default behavior
+    mockGetPaymentSchema.safeParse.mockImplementation((data: { id: string }) => ({
+      success: data?.id ? true : false,
+      data: data?.id ? data : undefined,
+      error: data?.id ? undefined : { message: 'Invalid id' }
+    }));
   });
 
   it('GET returns payment by id', async () => {
@@ -58,16 +77,11 @@ describe('payments/[id] route', () => {
   });
 
   it('GET returns 400 on invalid id format', async () => {
-    // Mock getPaymentSchema to fail validation by mocking safeParse
-    const getPaymentModule = require('./get-payment');
-    const originalSchema = getPaymentModule.getPaymentSchema;
-    getPaymentModule.getPaymentSchema = {
-      ...originalSchema,
-      safeParse: jest.fn(() => ({
-        success: false,
-        error: { message: 'Invalid id' }
-      }))
-    };
+    // Mock getPaymentSchema to fail validation
+    mockGetPaymentSchema.safeParse.mockReturnValueOnce({
+      success: false,
+      error: { message: 'Invalid id' }
+    });
 
     const req = new NextRequest('http://localhost/api/payments/');
     const res = await GET(req, { params: Promise.resolve({ id: 'invalid' }) });
@@ -76,9 +90,6 @@ describe('payments/[id] route', () => {
     const json = await res.json();
     expect(json.success).toBe(false);
     expect(json.error).toBe('Invalid request body');
-    
-    // Restore original schema
-    getPaymentModule.getPaymentSchema = originalSchema;
   });
 
   it('GET handles general errors', async () => {
