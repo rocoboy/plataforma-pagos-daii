@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import TransactionsPage from './Transactions';
-import { fetchPayments } from '../lib/apiClient';
+import { fetchPayments, type PaymentsResponse } from '../lib/apiClient';
 
 jest.mock('../lib/apiClient', () => ({
   fetchPayments: jest.fn()
@@ -29,14 +29,17 @@ jest.mock('jspdf', () => ({
   default: jest.fn().mockImplementation(() => mockPDF),
 }));
 
-const mockPayments = [
+const mockPayments: PaymentsResponse = [
   {
     id: '1',
     res_id: 'RES001',
     user_id: 'user1',
     amount: 100.50,
     status: 'success',
-    created_at: '2025-01-15T10:30:00Z'
+    created_at: '2025-01-15T10:30:00Z',
+    currency: 'ARS',
+    meta: null,
+    modified_at: null,
   },
   {
     id: '2',
@@ -44,7 +47,10 @@ const mockPayments = [
     user_id: 'user2',
     amount: 250.75,
     status: 'pending',
-    created_at: '2025-01-16T11:00:00Z'
+    created_at: '2025-01-16T11:00:00Z',
+    currency: 'USD',
+    meta: null,
+    modified_at: null,
   },
   {
     id: '3',
@@ -52,7 +58,10 @@ const mockPayments = [
     user_id: 'user3',
     amount: 75.25,
     status: 'failure',
-    created_at: '2025-01-17T12:00:00Z'
+    created_at: '2025-01-17T12:00:00Z',
+    currency: 'ARS',
+    meta: null,
+    modified_at: null,
   },
   {
     id: '4',
@@ -60,7 +69,10 @@ const mockPayments = [
     user_id: 'user4',
     amount: 300.00,
     status: 'underpaid',
-    created_at: '2025-01-18T13:00:00Z'
+    created_at: '2025-01-18T13:00:00Z',
+    currency: 'EUR',
+    meta: null,
+    modified_at: null,
   }
 ];
 
@@ -242,14 +254,84 @@ describe('Transactions - Coverage', () => {
   });
 
   it('displays all status badge variants', async () => {
-    const paymentsWithVariousStatuses = [
-      { id: '1', res_id: 'RES001', user_id: 'user1', amount: 100, status: 'success', created_at: '2025-01-15T10:00:00Z' },
-      { id: '2', res_id: 'RES002', user_id: 'user2', amount: 200, status: 'pending', created_at: '2025-01-16T10:00:00Z' },
-      { id: '3', res_id: 'RES003', user_id: 'user3', amount: 300, status: 'failure', created_at: '2025-01-17T10:00:00Z' },
-      { id: '4', res_id: 'RES004', user_id: 'user4', amount: 400, status: 'underpaid', created_at: '2025-01-18T10:00:00Z' },
-      { id: '5', res_id: 'RES005', user_id: 'user5', amount: 500, status: 'overpaid', created_at: '2025-01-19T10:00:00Z' },
-      { id: '6', res_id: 'RES006', user_id: 'user6', amount: 600, status: 'expired', created_at: '2025-01-20T10:00:00Z' },
-      { id: '7', res_id: 'RES007', user_id: 'user7', amount: 700, status: 'refund', created_at: '2025-01-21T10:00:00Z' },
+    const paymentsWithVariousStatuses: PaymentsResponse = [
+      {
+        id: '1',
+        res_id: 'RES001',
+        user_id: 'user1',
+        amount: 100,
+        status: 'success',
+        created_at: '2025-01-15T10:00:00Z',
+        currency: 'ARS',
+        meta: null,
+        modified_at: null,
+      },
+      {
+        id: '2',
+        res_id: 'RES002',
+        user_id: 'user2',
+        amount: 200,
+        status: 'pending',
+        created_at: '2025-01-16T10:00:00Z',
+        currency: 'USD',
+        meta: null,
+        modified_at: null,
+      },
+      {
+        id: '3',
+        res_id: 'RES003',
+        user_id: 'user3',
+        amount: 300,
+        status: 'failure',
+        created_at: '2025-01-17T10:00:00Z',
+        currency: 'ARS',
+        meta: null,
+        modified_at: null,
+      },
+      {
+        id: '4',
+        res_id: 'RES004',
+        user_id: 'user4',
+        amount: 400,
+        status: 'underpaid',
+        created_at: '2025-01-18T10:00:00Z',
+        currency: 'EUR',
+        meta: null,
+        modified_at: null,
+      },
+      {
+        id: '5',
+        res_id: 'RES005',
+        user_id: 'user5',
+        amount: 500,
+        status: 'overpaid',
+        created_at: '2025-01-19T10:00:00Z',
+        currency: 'USD',
+        meta: null,
+        modified_at: null,
+      },
+      {
+        id: '6',
+        res_id: 'RES006',
+        user_id: 'user6',
+        amount: 600,
+        status: 'expired',
+        created_at: '2025-01-20T10:00:00Z',
+        currency: 'ARS',
+        meta: null,
+        modified_at: null,
+      },
+      {
+        id: '7',
+        res_id: 'RES007',
+        user_id: 'user7',
+        amount: 700,
+        status: 'refund',
+        created_at: '2025-01-21T10:00:00Z',
+        currency: 'USD',
+        meta: null,
+        modified_at: null,
+      },
     ];
 
     mockFetchPayments.mockResolvedValue(paymentsWithVariousStatuses);
