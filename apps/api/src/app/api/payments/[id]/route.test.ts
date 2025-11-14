@@ -58,17 +58,27 @@ describe('payments/[id] route', () => {
   });
 
   it('GET returns 400 on invalid id format', async () => {
-    // Mock getPayment to throw an error for invalid format
-    jest.spyOn(require('./get-payment'), 'getPayment').mockRejectedValueOnce(
-      new Error('Invalid id format')
-    );
+    // Mock getPaymentSchema to fail validation by mocking safeParse
+    const getPaymentModule = require('./get-payment');
+    const originalSchema = getPaymentModule.getPaymentSchema;
+    getPaymentModule.getPaymentSchema = {
+      ...originalSchema,
+      safeParse: jest.fn(() => ({
+        success: false,
+        error: { message: 'Invalid id' }
+      }))
+    };
 
-    const req = new NextRequest('http://localhost/api/payments/invalid');
-    const res = await GET(req, { params: Promise.resolve({ id: 'invalid-format' }) });
+    const req = new NextRequest('http://localhost/api/payments/');
+    const res = await GET(req, { params: Promise.resolve({ id: 'invalid' }) });
     
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(400);
     const json = await res.json();
     expect(json.success).toBe(false);
+    expect(json.error).toBe('Invalid request body');
+    
+    // Restore original schema
+    getPaymentModule.getPaymentSchema = originalSchema;
   });
 
   it('GET handles general errors', async () => {
