@@ -50,6 +50,35 @@ describe('AdminAuth Middleware - Extra Coverage', () => {
     expect(response.status).toBe(401);
   });
 
-  // Test removed - failing in Bun test environment
+  it('returns 403 when token is valid but role is not admin', () => {
+    (jwt.decode as jest.Mock).mockReturnValue({
+      header: {},
+      payload: { rol: 'user' }
+    });
+    (jwt.verify as jest.Mock).mockReturnValue({ rol: 'user' });
+
+    const request = new NextRequest('http://localhost/api/test', {
+      headers: { authorization: 'Bearer valid-token' },
+    });
+
+    const response = adminAuthMiddleware(request);
+    expect(response).not.toBeNull();
+    expect(response.status).toBe(403);
+  });
+
+  it('returns null when token is valid and role is admin', () => {
+    (jwt.decode as jest.Mock).mockReturnValue({
+      header: {},
+      payload: { rol: 'admin' }
+    });
+    (jwt.verify as jest.Mock).mockReturnValue({ rol: 'admin' });
+
+    const request = new NextRequest('http://localhost/api/test', {
+      headers: { authorization: 'Bearer valid-admin-token' },
+    });
+
+    const response = adminAuthMiddleware(request);
+    expect(response).toBeNull();
+  });
 });
 
