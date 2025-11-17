@@ -149,7 +149,10 @@ export class WebhookHandler {
     }
 
     if (eventType === 'reservations.reservation.updated') {
-      
+      if (innerPayload.newStatus === 'PENDING') {
+         console.log(`⏩ Skipping redundant update to PENDING for ${innerPayload.reservationId}`);
+         return;
+      }
       // 1. TRADUCE el estado del dominio de "Reservas" al de "Pagos"
       let apiStatus;
       switch (innerPayload.newStatus) {
