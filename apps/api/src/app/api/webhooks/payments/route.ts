@@ -7,7 +7,7 @@ import { publishPaymentStatusUpdated } from "@/lib/core";
 import { PaymentStatus, Currency, PaymentStatusEnum } from "../../../../../../types/payments";
 import { ISODateTime } from "../../../../../../types/common";
 
-// Helper para simular tiempo de espera (2 segundos)
+// Helper para simular tiempo de espera
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const updatePaymentSchema = z.object({
@@ -16,7 +16,7 @@ const updatePaymentSchema = z.object({
 });
 
 // ===================================
-// FUNCIÓN POST (Ciclo Completo Automático)
+// FUNCIÓN POST (CON SIMULACIÓN DE CREACIÓN)
 // ===================================
 export async function POST(request: NextRequest) {
   try {
@@ -30,7 +30,6 @@ export async function POST(request: NextRequest) {
     
     const { res_id, user_id, meta, amount, currency } = parsed.data;
     
-    // 1. CREAR EL PAGO (Estado Inicial: PENDING)
     const { payment, isNew } = await createPayment(
       res_id,
       amount,
@@ -39,10 +38,8 @@ export async function POST(request: NextRequest) {
       meta
     );
     
-    // 2. SI ES NUEVO, EJECUTAR EL CICLO AUTOMÁTICO
     if (isNew) {
       try {
-        
         console.log(`📢 [1/3] Payment Created. Publishing PENDING for ${res_id}...`);
         await publishPaymentStatusUpdated({
           paymentId: payment.id,
@@ -54,13 +51,13 @@ export async function POST(request: NextRequest) {
           updatedAt: new Date().toISOString() as ISODateTime,
         });
 
-        console.log("[2/3] Processing payment ");
-        await delay(500); 
+        console.log("⏳ [2/3] Simulating processing (waiting 2s)...");
+        await delay(2000); 
 
         const isFailure = Math.random() < 0.25; 
         const finalStatus: PaymentStatus = isFailure ? 'FAILURE' : 'SUCCESS';
         
-        console.log(` Result for ${res_id}: ${finalStatus}`);
+        console.log(`🎲 Result for ${res_id}: ${finalStatus}`);
 
         const updatedPayment = await updatePaymentByReservationId(
           res_id, 
@@ -81,14 +78,11 @@ export async function POST(request: NextRequest) {
         }
 
       } catch (error) {
-        console.error(`❌ Error during automatic processing:`, error);
+        console.error(`❌ Failed during payment processing sequence:`, error);
+        throw error; 
       }
-    } else {
-        console.log(`ℹ️ Payment for ${res_id} already exists. Skipping automation.`);
     }
 
-    // 3. RESPONDER AL BRIDGE
-    // El Bridge recibirá el 200 OK recién cuando termine todo el proceso (aprox 2-3 segundos)
     return createCorsResponse(request, { success: true, payment: payment });
 
   } catch (error) {
@@ -98,6 +92,9 @@ export async function POST(request: NextRequest) {
 }
 
 
+// ===================================
+// FUNCIÓN PUT (AHORA CON SIMULACIÓN DE REEMBOLSO)
+// ===================================
 export async function PUT(request: NextRequest) {
   try {
     const json = await request.json();
@@ -109,6 +106,13 @@ export async function PUT(request: NextRequest) {
     }
 
     const { res_id, status } = parsed.data;
+
+    if (status === 'REFUND') {
+        console.log(`⏳ [Refunding] Simulating refund process for ${res_id} (waiting 2s)...`);
+        await delay(500);
+        console.log(`✅ [Refunding] Process complete. Updating DB...`);
+    }
+    
     
     const payment = await updatePaymentByReservationId(
       res_id, 
@@ -120,6 +124,7 @@ export async function PUT(request: NextRequest) {
     }
 
     try {
+      console.log(`📢 Publishing UPDATE event (${status}) for ${res_id}`);
       await publishPaymentStatusUpdated({
         paymentId: payment.id,
         reservationId: payment.res_id,
@@ -137,7 +142,14 @@ export async function PUT(request: NextRequest) {
     return createCorsResponse(request, { success: true, payment });
   } catch (error) {
     console.error("❌ Error in PUT /api/webhooks/payments:", error);
-    return createCorsResponse(request, { success: false, error: error instanceof Error ? error.message : "Unknown error" }, 500);
+    return createCorsResponse(
+      request,
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      500
+    );
   }
 }
 
