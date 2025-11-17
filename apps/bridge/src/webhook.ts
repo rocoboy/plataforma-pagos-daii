@@ -78,7 +78,7 @@ export class WebhookHandler {
       let apiStatus;
       switch (innerPayload.newStatus) {
         case "PENDING_REFUND":
-          apiStatus = "PENDING"; 
+          apiStatus = "REFUND"; //PARA QUE SEA AUTOMATICO Y CHAU 
           break;
         case "PAID":
           apiStatus = "SUCCESS"; 

@@ -1,28 +1,25 @@
 import { NextRequest } from "next/server";
 import { createPayment, createPaymentBodySchema } from "./create-payment";
-// Importa la función de update correcta
 import { updatePaymentByReservationId } from "./update-payment";
 import { z } from "zod";
 import { createCorsResponse, createCorsOptionsResponse } from "@/lib/cors";
 import { publishPaymentStatusUpdated } from "@/lib/core";
-// Importa los tipos correctos (incluyendo PaymentStatusEnum)
 import { PaymentStatus, Currency, PaymentStatusEnum } from "../../../../../../types/payments";
 import { ISODateTime } from "../../../../../../types/common";
 
+// Helper para simular la espera de la pasarela de pagos
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Define un schema local para el PUT que espera res_id
 const updatePaymentSchema = z.object({
   res_id: z.string().min(1),
-  status: PaymentStatusEnum, // Valida que el status sea uno de los conocidos
+  status: PaymentStatusEnum,
 });
 
-
 // ===================================
-// FUNCIÓN POST (CORREGIDA)
+// FUNCIÓN POST (CON SIMULACIÓN)
 // ===================================
 export async function POST(request: NextRequest) {
   try {
-    //validar body
     const json = await request.json();
     const parsed = createPaymentBodySchema.safeParse(json);
     
@@ -41,9 +38,7 @@ export async function POST(request: NextRequest) {
     
     const { res_id, user_id, meta, amount, currency } = parsed.data;
     
-    // --- INICIO DE LA CORRECCIÓN ---
-
-    // 1. LLAMA SIN 'request' Y CAPTURA '{ payment, isNew }'
+    // 1. CREAR EL PAGO (PENDING) - Usando lógica corregida (sin request)
     const { payment, isNew } = await createPayment(
       res_id,
       amount,
@@ -52,9 +47,11 @@ export async function POST(request: NextRequest) {
       meta
     );
     
-    // 2. SÓLO PUBLICA EL EVENTO SI EL PAGO ES NUEVO
+    // 2. SI ES NUEVO, INICIAR LA SECUENCIA DE EVENTOS + SIMULACIÓN
     if (isNew) {
       try {
+        // A) Publicar el evento inicial PENDING
+        console.log(`📢 [1/2] Publishing PENDING event for res_id: ${res_id}`);
         await publishPaymentStatusUpdated({
           paymentId: payment.id,
           reservationId: payment.res_id,
@@ -64,21 +61,47 @@ export async function POST(request: NextRequest) {
           currency: payment.currency as Currency,
           updatedAt: new Date().toISOString() as ISODateTime,
         });
-      } catch (error) {
-        console.error(
-          `❌ Failed to publish payment status updated event:`,
-          error
+
+        // --- INICIO SIMULACIÓN AUTOMÁTICA ---
+        console.log("⏳ Simulating external payment processing (waiting 2s)...");
+        await delay(2000); // Esperamos 2 segundos
+
+        // B) Decidir el resultado (75% Success, 25% Failure)
+        const isFailure = Math.random() < 0.25; 
+        const simulatedStatus: PaymentStatus = isFailure ? 'FAILURE' : 'SUCCESS';
+        console.log(`🎲 Simulation result for ${res_id}: ${simulatedStatus}`);
+
+        // C) Actualizar la base de datos (usando la función interna corregida)
+        const updatedPayment = await updatePaymentByReservationId(
+          res_id, 
+          simulatedStatus
         );
-        throw error;
+
+        // D) Publicar el evento final (SUCCESS o FAILURE)
+        if (updatedPayment) {
+          console.log(`📢 [2/2] Publishing ${simulatedStatus} event for res_id: ${res_id}`);
+          await publishPaymentStatusUpdated({
+            paymentId: updatedPayment.id,
+            reservationId: updatedPayment.res_id,
+            userId: updatedPayment.user_id,
+            status: updatedPayment.status,
+            amount: updatedPayment.amount,
+            currency: updatedPayment.currency,
+            updatedAt: new Date().toISOString() as ISODateTime,
+          });
+        }
+      
+
+      } catch (error) {
+        console.error(`❌ Failed during payment processing sequence:`, error);
+  
+        throw error; 
       }
     }
-    // --- FIN DE LA CORRECCIÓN ---
 
-    // 3. Devuelve el 'payment' (no el objeto wrapper)
     return createCorsResponse(request, { success: true, payment: payment });
 
   } catch (error) {
-    // Imprime el error en los logs de Vercel
     console.error("❌ Error in POST /api/webhooks/payments:", error);
     return createCorsResponse(
       request,
@@ -92,9 +115,6 @@ export async function POST(request: NextRequest) {
 }
 
 
-// ===================================
-// FUNCIÓN PUT (CORREGIDA)
-// ===================================
 export async function PUT(request: NextRequest) {
   try {
     const json = await request.json();
@@ -102,33 +122,20 @@ export async function PUT(request: NextRequest) {
 
     if (!parsed.success) {
       console.error("❌ Zod validation failed (400):", parsed.error.message);
-      return createCorsResponse(
-        request,
-        {
-          success: false,
-          error: "Invalid request body",
-          issues: parsed.error.message,
-        },
-        400
-      );
+      return createCorsResponse(request, { success: false, error: "Invalid body", issues: parsed.error.message }, 400);
     }
 
     const { res_id, status } = parsed.data;
     
-    // --- INICIO DE LA CORRECCIÓN ---
-    // 1. LLAMA SIN 'request'
     const payment = await updatePaymentByReservationId(
       res_id, 
       status as PaymentStatus
     );
-    // --- FIN DE LA CORRECCIÓN ---
 
     if (!payment) {
-      // (Esta parte ya estaba bien)
       return createCorsResponse(request, { success: true, payment: null, message: "Payment not found, ignored." });
     }
 
-    // Publica el evento (esto SÍ debe publicarse siempre)
     try {
       await publishPaymentStatusUpdated({
         paymentId: payment.id,
@@ -140,10 +147,7 @@ export async function PUT(request: NextRequest) {
         updatedAt: new Date().toISOString() as ISODateTime,
       });
     } catch (error) {
-      console.error(
-        `❌ Failed to publish payment status updated event:`,
-        error
-      );
+      console.error(`❌ Failed to publish payment status updated event:`, error);
       throw error;
     }
 
