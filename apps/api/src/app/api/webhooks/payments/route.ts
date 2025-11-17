@@ -59,8 +59,8 @@ export async function POST(request: NextRequest) {
           updatedAt: new Date().toISOString() as ISODateTime,
         });
 
-        console.log("Simulating external payment processing (waiting 2s)...");
-        await delay(2000); 
+        console.log("Simulating external payment processing (waiting 1/2 sec)...");
+        await delay(500); 
         // B) Decidir el resultado (75% Success, 25% Failure)
         const isFailure = Math.random() < 0.25; 
         const simulatedStatus: PaymentStatus = isFailure ? 'FAILURE' : 'SUCCESS';
