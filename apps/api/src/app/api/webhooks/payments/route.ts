@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       meta
     );
     
-    if (!isNew) { //esto me hace ruido pero es de la unica forma q funciona xd
+    if (isNew) { 
       try {
         console.log(`📢 [1/2] Publishing PENDING event for res_id: ${res_id}`);
         await publishPaymentStatusUpdated({
