@@ -38,7 +38,6 @@ export async function POST(request: NextRequest) {
     
     const { res_id, user_id, meta, amount, currency } = parsed.data;
     
-    // 1. CREAR EL PAGO (PENDING) - Usando lógica corregida (sin request)
     const { payment, isNew } = await createPayment(
       res_id,
       amount,
@@ -47,10 +46,8 @@ export async function POST(request: NextRequest) {
       meta
     );
     
-    // 2. SI ES NUEVO, INICIAR LA SECUENCIA DE EVENTOS + SIMULACIÓN
-    if (isNew) {
+    if (!isNew) { //esto me hace ruido pero es de la unica forma q funciona xd
       try {
-        // A) Publicar el evento inicial PENDING
         console.log(`📢 [1/2] Publishing PENDING event for res_id: ${res_id}`);
         await publishPaymentStatusUpdated({
           paymentId: payment.id,
@@ -62,24 +59,20 @@ export async function POST(request: NextRequest) {
           updatedAt: new Date().toISOString() as ISODateTime,
         });
 
-        // --- INICIO SIMULACIÓN AUTOMÁTICA ---
-        console.log("⏳ Simulating external payment processing (waiting 2s)...");
-        await delay(2000); // Esperamos 2 segundos
-
+        console.log("Simulating external payment processing (waiting 2s)...");
+        await delay(2000); 
         // B) Decidir el resultado (75% Success, 25% Failure)
         const isFailure = Math.random() < 0.25; 
         const simulatedStatus: PaymentStatus = isFailure ? 'FAILURE' : 'SUCCESS';
         console.log(`🎲 Simulation result for ${res_id}: ${simulatedStatus}`);
 
-        // C) Actualizar la base de datos (usando la función interna corregida)
         const updatedPayment = await updatePaymentByReservationId(
           res_id, 
           simulatedStatus
         );
 
-        // D) Publicar el evento final (SUCCESS o FAILURE)
         if (updatedPayment) {
-          console.log(`📢 [2/2] Publishing ${simulatedStatus} event for res_id: ${res_id}`);
+          console.log(`  Publishing ${simulatedStatus} event for res_id: ${res_id}`);
           await publishPaymentStatusUpdated({
             paymentId: updatedPayment.id,
             reservationId: updatedPayment.res_id,

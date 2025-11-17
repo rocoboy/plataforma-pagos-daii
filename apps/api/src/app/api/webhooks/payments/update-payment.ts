@@ -9,10 +9,8 @@ export async function updatePaymentByReservationId(
   res_id: string,
   status: PaymentStatus
 ): Promise<Payment | null> { 
-  // 4. Usamos el cliente ADMIN
   const supabase = createAdminClient();
 
-  // (El resto de la lógica ya estaba bien)
   const { error: updateError } = await supabase
     .from("payments")
     .update({ status })
