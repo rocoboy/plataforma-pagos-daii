@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     // 2. SI ES NUEVO, EJECUTAR EL CICLO AUTOMÁTICO
     if (isNew) {
       try {
-        // A) Publicar el primer evento (PENDING)
+        
         console.log(`📢 [1/3] Payment Created. Publishing PENDING for ${res_id}...`);
         await publishPaymentStatusUpdated({
           paymentId: payment.id,
@@ -54,23 +54,19 @@ export async function POST(request: NextRequest) {
           updatedAt: new Date().toISOString() as ISODateTime,
         });
 
-        // B) Simular tiempo de procesamiento (La API "piensa" por 2 segundos)
-        console.log("⏳ [2/3] Processing payment (waiting 2s)...");
-        await delay(2000); 
+        console.log("[2/3] Processing payment ");
+        await delay(500); 
 
-        // C) Decidir resultado (75% Éxito, 25% Fallo)
         const isFailure = Math.random() < 0.25; 
         const finalStatus: PaymentStatus = isFailure ? 'FAILURE' : 'SUCCESS';
         
-        console.log(`🎲 Result for ${res_id}: ${finalStatus}`);
+        console.log(` Result for ${res_id}: ${finalStatus}`);
 
-        // D) Actualizar la base de datos automáticamente
         const updatedPayment = await updatePaymentByReservationId(
           res_id, 
           finalStatus
         );
 
-        // E) Publicar el evento final (SUCCESS/FAILURE)
         if (updatedPayment) {
           console.log(`📢 [3/3] Publishing FINAL event (${finalStatus}) for ${res_id}`);
           await publishPaymentStatusUpdated({
@@ -86,8 +82,6 @@ export async function POST(request: NextRequest) {
 
       } catch (error) {
         console.error(`❌ Error during automatic processing:`, error);
-        // Si falla la simulación, al menos el pago quedó creado en PENDING.
-        // Podrías devolver 500 si prefieres que el Bridge reintente.
       }
     } else {
         console.log(`ℹ️ Payment for ${res_id} already exists. Skipping automation.`);
@@ -104,9 +98,6 @@ export async function POST(request: NextRequest) {
 }
 
 
-// ===================================
-// FUNCIÓN PUT (Para actualizaciones manuales si hicieran falta)
-// ===================================
 export async function PUT(request: NextRequest) {
   try {
     const json = await request.json();
