@@ -7,7 +7,7 @@ import { publishPaymentStatusUpdated } from "@/lib/core";
 import { PaymentStatus, Currency, PaymentStatusEnum } from "../../../../../../types/payments";
 import { ISODateTime } from "../../../../../../types/common";
 
-// Helper para simular la espera de la pasarela de pagos
+// Helper para simular tiempo de espera (2 segundos)
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const updatePaymentSchema = z.object({
@@ -16,7 +16,7 @@ const updatePaymentSchema = z.object({
 });
 
 // ===================================
-// FUNCIÓN POST (CON SIMULACIÓN)
+// FUNCIÓN POST (Ciclo Completo Automático)
 // ===================================
 export async function POST(request: NextRequest) {
   try {
@@ -25,19 +25,12 @@ export async function POST(request: NextRequest) {
     
     if (!parsed.success) {
       console.error("❌ Zod validation failed (400):", parsed.error.message);
-      return createCorsResponse(
-        request,
-        {
-          success: false,
-          error: "Invalid request body",
-          issues: parsed.error.message,
-        },
-        400
-      );
+      return createCorsResponse(request, { success: false, error: "Invalid body", issues: parsed.error.message }, 400);
     }
     
     const { res_id, user_id, meta, amount, currency } = parsed.data;
     
+    // 1. CREAR EL PAGO (Estado Inicial: PENDING)
     const { payment, isNew } = await createPayment(
       res_id,
       amount,
@@ -46,9 +39,11 @@ export async function POST(request: NextRequest) {
       meta
     );
     
-    if (isNew) { 
+    // 2. SI ES NUEVO, EJECUTAR EL CICLO AUTOMÁTICO
+    if (isNew) {
       try {
-        console.log(`📢 [1/2] Publishing PENDING event for res_id: ${res_id}`);
+        // A) Publicar el primer evento (PENDING)
+        console.log(`📢 [1/3] Payment Created. Publishing PENDING for ${res_id}...`);
         await publishPaymentStatusUpdated({
           paymentId: payment.id,
           reservationId: payment.res_id,
@@ -59,20 +54,25 @@ export async function POST(request: NextRequest) {
           updatedAt: new Date().toISOString() as ISODateTime,
         });
 
-        console.log("Simulating external payment processing (waiting 1/2 sec)...");
-        await delay(500); 
-        // B) Decidir el resultado (75% Success, 25% Failure)
-        const isFailure = Math.random() < 0.25; 
-        const simulatedStatus: PaymentStatus = isFailure ? 'FAILURE' : 'SUCCESS';
-        console.log(`🎲 Simulation result for ${res_id}: ${simulatedStatus}`);
+        // B) Simular tiempo de procesamiento (La API "piensa" por 2 segundos)
+        console.log("⏳ [2/3] Processing payment (waiting 2s)...");
+        await delay(2000); 
 
+        // C) Decidir resultado (75% Éxito, 25% Fallo)
+        const isFailure = Math.random() < 0.25; 
+        const finalStatus: PaymentStatus = isFailure ? 'FAILURE' : 'SUCCESS';
+        
+        console.log(`🎲 Result for ${res_id}: ${finalStatus}`);
+
+        // D) Actualizar la base de datos automáticamente
         const updatedPayment = await updatePaymentByReservationId(
           res_id, 
-          simulatedStatus
+          finalStatus
         );
 
+        // E) Publicar el evento final (SUCCESS/FAILURE)
         if (updatedPayment) {
-          console.log(`  Publishing ${simulatedStatus} event for res_id: ${res_id}`);
+          console.log(`📢 [3/3] Publishing FINAL event (${finalStatus}) for ${res_id}`);
           await publishPaymentStatusUpdated({
             paymentId: updatedPayment.id,
             reservationId: updatedPayment.res_id,
@@ -83,31 +83,30 @@ export async function POST(request: NextRequest) {
             updatedAt: new Date().toISOString() as ISODateTime,
           });
         }
-      
 
       } catch (error) {
-        console.error(`❌ Failed during payment processing sequence:`, error);
-  
-        throw error; 
+        console.error(`❌ Error during automatic processing:`, error);
+        // Si falla la simulación, al menos el pago quedó creado en PENDING.
+        // Podrías devolver 500 si prefieres que el Bridge reintente.
       }
+    } else {
+        console.log(`ℹ️ Payment for ${res_id} already exists. Skipping automation.`);
     }
 
+    // 3. RESPONDER AL BRIDGE
+    // El Bridge recibirá el 200 OK recién cuando termine todo el proceso (aprox 2-3 segundos)
     return createCorsResponse(request, { success: true, payment: payment });
 
   } catch (error) {
     console.error("❌ Error in POST /api/webhooks/payments:", error);
-    return createCorsResponse(
-      request,
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      500
-    );
+    return createCorsResponse(request, { success: false, error: error instanceof Error ? error.message : "Unknown error" }, 500);
   }
 }
 
 
+// ===================================
+// FUNCIÓN PUT (Para actualizaciones manuales si hicieran falta)
+// ===================================
 export async function PUT(request: NextRequest) {
   try {
     const json = await request.json();
@@ -147,14 +146,7 @@ export async function PUT(request: NextRequest) {
     return createCorsResponse(request, { success: true, payment });
   } catch (error) {
     console.error("❌ Error in PUT /api/webhooks/payments:", error);
-    return createCorsResponse(
-      request,
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      500
-    );
+    return createCorsResponse(request, { success: false, error: error instanceof Error ? error.message : "Unknown error" }, 500);
   }
 }
 
