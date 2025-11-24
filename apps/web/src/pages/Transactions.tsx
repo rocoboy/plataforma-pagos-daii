@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Transaction } from '../data/mockData';
 import { fetchPayments } from '../lib/apiClient';
+import { updatePaymentStatus } from '../lib/apiClient';
 import { useAuth } from '../contexts/AuthContext';
 import jsPDF from 'jspdf';
 import { Button } from '../components/ui/button';
