@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Transaction } from '../data/mockData';
 import { fetchPayments } from '../lib/apiClient';
+import { updatePaymentStatus } from '../lib/apiClient';
 import { useAuth } from '../contexts/AuthContext';
 import jsPDF from 'jspdf';
 import { Button } from '../components/ui/button';
@@ -21,7 +22,8 @@ import {
   Download, 
   SearchX,
   Receipt,
-  Loader2
+  Loader2,
+  Check
 } from 'lucide-react';
 
 // Status Badge Component
@@ -347,7 +349,7 @@ const TransactionsPage: React.FC = () => {
                         <StatusBadge status={transaction.status} />
                       </TableCell>
                       <TableCell className="text-center">
-                        <div className="flex items-center justify-center">
+                        <div className="flex items-center justify-center gap-2">
                           <Button
                             size="icon"
                             variant="ghost"
@@ -357,6 +359,55 @@ const TransactionsPage: React.FC = () => {
                           >
                             <Download className="h-4 w-4 text-gray-700" />
                           </Button>
+                          {transaction.status === 'pending' && (
+                            <>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                title="Marcar SUCCESS"
+                                onClick={async () => {
+                                  try {
+                                    await updatePaymentStatus(transaction.id, 'SUCCESS');
+                                    handleRefreshPayments();
+                                  } catch (err) {
+                                    setSnackbar({ type: 'error', message: 'Error al marcar como SUCCESS' });
+                                  }
+                                }}
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                title="Marcar FAILURE"
+                                onClick={async () => {
+                                  try {
+                                    await updatePaymentStatus(transaction.id, 'FAILURE');
+                                    handleRefreshPayments();
+                                  } catch (err) {
+                                    setSnackbar({ type: 'error', message: 'Error al marcar como FAILURE' });
+                                  }
+                                }}
+                              >
+                                <XIcon className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                title="Aprobar REFUND"
+                                onClick={async () => {
+                                  try {
+                                    await updatePaymentStatus(transaction.id, 'REFUND');
+                                    handleRefreshPayments();
+                                  } catch (err) {
+                                    setSnackbar({ type: 'error', message: 'Error al aprobar REFUND' });
+                                  }
+                                }}
+                              >
+                                <RotateCw className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
