@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
     // 2. SÓLO PUBLICA EL EVENTO SI EL PAGO ES NUEVO
     if (isNew) {
       try {
+        console.log(`📢 Payment Created. Publishing PENDING for ${res_id}...`);
         await publishPaymentStatusUpdated({
           paymentId: payment.id,
           reservationId: payment.res_id,
@@ -65,10 +66,7 @@ export async function POST(request: NextRequest) {
           updatedAt: new Date().toISOString() as ISODateTime,
         });
       } catch (error) {
-        console.error(
-          `❌ Failed to publish payment status updated event:`,
-          error
-        );
+        console.error(`❌ Failed during payment creation:`, error);
         throw error;
       }
     }
