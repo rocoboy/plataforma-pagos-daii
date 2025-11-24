@@ -391,22 +391,24 @@ const TransactionsPage: React.FC = () => {
                               >
                                 <XIcon className="h-4 w-4" />
                               </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                title="Aprobar REFUND"
-                                onClick={async () => {
-                                  try {
-                                    await updatePaymentStatus(transaction.reservationId, 'REFUND');
-                                    handleRefreshPayments();
-                                  } catch (err) {
-                                    setSnackbar({ type: 'error', message: 'Error al aprobar REFUND' });
-                                  }
-                                }}
-                              >
-                                <RotateCw className="h-4 w-4" />
-                              </Button>
                             </>
+                          )}
+                          {transaction.status?.toLowerCase() === 'success' && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Aprobar REFUND"
+                              onClick={async () => {
+                                try {
+                                  await updatePaymentStatus(transaction.reservationId, 'REFUND');
+                                  handleRefreshPayments();
+                                } catch (err) {
+                                  setSnackbar({ type: 'error', message: 'Error al aprobar REFUND' });
+                                }
+                              }}
+                            >
+                              <RotateCw className="h-4 w-4" />
+                            </Button>
                           )}
                         </div>
                       </TableCell>
