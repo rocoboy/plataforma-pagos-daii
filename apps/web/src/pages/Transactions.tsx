@@ -362,7 +362,7 @@ const TransactionsPage: React.FC = () => {
                             <>
                               <Button
                                 size="icon"
-                                variant="success"
+                                variant="ghost"
                                 title="Marcar SUCCESS"
                                 onClick={async () => {
                                   try {
@@ -377,7 +377,7 @@ const TransactionsPage: React.FC = () => {
                               </Button>
                               <Button
                                 size="icon"
-                                variant="destructive"
+                                variant="ghost"
                                 title="Marcar FAILURE"
                                 onClick={async () => {
                                   try {
@@ -392,7 +392,7 @@ const TransactionsPage: React.FC = () => {
                               </Button>
                               <Button
                                 size="icon"
-                                variant="warning"
+                                variant="ghost"
                                 title="Aprobar REFUND"
                                 onClick={async () => {
                                   try {
