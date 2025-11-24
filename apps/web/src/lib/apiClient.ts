@@ -94,12 +94,12 @@ export async function createPayment(paymentData: {
  * Update payment status
  * JWT token will be automatically added by the interceptor
  */
-export async function updatePaymentStatus(paymentId: string, status: string): Promise<PaymentRow> {
+export async function updatePaymentStatus(resId: string, status: string): Promise<PaymentRow> {
   try {
     const response = await fetch(`${getApiUrl()}/api/webhooks/payments`, {
       method: 'PUT',
       headers: createHeaders(),
-      body: JSON.stringify({ id: paymentId, status }),
+      body: JSON.stringify({ res_id: resId, status }),
     });
 
     if (!response.ok) {

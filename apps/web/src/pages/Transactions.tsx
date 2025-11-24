@@ -367,7 +367,7 @@ const TransactionsPage: React.FC = () => {
                                 title="Marcar SUCCESS"
                                 onClick={async () => {
                                   try {
-                                    await updatePaymentStatus(transaction.id, 'SUCCESS');
+                                    await updatePaymentStatus(transaction.reservationId, 'SUCCESS');
                                     handleRefreshPayments();
                                   } catch (err) {
                                     setSnackbar({ type: 'error', message: 'Error al marcar como SUCCESS' });
@@ -382,7 +382,7 @@ const TransactionsPage: React.FC = () => {
                                 title="Marcar FAILURE"
                                 onClick={async () => {
                                   try {
-                                    await updatePaymentStatus(transaction.id, 'FAILURE');
+                                    await updatePaymentStatus(transaction.reservationId, 'FAILURE');
                                     handleRefreshPayments();
                                   } catch (err) {
                                     setSnackbar({ type: 'error', message: 'Error al marcar como FAILURE' });
@@ -397,7 +397,7 @@ const TransactionsPage: React.FC = () => {
                                 title="Aprobar REFUND"
                                 onClick={async () => {
                                   try {
-                                    await updatePaymentStatus(transaction.id, 'REFUND');
+                                    await updatePaymentStatus(transaction.reservationId, 'REFUND');
                                     handleRefreshPayments();
                                   } catch (err) {
                                     setSnackbar({ type: 'error', message: 'Error al aprobar REFUND' });
