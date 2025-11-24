@@ -359,7 +359,7 @@ const TransactionsPage: React.FC = () => {
                           >
                             <Download className="h-4 w-4 text-gray-700" />
                           </Button>
-                          {transaction.status === 'pending' && (
+                          {transaction.status?.toLowerCase() === 'pending' && (
                             <>
                               <Button
                                 size="icon"
